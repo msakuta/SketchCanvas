@@ -28,16 +28,8 @@ function draw() {
   ctx.strokeText('Canvas v1.00', 420, 10);
   ctx.rect(x0, y0, w0, h0);
   ctx.rect(x1, y1, w1, h1);
-  // test
-  ctx.moveTo(140, 70);
-  ctx.lineTo(180, 70);
-  ctx.lineTo(180, 170);
-  ctx.lineTo(140, 170);
   ctx.closePath();
   ctx.stroke();
-
-  ctx.fillStyle = 'rgba(192, 80, 77, 0.5)'; // 赤
-  ctx.fillRect(220, 140, 100, 100);
 
   // menu
   drawMenu(0);
