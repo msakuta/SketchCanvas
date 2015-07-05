@@ -12,6 +12,9 @@ onload = function() {
   // Draw objects
   dobjs = [];
 
+  // And the history of operations
+  dhistory = [];
+
 };
 
 function draw() {
@@ -683,24 +686,23 @@ function ajaxsearch(mode) {
 
 }
 
+// Create a deep clone of objects
+function cloneObject(obj) {
+	if (obj === null || typeof obj !== 'object') {
+		return obj;
+	}
+
+	var temp = obj.constructor(); // give temp the original obj's constructor
+	for (var key in obj) {
+		temp[key] = cloneObject(obj[key]);
+	}
+
+	return temp;
+}
+
 // Ajax通信開始(parts)
 function ajaxparts(str) {
-/*	xmlHttp = createXMLHttpRequest(retparts);
-
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-   		try {
-   	    	xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=parts&data="+encodeURI(str), true);
-    	    xmlHttp.send("");
-   		}
-   		catch (e) {
-   	    	alert("exception:"+e);
-   		}
-	}
-	else {
-    	alert("失敗:"+xmlHttp);
-	}*/
-
+	dhistory.push(cloneObject(dobjs));
 	dobjs.push(str);
 	updateDrawData();
 }
@@ -723,21 +725,13 @@ function ajaxclear() {
 
 // undo
 function ajaxundo() {
-	xmlHttp = createXMLHttpRequest(retparts);
-
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-   		try {
-   	    	xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=undo", true);
-    	    xmlHttp.send("");
-   		}
-   		catch (e) {
-   	    	alert("exception:"+e);
-   		}
-	}
-	else {
-    	alert("失敗:"+xmlHttp);
-	}
+	if(dhistory.length < 1)
+		return;
+	dobjs = dhistory[dhistory.length-1];
+	dhistory.pop();
+	updateDrawData();
+	clearCanvas();
+	redraw(dobjs);
 }
 
 // redraw
