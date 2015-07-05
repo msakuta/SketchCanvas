@@ -333,6 +333,7 @@ function points() {
 function drawCanvas(mode, str) {
 	// DEBUG
 	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
+	var numPoints = 2;
 	switch (cur_tool) {
 	case 11:	// line
 		ctx.beginPath();
@@ -372,6 +373,7 @@ function drawCanvas(mode, str) {
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
 		ctx.stroke();
 		ctx.lineWidth = 1;
+		numPoints = 3;
 		break;
 	case 16:	// arc arrow
 		ctx.beginPath();
@@ -384,6 +386,7 @@ function drawCanvas(mode, str) {
 		a[1] = arr[2];
 		l_hige(ctx, a);
 		ctx.lineWidth = 1;
+		numPoints = 3;
 		break;
 	case 17:	// arc twin arrow
 		ctx.beginPath();
@@ -398,6 +401,7 @@ function drawCanvas(mode, str) {
 		a[1] = arr[0];
 		l_hige(ctx, a);
 		ctx.lineWidth = 1;
+		numPoints = 3;
 		break;
 	case 18:	// rect
 		ctx.beginPath();
@@ -432,16 +436,19 @@ function drawCanvas(mode, str) {
 		//ctx.lineWidth = cur_thin - 40;
 		l_star(ctx, arr);
 		ctx.lineWidth = 1;
+		numPoints = 1;
 		break;
 	case 23:	// check
 		ctx.beginPath();
 		ctx.strokeStyle = colstr[cur_col-31];
 		l_check(ctx, arr);
+		numPoints = 1;
 		break;
 	case 24:	// complete
 		ctx.beginPath();
 		ctx.strokeStyle = colstr[cur_col-31];
 		l_complete(ctx, arr);
+		numPoints = 1;
 		break;
 	case 25:	// string
 		if (0 == mode) str = prompt("文字列:", "");
@@ -458,6 +465,7 @@ function drawCanvas(mode, str) {
 		else ctx.font = "20px 'ＭＳ Ｐゴシック'";
 		ctx.strokeText(str, arr[0].x, arr[0].y);
 		ctx.font = "14px 'ＭＳ Ｐゴシック'";
+		numPoints = 1;
 		break;
 	default:
 		debug("illegal tool no "+cur_tool);
@@ -465,13 +473,16 @@ function drawCanvas(mode, str) {
 	
 	if (0 == mode) {	// regist
 		// send parts to server
-		var dat = ""+cur_tool+":"+cur_col+":"+cur_thin;
-		for (i=0; i<3; i++) dat += ":"+arr[i].x+":"+arr[i].y;
+		var dat = "";
+		for (i=0; i<numPoints; i++){
+			if(i !== 0) dat += ":";
+			dat += arr[i].x+","+arr[i].y;
+		}
 		var alldat = {
 			type: cur_tool,
 			color: cur_col,
 			thickness: cur_thin,
-			pl: dat,
+			points: dat,
 		};
 		if (25 == cur_tool) alldat.text = str;
 		ajaxparts(alldat);
@@ -490,14 +501,17 @@ function redraw(pt) {
 	//alert("pt length="+pt.length);
 	for (i=0; i<pt.length; i++) {
 		var obj = pt[i];
-		var pt1 = obj.pl.split(":");
-		if (pt1.length < 6) continue;
+		var pt1 = obj.points.split(":");
 		cur_tool = obj.type;
 		cur_col = obj.color;
 		cur_thin = obj.thickness;
-		arr[0] = {x:pt1[3]-0, y:pt1[4]-0};
-		arr[1] = {x:pt1[5]-0, y:pt1[6]-0};
-		arr[2] = {x:pt1[7]-0, y:pt1[8]-0};
+		for(var j = 0; j < pt1.length; j++){
+			var pt2 = pt1[j].split(",");
+			arr[j] = {x:pt2[0]-0, y:pt2[1]-0};
+		}
+		for(var j = pt1.length; j < 3; j++){
+			arr[j] = {x:0, y:0};
+		}
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
 		drawCanvas(1, rstr);
@@ -699,7 +713,7 @@ function ajaxparts(str) {
 function updateDrawData(){
 	try{
 		var drawdata = document.getElementById('drawdata');
-		drawdata.value = jsyaml.safeDump(dobjs);
+		drawdata.value = jsyaml.safeDump(dobjs, {flowLevel: 2});
 	} catch(e){
 		console.log(e);
 	}
