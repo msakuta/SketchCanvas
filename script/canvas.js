@@ -464,13 +464,13 @@ function drawCanvas(mode, str) {
 		// send parts to server
 		var dat = ""+cur_tool+":"+cur_col+":"+cur_thin;
 		for (i=0; i<3; i++) dat += ":"+arr[i].x+":"+arr[i].y;
-		if (25 == cur_tool) dat += ":"+str;
 		var alldat = {
 			type: cur_tool,
 			color: cur_col,
 			thickness: cur_thin,
 			pl: dat,
 		};
+		if (25 == cur_tool) alldat.text = str;
 		ajaxparts(alldat);
 	}
 	// clear
@@ -496,7 +496,7 @@ function redraw(pt) {
 		arr[1] = {x:pt1[5]-0, y:pt1[6]-0};
 		arr[2] = {x:pt1[7]-0, y:pt1[8]-0};
 		var rstr = null;
-		if (25 == cur_tool && pt1.length == 9) rstr = pt1[9];
+		if (25 == cur_tool) rstr = obj.text;
 		drawCanvas(1, rstr);
 	}
 
