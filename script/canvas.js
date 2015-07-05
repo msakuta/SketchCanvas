@@ -556,6 +556,23 @@ function loadDataFromList(){
 		console.log(e);
 	}
 }
+
+function loadDataFromServerList(){
+	var sel = document.forms[0].serverselect;
+	var item = sel.options[sel.selectedIndex].text;
+	try{
+		var selData = serverdata;
+		if(!selData)
+			return;
+		dobjs = jsyaml.safeLoad(selData[item]);
+		updateDrawData();
+		clearCanvas();
+		redraw(dobjs);
+	} catch(e){
+		console.log(e);
+	}
+}
+
 // clear canvas
 function clearCanvas() {
 	ctx.fillStyle = white;
