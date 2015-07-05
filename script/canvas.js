@@ -465,26 +465,33 @@ function drawCanvas(mode, str) {
 		var dat = ""+cur_tool+":"+cur_col+":"+cur_thin;
 		for (i=0; i<3; i++) dat += ":"+arr[i].x+":"+arr[i].y;
 		if (25 == cur_tool) dat += ":"+str;
-		ajaxparts(dat);
+		var alldat = {
+			type: cur_tool,
+			color: cur_col,
+			thickness: cur_thin,
+			pl: dat,
+		};
+		ajaxparts(alldat);
 	}
 	// clear
 	idx = 0;
 	
 }
 // redraw
-function redraw(str) {
+function redraw(pt) {
 	// backup
 	var org_tool = cur_tool;
 	var org_col = cur_col;
 	var org_thin = cur_thin;
-	var pt = str.split(",");
+//	var pt = str.split(",");
 	//alert("pt length="+pt.length);
 	for (i=0; i<pt.length; i++) {
-		var pt1 = pt[i].split(":");
-		if (pt1.length < 9) continue;
-		cur_tool = pt1[0]-0;
-		cur_col = pt1[1]-0;
-		cur_thin = pt1[2]-0;
+		var obj = pt[i];
+		var pt1 = obj.pl.split(":");
+		if (pt1.length < 6) continue;
+		cur_tool = obj.type;
+		cur_col = obj.color;
+		cur_thin = obj.thickness;
 		arr[0] = {x:pt1[3]-0, y:pt1[4]-0};
 		arr[1] = {x:pt1[5]-0, y:pt1[6]-0};
 		arr[2] = {x:pt1[7]-0, y:pt1[8]-0};
@@ -501,8 +508,9 @@ function redraw(str) {
 
 function loadData(){
 	var drawdata = document.getElementById("drawdata");
+	dobjs = JSON.parse(drawdata.value);
 	clearCanvas();
-	redraw(drawdata.value);
+	redraw(dobjs);
 }
 
 // clear canvas
@@ -704,7 +712,7 @@ function ajaxparts(str) {
 	dobjs.push(str);
 
 	var drawdata = document.getElementById('drawdata');
-	drawdata.value = dobjs;
+	drawdata.value = JSON.stringify(dobjs);
 }
 
 // clear data
