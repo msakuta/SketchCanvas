@@ -517,6 +517,22 @@ function loadData(){
 	}
 }
 
+function loadDataFromList(){
+	var sel = document.forms[0].canvasselect;
+	var item = sel.options[sel.selectedIndex].text;
+	try{
+		var origData = localStorage.getItem("canvasDrawData");
+		if(origData === null)
+			return;
+		var selData = jsyaml.safeLoad(origData);
+		dobjs = jsyaml.safeLoad(selData[item]);
+		updateDrawData();
+		clearCanvas();
+		redraw(dobjs);
+	} catch(e){
+		console.log(e);
+	}
+}
 // clear canvas
 function clearCanvas() {
 	ctx.fillStyle = white;
@@ -526,7 +542,7 @@ function clearCanvas() {
 }
 
 // selection追加
-function setSelect(str) {
+function setSelect(ca) {
 	var name = null;
 	var option = null;
 	var text = null;
@@ -534,15 +550,12 @@ function setSelect(str) {
 	// clear
 	var n = sel.childNodes.length;
 	for (i=n-1; i>0; i--) sel.removeChild(sel.childNodes.item(i));
-	// parse
-	var ca = str.split("|");
-	if (ca.length < 2) return;
 	// create node
-	for (i=0; i<ca.length-1; i++) {
-		name = ca[i].split(":");
+	for(var propertyName in ca) {
+		name = propertyName;
 		option = document.createElement("OPTION");
-		option.setAttribute("value", name[0]);
-		text = document.createTextNode(name[1]);
+		option.setAttribute("value", name);
+		text = document.createTextNode(name);
 		option.appendChild(text);
 		sel.appendChild(option);
 	}
@@ -616,25 +629,15 @@ function choiceHBox(x, y) {
 //------------------- ajax -----------------------------------
 // save data
 function ajaxsave() {
-/*	xmlHttp = createXMLHttpRequest(retparts);
 
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-   		try {
-			var title = prompt("TITLE:", "");
-			if (null == title) return false;
-   	    	xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=save&title="+encodeURI(title), true);
-    	    xmlHttp.send("");
-   		}
-   		catch (e) {
-   	    	alert("exception:"+e);
-   		}
+	if(typeof(Storage) !== "undefined"){
+		var title = prompt("TITLE:", "");
+		if (null == title) return false;
+		var str = localStorage.getItem("canvasDrawData");
+		var origData = str === null ? {} : jsyaml.safeLoad(str);
+		origData[title] = jsyaml.safeDump(dobjs);
+		localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
 	}
-	else {
-    	alert("失敗:"+xmlHttp);
-	}*/
-
-	
 
 	return true;
 }
@@ -671,28 +674,13 @@ function ajaxappend() {
 
 // search
 function ajaxsearch(mode) {
-	xmlHttp = createXMLHttpRequest(retsearch);
 
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-		try {
-			if (1 == mode) {
-				var keyword = prompt("KEYWORD:", "");
-				if (null == keyword) return;
-				xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=search&keyword="+encodeURI(keyword), true);
-			}
-			else {
-				xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=list", true);
-			}
-			xmlHttp.send("");
-		}
-		catch (e) {
-			alert("exception:"+e);
-		}
+	if(typeof(Storage) !== "undefined"){
+		var str = localStorage.getItem("canvasDrawData");
+		var origData = str === null ? {} : jsyaml.safeLoad(str);
+		setSelect(origData);
 	}
-	else {
-		alert("失敗:"+xmlHttp);
-	}
+
 }
 
 // Ajax通信開始(parts)
@@ -714,7 +702,10 @@ function ajaxparts(str) {
 	}*/
 
 	dobjs.push(str);
+	updateDrawData();
+}
 
+function updateDrawData(){
 	try{
 		var drawdata = document.getElementById('drawdata');
 		drawdata.value = jsyaml.safeDump(dobjs);
