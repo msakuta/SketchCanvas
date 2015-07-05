@@ -285,7 +285,7 @@ function mouseLeftClick(e) {
 				ajaxundo();
 			}
 			else if (7 == cur_menu) {	// append
-				if (ajaxappend()) clearCanvas();
+				ajaxappend();
 			}
 		}
 		else if (menuno <= 30) {
@@ -635,7 +635,7 @@ function ajaxsave() {
 
 	if(typeof(Storage) !== "undefined"){
 		var title = prompt("TITLE:", "");
-		if (null == title) return false;
+		if (null === title) return false;
 		var str = localStorage.getItem("canvasDrawData");
 		var origData = str === null ? {} : jsyaml.safeLoad(str);
 		origData[title] = jsyaml.safeDump(dobjs);
@@ -656,21 +656,10 @@ function ajaxappend() {
 	var title =  sel.options[idx].innerHTML;
 	if (!confirm("TITLE:"+title+"に追加書き込みしますか？")) return false;
 
-	xmlHttp = createXMLHttpRequest(retparts);
-
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-   		try {
-   	    	xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=append&title="+encodeURI(title), true);
-    	    xmlHttp.send("");
-   		}
-   		catch (e) {
-   	    	alert("exception:"+e);
-   		}
-	}
-	else {
-    	alert("失敗:"+xmlHttp);
-	}
+	var str = localStorage.getItem("canvasDrawData");
+	var origData = str === null ? {} : jsyaml.safeLoad(str);
+	origData[title] = jsyaml.safeDump(dobjs);
+	localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
 
 	return true;
 }
