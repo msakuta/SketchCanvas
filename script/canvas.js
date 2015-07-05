@@ -716,21 +716,9 @@ function updateDrawData(){
 
 // clear data
 function ajaxclear() {
-	xmlHttp = createXMLHttpRequest(retparts);
-
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-   		try {
-   	    	xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=clear", true);
-    	    xmlHttp.send("");
-   		}
-   		catch (e) {
-   	    	alert("exception:"+e);
-   		}
-	}
-	else {
-    	alert("失敗:"+xmlHttp);
-	}
+	dobjs = [];
+	updateDrawData();
+	clearCanvas();
 }
 
 // undo
