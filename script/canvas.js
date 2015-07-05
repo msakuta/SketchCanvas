@@ -15,6 +15,9 @@ onload = function() {
   // And the history of operations
   dhistory = [];
 
+  // Load saved figure list from localStorage
+  ajaxsearch(0);
+
 };
 
 function draw() {
