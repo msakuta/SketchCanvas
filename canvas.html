@@ -18,12 +18,17 @@ body{margin: 0 0 0 0;}
   </head>
   <body>
     <canvas id="canvassample" width="1024" height="640"></canvas>
-    <form name="form1">
-      <p style="font-size: 14pt;">Canvas V1.0<select name="canvasselect"><option value="0">no select</option></select>
+    <form name="form1" method="POST" action="upload.php" enctype="multipart/form-data">
+      <p>Client-saved figures<select name="canvasselect"><option value="0">no select</option></select>
       <input type="button" value="Load" onclick="loadDataFromList()"></p>
       <p>Message:<span id="message"></span></p>
       <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
-      <textarea id="drawdata" rows="10" cols="50"></textarea>
+      <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
+      <input type="hidden" name="dir" value="test">
+      <p>Upload name
+        <input type="text" name="fname" value="default">
+        <input type="submit" value="Upload">
+      </p>
     </form>
     <p>This application uses <a href="https://github.com/nodeca/js-yaml">js-yaml</a> JavaScript library.
     It's license is found in <a href="script/LICENSE">LICENSE</a> file.</p>

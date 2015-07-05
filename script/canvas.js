@@ -290,6 +290,9 @@ function mouseLeftClick(e) {
 			else if (7 == cur_menu) {	// append
 				ajaxappend();
 			}
+			else if (8 == cur_menu) {	// append
+				postSave();
+			}
 		}
 		else if (menuno <= 30) {
 			drawTBox(menuno);
@@ -609,7 +612,7 @@ function checkMenu(x, y) {
 function choiceMenu(x, y) {
 	// menu
 	if (y < my0 || y > my0+mh0) return 0;
-	for(i=0;i<7;i++) {
+	for(i=0;i<8;i++) {
 		if (x >= mx1+(mw1+10)*i && x <= mx1+mw0+(mw1+10)*i) return i+1;
 	}
 
@@ -746,6 +749,12 @@ function ajaxredraw(id) {
 	redraw(dobjs);
 }
 
+function uploadData(){
+	var hidden = document.createElement("INPUT");
+	hidden.setAttribute("type", "hidden");
+	document.forms[0].appendChild.append(hidden);
+}
+
 //------------------------ debug ------------------------
 function debug(msg) {
   var darea = document.getElementById('message');
@@ -758,7 +767,7 @@ onclick=mouseLeftClick;
 var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
 var idx = 0, zorder = 0;
 var ctx;
-var menustr = new Array("保存","一覧","検索","クリア","再描画","undo","追加保存");
+var menustr = new Array("保存","一覧","検索","クリア","再描画","undo","追加保存","サーバ保存");
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
 var blue = "rgb(0, 100, 255)";
