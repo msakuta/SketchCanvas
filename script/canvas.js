@@ -501,6 +501,7 @@ function redraw(str) {
 
 function loadData(){
 	var drawdata = document.getElementById("drawdata");
+	clearCanvas();
 	redraw(drawdata.value);
 }
 
