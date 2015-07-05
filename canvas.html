@@ -18,8 +18,10 @@ body{margin: 0 0 0 0;}
   <body>
     <canvas id="canvassample" width="1024" height="640"></canvas>
     <form name="form1">
-      <p style="font-size: 14pt;">Canvas V1.0<select name="canvasselect"><option value="0">no select</select></p>
+      <p style="font-size: 14pt;">Canvas V1.0<select name="canvasselect"><option value="0">no select</option></select></p>
       <p>Message:<span id="message"></span></p>
+      <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
+      <textarea id="drawdata" rows="10" cols="50"></textarea>
     </form>
   </body>
 </html>

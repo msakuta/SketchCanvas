@@ -9,6 +9,9 @@ onload = function() {
   ctx = canvas.getContext('2d');
   draw();
 
+  // Draw objects
+  dobjs = [];
+
 };
 
 function draw() {
@@ -474,11 +477,11 @@ function redraw(str) {
 	var org_tool = cur_tool;
 	var org_col = cur_col;
 	var org_thin = cur_thin;
-	var pt = str.split("|");
+	var pt = str.split(",");
 	//alert("pt length="+pt.length);
 	for (i=0; i<pt.length; i++) {
 		var pt1 = pt[i].split(":");
-		if (10 != pt1.length) continue;
+		if (pt1.length < 9) continue;
 		cur_tool = pt1[0]-0;
 		cur_col = pt1[1]-0;
 		cur_thin = pt1[2]-0;
@@ -486,7 +489,7 @@ function redraw(str) {
 		arr[1] = {x:pt1[5]-0, y:pt1[6]-0};
 		arr[2] = {x:pt1[7]-0, y:pt1[8]-0};
 		var rstr = null;
-		if (25 == cur_tool) rstr = pt1[9];
+		if (25 == cur_tool && pt1.length == 9) rstr = pt1[9];
 		drawCanvas(1, rstr);
 	}
 
@@ -494,6 +497,11 @@ function redraw(str) {
 	cur_tool = org_tool;
 	cur_col = org_col;
 	cur_thin = org_thin;
+}
+
+function loadData(){
+	var drawdata = document.getElementById("drawdata");
+	redraw(drawdata.value);
 }
 
 // clear canvas
@@ -595,7 +603,7 @@ function choiceHBox(x, y) {
 //------------------- ajax -----------------------------------
 // save data
 function ajaxsave() {
-	xmlHttp = createXMLHttpRequest(retparts);
+/*	xmlHttp = createXMLHttpRequest(retparts);
 
 	if (null != xmlHttp) {
 //			alert("成功:"+xmlHttp);
@@ -611,7 +619,9 @@ function ajaxsave() {
 	}
 	else {
     	alert("失敗:"+xmlHttp);
-	}
+	}*/
+
+	
 
 	return true;
 }
@@ -674,7 +684,7 @@ function ajaxsearch(mode) {
 
 // Ajax通信開始(parts)
 function ajaxparts(str) {
-	xmlHttp = createXMLHttpRequest(retparts);
+/*	xmlHttp = createXMLHttpRequest(retparts);
 
 	if (null != xmlHttp) {
 //			alert("成功:"+xmlHttp);
@@ -688,8 +698,12 @@ function ajaxparts(str) {
 	}
 	else {
     	alert("失敗:"+xmlHttp);
-	}
+	}*/
 
+	dobjs.push(str);
+
+	var drawdata = document.getElementById('drawdata');
+	drawdata.value = dobjs;
 }
 
 // clear data
@@ -835,7 +849,7 @@ function debug(msg) {
 }
 
 // init --------------------------------------------------
-window.captureEvents(Event.click);
+//window.captureEvents(Event.click);
 onclick=mouseLeftClick;
 var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
 var idx = 0, zorder = 0;
