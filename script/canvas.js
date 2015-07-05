@@ -262,7 +262,7 @@ function mouseLeftClick(e) {
 			drawMenu(menuno);
 			cur_menu = menuno;
 			if (1 == cur_menu) {	// save
-				if (ajaxsave()) clearCanvas();
+				ajaxsave();
 			}
 			else if (2 == cur_menu) {	// list
 				//clearCanvas();
