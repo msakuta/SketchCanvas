@@ -508,9 +508,13 @@ function redraw(pt) {
 
 function loadData(){
 	var drawdata = document.getElementById("drawdata");
-	dobjs = JSON.parse(drawdata.value);
-	clearCanvas();
-	redraw(dobjs);
+	try{
+		dobjs = jsyaml.safeLoad(drawdata.value);
+		clearCanvas();
+		redraw(dobjs);
+	} catch(e){
+		console.log(e);
+	}
 }
 
 // clear canvas
@@ -711,8 +715,12 @@ function ajaxparts(str) {
 
 	dobjs.push(str);
 
-	var drawdata = document.getElementById('drawdata');
-	drawdata.value = JSON.stringify(dobjs);
+	try{
+		var drawdata = document.getElementById('drawdata');
+		drawdata.value = jsyaml.safeDump(dobjs);
+	} catch(e){
+		console.log(e);
+	}
 }
 
 // clear data
