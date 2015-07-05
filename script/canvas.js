@@ -725,21 +725,8 @@ function ajaxundo() {
 
 // redraw
 function ajaxredraw(id) {
-	xmlHttp = createXMLHttpRequest(retredraw);
-
-	if (null != xmlHttp) {
-//			alert("成功:"+xmlHttp);
-   		try {
-   	    	xmlHttp.open("GET","/tearoom/servlet/Canvas?do=ajax&command=redraw&id="+id, true);
-    	    xmlHttp.send("");
-   		}
-   		catch (e) {
-   	    	alert("exception:"+e);
-   		}
-	}
-	else {
-    	alert("失敗:"+xmlHttp);
-	}
+	clearCanvas();
+	redraw(dobjs);
 }
 
 // Ajax通信完了(parts,save,append,clear,undo)
