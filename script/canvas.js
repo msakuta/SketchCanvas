@@ -552,16 +552,31 @@ function loadDataFromList(){
 function loadDataFromServerList(){
 	var sel = document.forms[0].serverselect;
 	var item = sel.options[sel.selectedIndex].text;
-	try{
-		var selData = serverdata;
-		if(!selData)
-			return;
-		dobjs = jsyaml.safeLoad(selData[item]);
-		updateDrawData();
-		clearCanvas();
-		redraw(dobjs);
-	} catch(e){
-		console.log(e);
+
+	// Asynchronous request for getting figure data in the server.
+	var xmlHttp = createXMLHttpRequest();
+	if(xmlHttp){
+		// The event handler is assigned here because xmlHttp is a free variable
+		// implicitly passed to the anonymous function without polluting the
+		// global namespace.
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
+				return;
+			try{
+				var selData = xmlHttp.responseText;
+				if(!selData)
+					return;
+				dobjs = jsyaml.safeLoad(selData);
+				updateDrawData();
+				clearCanvas();
+				redraw(dobjs);
+			}
+			catch(e){
+				console.log(e);
+			}
+		};
+		xmlHttp.open("GET", "test/" + item, true);
+		xmlHttp.send();
 	}
 }
 
@@ -756,6 +771,30 @@ function ajaxundo() {
 function ajaxredraw(id) {
 	clearCanvas();
 	redraw(dobjs);
+}
+
+// Create and return a XMLHttpRequest object or ActiveXObject for IE6-
+function createXMLHttpRequest(){
+	var xmlHttp = null;
+	try{
+		// for IE7+, Fireforx, Chrome, Opera, Safari
+		xmlHttp = new XMLHttpRequest();
+	}
+	catch(e){
+		try{
+			// for IE6, IE5 (canvas element wouldn't work from the start, though)
+			xmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
+		}
+		catch(e){
+			try{
+				xmlHttp = new ActiveXObject("Microsoft.XMLHttp");
+			}
+			catch(e){
+				return null;
+			}
+		}
+	}
+	return xmlHttp;
 }
 
 function uploadData(){

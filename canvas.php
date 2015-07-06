@@ -10,23 +10,6 @@
     <script language="javascript" src="script/canvas.js"></script>
 <!--    <script language="javascript" src="script/encoding.js"></script> -->
     <script src="script/js-yaml.min.js"></script>
-    <script language="javascript">
-<?php
-	$maxsize = 10000;
-	echo "serverdata = {\n";
-	foreach(glob("test/*") as $filename){
-		$fp = fopen($filename, "r");
-		if($fp){
-			$content = fread($fp, $maxsize);
-			if($content)
-				echo("\"" . basename($filename) . "\": \"" .
-					str_replace(array("\r\n", "\n", "\r"), "\\n", addslashes($content)) . "\",\n");
-			fclose($fp);
-		}
-	}
-	echo "};\n";
-?>
-    </script>
     <style type="text/css">
 <!--
 body{margin: 0 0 0 0;}
