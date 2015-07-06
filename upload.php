@@ -13,6 +13,11 @@ do{
 		echo "empty\n";
 		break;
 	}
+	else if(strpos($fname, "/") !== false || strpos($fname, "\\") !== false){
+		echo "failed\n";
+		echo "file path delimiter is prohibited in the file name\n";
+		break;
+	}
 
 	if(file_exists($updir.$fname)==TRUE/* && $_POST['frb']=="true"*/) {
 		echo "failed\n";
