@@ -18,6 +18,8 @@ onload = function() {
   // Load saved figure list from localStorage
   ajaxsearch(0);
 
+  // Download saved figures list from the server
+  downloadList();
 };
 
 function draw() {
@@ -549,6 +551,32 @@ function loadDataFromList(){
 	}
 }
 
+// Downloads the file list from the server.
+function downloadList(){
+	// Asynchronous request for getting figure data in the server.
+	var xmlHttp = createXMLHttpRequest();
+	if(xmlHttp){
+		// The event handler is assigned here because xmlHttp is a free variable
+		// implicitly passed to the anonymous function without polluting the
+		// global namespace.
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
+				return;
+			try{
+				var selData = xmlHttp.responseText;
+				if(!selData)
+					return;
+				setSelect(selData.split("\n"), document.forms[0].serverselect);
+			}
+			catch(e){
+				console.log(e);
+			}
+		};
+		xmlHttp.open("GET", "list.php", true);
+		xmlHttp.send();
+	}
+}
+
 function loadDataFromServerList(){
 	var sel = document.forms[0].serverselect;
 	var item = sel.options[sel.selectedIndex].text;
@@ -589,17 +617,18 @@ function clearCanvas() {
 }
 
 // selection追加
-function setSelect(ca) {
+function setSelect(ca, sel) {
 	var name = null;
 	var option = null;
 	var text = null;
-	var sel = document.forms[0].canvasselect;
 	// clear
 	var n = sel.childNodes.length;
 	for (i=n-1; i>0; i--) sel.removeChild(sel.childNodes.item(i));
 	// create node
-	for(var propertyName in ca) {
-		name = propertyName;
+	for(var i = 0; i < ca.length; i++){
+		var name = ca[i];
+		if(!name) // Skip blank lines
+			continue;
 		option = document.createElement("OPTION");
 		option.setAttribute("value", name);
 		text = document.createTextNode(name);
@@ -714,7 +743,16 @@ function ajaxsearch(mode) {
 	if(typeof(Storage) !== "undefined"){
 		var str = localStorage.getItem("canvasDrawData");
 		var origData = str === null ? {} : jsyaml.safeLoad(str);
-		setSelect(origData);
+
+		// Enumerating keys array would be simpler if we could use Object.keys(),
+		// but the method won't work for IE6, 7, 8.
+		// If we'd repeat this procedure, we may be able to use a shim in:
+		// https://github/com/es-shims/es5-shim/blob/v2.0.5/es5-shim.js
+		var keys = [];
+		for(var name in origData)
+			keys.push(name);
+
+		setSelect(keys, document.forms[0].canvasselect);
 	}
 
 }
@@ -811,6 +849,7 @@ function uploadData(){
 			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
 				return;
 			debug(xmlHttp.responseText);
+			downloadList();
 		};
 		xmlHttp.open("POST", "upload.php", true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");

@@ -21,13 +21,7 @@ body{margin: 0 0 0 0;}
     <form name="form1" method="POST" action="upload.php" enctype="multipart/form-data">
       <p>Client-saved figures<select name="canvasselect"><option value="0">no select</option></select>
       <input type="button" value="Load" onclick="loadDataFromList()"></p>
-      <p>Server-saved figures<select name="serverselect"><option value="0">no select</option>
-<?php
-	foreach(glob("test/*") as $filename){
-		echo "<option value=\"$i\">" . basename($filename) . "</option>\n";
-	}
-?>
-</select>
+      <p>Server-saved figures<select name="serverselect"><option value="0">no select</option></select>
       <input type="button" value="Load" onclick="loadDataFromServerList()"></p>
       <p>Message:<span id="message"></span></p>
       <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
