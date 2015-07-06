@@ -798,9 +798,24 @@ function createXMLHttpRequest(){
 }
 
 function uploadData(){
-	var hidden = document.createElement("INPUT");
-	hidden.setAttribute("type", "hidden");
-	document.forms[0].appendChild.append(hidden);
+	var drawdata = document.getElementById("drawdata");
+	var fname = document.getElementById("fname");
+
+	// Asynchronous request for getting figure data in the server.
+	var xmlHttp = createXMLHttpRequest();
+	if(xmlHttp){
+		// The event handler is assigned here because xmlHttp is a free variable
+		// implicitly passed to the anonymous function without polluting the
+		// global namespace.
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
+				return;
+			debug(xmlHttp.responseText);
+		};
+		xmlHttp.open("POST", "upload.php", true);
+		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xmlHttp.send("dir=test&fname=" + encodeURI(fname.value) + "&drawdata=" + encodeURI(drawdata.value));
+	}
 }
 
 //------------------------ debug ------------------------

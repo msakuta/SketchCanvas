@@ -34,8 +34,8 @@ body{margin: 0 0 0 0;}
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
       <input type="hidden" name="dir" value="test">
       <p>Upload name
-        <input type="text" name="fname" value="default">
-        <input type="submit" value="Upload">
+        <input type="text" id="fname" name="fname" value="default">
+        <input type="button" value="Upload" onclick="uploadData()">
       </p>
     </form>
     <p>This application uses <a href="https://github.com/nodeca/js-yaml">js-yaml</a> JavaScript library.

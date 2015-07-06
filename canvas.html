@@ -21,13 +21,15 @@ body{margin: 0 0 0 0;}
     <form name="form1" method="POST" action="upload.php" enctype="multipart/form-data">
       <p>Client-saved figures<select name="canvasselect"><option value="0">no select</option></select>
       <input type="button" value="Load" onclick="loadDataFromList()"></p>
+      <p>Server-saved figures<select name="serverselect"><option value="0">no select</option></select>
+      <input type="button" value="Load" onclick="loadDataFromServerList()"></p>
       <p>Message:<span id="message"></span></p>
       <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
       <input type="hidden" name="dir" value="test">
       <p>Upload name
-        <input type="text" name="fname" value="default">
-        <input type="submit" value="Upload">
+        <input type="text" id="fname" name="fname" value="default">
+        <input type="button" value="Upload" onclick="uploadData()">
       </p>
     </form>
     <p>This application uses <a href="https://github.com/nodeca/js-yaml">js-yaml</a> JavaScript library.
