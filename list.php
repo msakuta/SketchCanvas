@@ -1,6 +1,6 @@
 <?php header("Content-Type:text/plain"); ?>
 <?php
-	foreach(glob("test/*") as $filename){
+	foreach(glob("data/*") as $filename){
 		echo basename($filename) . "\n";
 	}
 ?>

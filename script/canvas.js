@@ -22,6 +22,8 @@ onload = function() {
   downloadList();
 };
 
+var datadir = "data";
+
 function draw() {
   /* 四角を描く */
   ctx.beginPath();
@@ -603,7 +605,7 @@ function loadDataFromServerList(){
 				console.log(e);
 			}
 		};
-		xmlHttp.open("GET", "test/" + item, true);
+		xmlHttp.open("GET", datadir + "/" + item, true);
 		xmlHttp.send();
 	}
 }
@@ -853,7 +855,7 @@ function uploadData(){
 		};
 		xmlHttp.open("POST", "upload.php", true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xmlHttp.send("dir=test&fname=" + encodeURI(fname.value) + "&drawdata=" + encodeURI(drawdata.value));
+		xmlHttp.send("fname=" + encodeURI(fname.value) + "&drawdata=" + encodeURI(drawdata.value));
 	}
 }
 

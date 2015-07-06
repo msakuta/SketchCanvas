@@ -26,7 +26,6 @@ body{margin: 0 0 0 0;}
       <p>Message:<span id="message"></span></p>
       <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
-      <input type="hidden" name="dir" value="test">
       <p>Upload name
         <input type="text" id="fname" name="fname" value="default">
         <input type="button" value="Upload" onclick="uploadData()">

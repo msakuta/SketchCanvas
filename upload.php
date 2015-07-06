@@ -2,25 +2,9 @@
 <?php
 
 $maxsize = 100000;
-$updir = "./up/";
+$updir = "data/";
 
 do{
-	if(0 < count($_POST['dir'])){
-
-		// A very basic way to limit upload destination to the immediate directory.
-		if(strchr($_POST['dir'], '/')){
-			echo "failed\n";
-			echo "path must not include a slash.";
-			break;
-		}
-
-		$updir = "./" . $_POST['dir'];
-		if(!file_exists($updir)){
-			mkdir($updir);
-		}
-		$updir .= "/";
-	}
-
 	$fname = $_POST['fname'];
 	$fdata = $_POST['drawdata'];
 	$fsize = strlen($fdata);
