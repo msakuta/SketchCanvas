@@ -5,7 +5,10 @@ onload = function() {
   if ( ! canvas || ! canvas.getContext ) {
     return false;
   }
-  /* 2Dコンテキスト */
+
+  canvas.onclick = mouseLeftClick;
+
+  // 2D context
   ctx = canvas.getContext('2d');
   draw();
 
@@ -867,7 +870,7 @@ function debug(msg) {
 
 // init --------------------------------------------------
 //window.captureEvents(Event.click);
-onclick=mouseLeftClick;
+//onclick=mouseLeftClick;
 var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
 var idx = 0, zorder = 0;
 var ctx;
