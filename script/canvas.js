@@ -845,9 +845,8 @@ function createXMLHttpRequest(){
 	return xmlHttp;
 }
 
-function uploadData(){
+function uploadData(fname){
 	var drawdata = document.getElementById("drawdata");
-	var fname = document.getElementById("fname");
 
 	// Asynchronous request for getting figure data in the server.
 	var xmlHttp = createXMLHttpRequest();
@@ -863,8 +862,18 @@ function uploadData(){
 		};
 		xmlHttp.open("POST", "upload.php", true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xmlHttp.send("fname=" + encodeURI(fname.value) + "&drawdata=" + encodeURI(drawdata.value));
+		xmlHttp.send("fname=" + encodeURI(fname) + "&drawdata=" + encodeURI(drawdata.value));
 	}
+}
+
+function uploadDataNew(){
+	uploadData(document.getElementById("fname").value);
+}
+
+function uploadDataFromServerList(){
+	var sel = document.forms[0].serverselect;
+	if(0 < sel.selectedIndex)
+		uploadData(sel.options[sel.selectedIndex].text);
 }
 
 //------------------------ debug ------------------------
