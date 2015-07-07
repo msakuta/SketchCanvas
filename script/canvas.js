@@ -1,3 +1,9 @@
+
+// Obtain the browser's preferred language.
+var currentLanguage = (window.navigator.language || window.navigator.userLanguage || window.navigator.userLanguage).substr(0, 2);
+
+i18n.init({lng: currentLanguage, fallbackLng: 'en', resStore: resources, getAsync: false});
+
 onload = function() {
   // Obtain node object of canvas element
   var canvas = document.getElementById('canvassample');
@@ -31,7 +37,7 @@ function draw() {
   // Draw a rectangle
   ctx.beginPath();
   ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
-		ctx.font = "14px 'ＭＳ Ｐゴシック'";
+		ctx.font = i18n.t("14px 'Courier'");
   ctx.strokeText('Canvas v1.00', 420, 10);
   ctx.rect(x0, y0, w0, h0);
   ctx.rect(x1, y1, w1, h1);
@@ -234,7 +240,7 @@ function drawParts(no, x, y) {
 		break;
 	case 24:		// complete
 		ctx.beginPath();
-		ctx.strokeText('済', x+3, y+10);
+		ctx.strokeText(i18n.t('Done'), x+3, y+10);
 		ctx.beginPath();
 		ctx.arc(x+9, y+5, 8, 0, 6.28, false);
 		ctx.stroke();
@@ -242,11 +248,11 @@ function drawParts(no, x, y) {
 		break;
 	case 25:		// text
 		ctx.beginPath();
-		ctx.strokeText('text', x+3, y+10);
+		ctx.strokeText(i18n.t('Text'), x+3, y+10);
 		ctx.strokeText('1', x+45, y+10);
 		break;
 	default:
-		ctx.strokeText("未実装", x, y);
+		ctx.strokeText(i18n.t('Unimplemented'), x, y);
 	}
 }
 
@@ -464,11 +470,11 @@ function drawCanvas(mode, str) {
 		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 41;
 		
-		if (41 == cur_thin) ctx.font = "14px 'ＭＳ Ｐゴシック'";
-		else if (42 == cur_thin) ctx.font = "16px 'ＭＳ Ｐゴシック'";
-		else ctx.font = "20px 'ＭＳ Ｐゴシック'";
+		if (41 == cur_thin) ctx.font = i18n.t("14px 'Helvetica'");
+		else if (42 == cur_thin) ctx.font = i18n.t("16px 'Helvetica'");
+		else ctx.font = i18n.t("20px 'Helvetica'");
 		ctx.strokeText(str, arr[0].x, arr[0].y);
-		ctx.font = "14px 'ＭＳ Ｐゴシック'";
+		ctx.font = i18n.t("14px 'Helvetica'");
 		numPoints = 1;
 		break;
 	default:
@@ -727,11 +733,11 @@ function ajaxappend() {
 	var sel = document.forms[0].canvasselect;
 	var idx = sel.selectedIndex;
 	if (0 == idx) {
-		alert("上書きする図を選択してください");
+		alert("Select a figure to overwrite");
 		return false;
 	}
 	var title =  sel.options[idx].innerHTML;
-	if (!confirm("TITLE:"+title+"に追加書き込みしますか？")) return false;
+	if (!confirm("TITLE:"+title + i18n.t("<- OK to overwrite?"))) return false;
 
 	var str = localStorage.getItem("canvasDrawData");
 	var origData = str === null ? {} : jsyaml.safeLoad(str);
@@ -873,7 +879,7 @@ function debug(msg) {
 var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
 var idx = 0, zorder = 0;
 var ctx;
-var menustr = new Array("保存","一覧","検索","クリア","再描画","undo","追加保存","サーバ保存");
+var menustr = new Array(i18n.t("Save"), i18n.t("List"), i18n.t("Search"), i18n.t("Clear"), i18n.t("Redraw"), i18n.t("Undo"), i18n.t("Overwrite"));
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
 var blue = "rgb(0, 100, 255)";

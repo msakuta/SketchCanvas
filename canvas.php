@@ -7,6 +7,8 @@
     <meta http-equiv="Content-Script-Type" content="text/javascript" />
     <title>Canvas</title>
     <script language="javascript" src="script/draw.js"></script>
+    <script language="javascript" src="script/i18next-1.7.2.min.js"></script>
+    <script language="javascript" src="script/translation.js"></script>
     <script language="javascript" src="script/canvas.js"></script>
 <!--    <script language="javascript" src="script/encoding.js"></script> -->
     <script src="script/js-yaml.min.js"></script>
