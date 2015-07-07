@@ -713,19 +713,36 @@ function choiceHBox(x, y) {
 }
 
 //------------------- ajax -----------------------------------
-// save data
-function ajaxsave() {
 
+function saveData(title){
 	if(typeof(Storage) !== "undefined"){
-		var title = prompt("TITLE:", "");
-		if (null === title) return false;
 		var str = localStorage.getItem("canvasDrawData");
 		var origData = str === null ? {} : jsyaml.safeLoad(str);
 		origData[title] = jsyaml.safeDump(dobjs);
 		localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
 	}
+}
 
+// save data
+function ajaxsave() {
+	var title = prompt("TITLE:", "");
+	if (null === title) return false;
+	saveData(title);
+	ajaxsearch(0);
 	return true;
+}
+
+function saveDataNew(){
+	var text = document.getElementById("clientfname").value;
+	if(null === text) return;
+	saveData(text);
+	ajaxsearch(0);
+}
+
+function saveDataFromList(){
+	var sel = document.forms[0].canvasselect;
+	if(0 < sel.selectedIndex)
+		saveData(sel.options[sel.selectedIndex].text);
 }
 
 // append save
@@ -845,9 +862,8 @@ function createXMLHttpRequest(){
 	return xmlHttp;
 }
 
-function uploadData(){
+function uploadData(fname){
 	var drawdata = document.getElementById("drawdata");
-	var fname = document.getElementById("fname");
 
 	// Asynchronous request for getting figure data in the server.
 	var xmlHttp = createXMLHttpRequest();
@@ -863,8 +879,18 @@ function uploadData(){
 		};
 		xmlHttp.open("POST", "upload.php", true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xmlHttp.send("fname=" + encodeURI(fname.value) + "&drawdata=" + encodeURI(drawdata.value));
+		xmlHttp.send("fname=" + encodeURI(fname) + "&drawdata=" + encodeURI(drawdata.value));
 	}
+}
+
+function uploadDataNew(){
+	uploadData(document.getElementById("fname").value);
+}
+
+function uploadDataFromServerList(){
+	var sel = document.forms[0].serverselect;
+	if(0 < sel.selectedIndex)
+		uploadData(sel.options[sel.selectedIndex].text);
 }
 
 //------------------------ debug ------------------------
