@@ -41,7 +41,9 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
             <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()">
             <input type="button" value="Delete" onclick="deleteFromServerList()"><br>
             History: <select id="historyselect"></select>
-            <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()">
+            <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()"><br>
+            <input type="button" value="Pull" onclick="pull()"> from:
+            <input type="text" id="remote" value="">
           </td>
         </tr>
         <tr>
@@ -59,7 +61,7 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
       </table>
       <p style="font-size:14px">(*) Requires PHP configured server.
 Also note that history will work only if Git client is set up in the server.</p>
-      <p>Message:<span id="message"></span></p>
+      <p>Message:<textarea id="message" rows="3" cols="80" readonly></textarea></p>
       <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
     </form>
