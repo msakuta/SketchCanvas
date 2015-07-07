@@ -1008,6 +1008,25 @@ function pull(){
 	}
 }
 
+function push(){
+	// Asynchronous request for pulling.
+	var xmlHttp = createXMLHttpRequest();
+	if(xmlHttp){
+		// The event handler is assigned here because xmlHttp is a free variable
+		// implicitly passed to the anonymous function without polluting the
+		// global namespace.
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
+				return;
+			debug(xmlHttp.responseText);
+			downloadList();
+		};
+		xmlHttp.open("GET", "push.php", true);
+		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xmlHttp.send();
+	}
+}
+
 function uploadDataNew(){
 	uploadData(document.getElementById("fname").value);
 }

@@ -42,7 +42,8 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
             <input type="button" value="Delete" onclick="deleteFromServerList()"><br>
             History: <select id="historyselect"></select>
             <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()"><br>
-            <input type="button" value="Pull" onclick="pull()"> from:
+            <input type="button" value="Pull" onclick="pull()"> from or
+            <input type="button" value="Push" onclick="push()"> to:
             <input type="text" id="remote" value="">
           </td>
         </tr>
