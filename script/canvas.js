@@ -1,7 +1,7 @@
 onload = function() {
-  /* canvas要素のノードオブジェクト */
+  // Obtain node object of canvas element
   var canvas = document.getElementById('canvassample');
-  /* canvas要素の存在チェックとCanvas未対応ブラウザの対処 */
+  // Check existence of canvas element and treating not compatible browsers
   if ( ! canvas || ! canvas.getContext ) {
     return false;
   }
@@ -28,7 +28,7 @@ onload = function() {
 var datadir = "data";
 
 function draw() {
-  /* 四角を描く */
+  // Draw a rectangle
   ctx.beginPath();
   ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
 		ctx.font = "14px 'ＭＳ Ｐゴシック'";
@@ -45,9 +45,8 @@ function draw() {
   drawHBox(cur_thin);
 };
 
-// draw cood(for Debug)
+// draw coord(for Debug)
 function drawPos(x, y) {
-  /* 座標を描く */
   ctx.strokeText('X='+x+' Y='+y, x, y);
 }
 
@@ -69,16 +68,16 @@ function drawMenu(no) {
 function drawTBox(no) {
 	for(i=0;i<15;i++) {
 		if (no == i+11)
-			ctx.fillStyle = 'rgb(255, 80, 77)'; // 赤
+			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
-			ctx.fillStyle = 'rgb(192, 80, 77)'; // 赤
+			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
 		ctx.fillRect(mx0, my0+40*i, mw0, mh0);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
 		drawParts(i+11, mx0+10, my0+10+(mh0+10)*i);
 	}
 }
 
-// Color Parett
+// Color Palette
 function drawCBox(no) {
 	for(i=0;i<5;i++) {
 		ctx.beginPath();
@@ -86,7 +85,7 @@ function drawCBox(no) {
 		x = mx2+(mw2+10)*i;
 		ctx.fillRect(x, my0, mw2, mh0);
 		ctx.stroke();
-		if (4==i) {		// whiteのとき枠線
+		if (4==i) {		// border line if white
 			ctx.beginPath();
 			//ctx.lineWidth = 1;
 			ctx.strokeStyle = gray;
@@ -106,9 +105,9 @@ function drawHBox(no) {
 	for(i=0;i<3;i++) {
 		ctx.beginPath();
 		if (no == i+41)
-			ctx.fillStyle = 'rgb(255, 80, 77)'; // 赤
+			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
-			ctx.fillStyle = 'rgb(192, 80, 77)'; // 赤
+			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
 		ctx.fillRect(mx3+(mw2+10)*i, my0, mw2, mh0);
 		ctx.beginPath();
 		ctx.strokeStyle = white;
@@ -193,7 +192,7 @@ function drawParts(no, x, y) {
 		break;
 	case 19:		// elipse
 		ctx.beginPath();
-		ctx.scale(1.0, 0.5);		// 縦半分
+		ctx.scale(1.0, 0.5);		// vertically half
 		ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
 		ctx.stroke();
 		ctx.scale(1.0, 2.0);
@@ -208,7 +207,7 @@ function drawParts(no, x, y) {
 	case 21:		// elipse fill
 		ctx.beginPath();
 		ctx.fillStyle = 'rgb(250, 250, 250)';
-		ctx.scale(1.0, 0.5);		// 縦半分
+		ctx.scale(1.0, 0.5);		// vertically half
 		ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
 		ctx.fill();
 		ctx.scale(1.0, 2.0);
@@ -233,7 +232,7 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 24:		// 完
+	case 24:		// complete
 		ctx.beginPath();
 		ctx.strokeText('済', x+3, y+10);
 		ctx.beginPath();
@@ -241,9 +240,9 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 25:		// 文字
+	case 25:		// text
 		ctx.beginPath();
-		ctx.strokeText('文字', x+3, y+10);
+		ctx.strokeText('text', x+3, y+10);
 		ctx.strokeText('1', x+45, y+10);
 		break;
 	default:
@@ -621,7 +620,7 @@ function clearCanvas() {
 	zorder = 0;
 }
 
-// selection追加
+// adding to selection
 function setSelect(ca, sel) {
 	var name = null;
 	var option = null;
@@ -642,7 +641,7 @@ function setSelect(ca, sel) {
 	}
 }
 
-// selectされたIDを得る
+// obtain an id from selection
 function selectedID() {
 	var name = null;
 	var option = null;
@@ -776,7 +775,7 @@ function cloneObject(obj) {
 	return temp;
 }
 
-// Ajax通信開始(parts)
+// Update dobjs
 function ajaxparts(str) {
 	dhistory.push(cloneObject(dobjs));
 	dobjs.push(str);
