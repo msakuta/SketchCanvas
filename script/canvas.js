@@ -713,19 +713,36 @@ function choiceHBox(x, y) {
 }
 
 //------------------- ajax -----------------------------------
-// save data
-function ajaxsave() {
 
+function saveData(title){
 	if(typeof(Storage) !== "undefined"){
-		var title = prompt("TITLE:", "");
-		if (null === title) return false;
 		var str = localStorage.getItem("canvasDrawData");
 		var origData = str === null ? {} : jsyaml.safeLoad(str);
 		origData[title] = jsyaml.safeDump(dobjs);
 		localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
 	}
+}
 
+// save data
+function ajaxsave() {
+	var title = prompt("TITLE:", "");
+	if (null === title) return false;
+	saveData(title);
+	ajaxsearch(0);
 	return true;
+}
+
+function saveDataNew(){
+	var text = document.getElementById("clientfname").value;
+	if(null === text) return;
+	saveData(text);
+	ajaxsearch(0);
+}
+
+function saveDataFromList(){
+	var sel = document.forms[0].canvasselect;
+	if(0 < sel.selectedIndex)
+		saveData(sel.options[sel.selectedIndex].text);
 }
 
 // append save

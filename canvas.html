@@ -22,24 +22,28 @@ body{margin: 0 0 0 0;}
     <canvas id="canvassample" width="1024" height="640"></canvas>
     <form name="form1" method="POST" action="upload.php" enctype="multipart/form-data">
       <table border>
-        <tr><th>Client figures</th><th>Server figures <sup>(*)</sup></th></tr>
+        <tr><td></td><th>Client figures</th><th>Server figures <sup>(*)</sup></th></tr>
         <tr>
+          <th>Saved figures</th>
           <td>
             <select name="canvasselect"><option value="0">no select</option></select>
             <input type="button" value="Show" onclick="loadDataFromList()">
+            <input type="button" value="Save (overwrite)" onclick="saveDataFromList()">
           </td>
           <td>
-            Saved figures<br>
             <select name="serverselect"><option value="0">no select</option></select>
             <input type="button" value="Show" onclick="loadDataFromServerList()">
             <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()">
           </td>
         </tr>
         <tr>
+          <th>New figure</th>
           <td>
+            <input type="text" id="clientfname" name="clientfname" value="default">
+            <input type="button" value="Save (new)" onclick="saveDataNew()">
+          </td>
           </td>
           <td>
-            New figure<br>
             <input type="text" id="fname" name="fname" value="default">
             <input type="button" value="Upload (new)" onclick="uploadDataNew()">
           </td>
