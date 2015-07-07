@@ -42,7 +42,11 @@ do{
 		$comment = "";
 		try{
 			$repo = new GitRepo('data', true);
-			$repo->add($fname);
+			// The add method accepts files either as an array of strings
+			// or a string.  It's unclear whether a space in a string should be
+			// treated as a delimiter or a part of the file name, but the API
+			// seems to be the former.
+			$repo->add('"' . $fname . '"');
 			$repo->commit('Add file ' . $fname);
 		}
 		catch(Exception $e){
