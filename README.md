@@ -26,3 +26,7 @@ It enables easy inspection and editing by humans.
 
 It can be edited by a static HTML document with JavaScript.
 It's so easy to setup a server that accepts and shows uploaded figures.
+
+It's very easy to create a figure or a diagram like this one:
+
+![Screenshot](media/threads.png)
