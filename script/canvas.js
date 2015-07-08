@@ -480,7 +480,28 @@ function drawCanvas(mode, str) {
 	default:
 		debug("illegal tool no "+cur_tool);
 	}
-	
+
+	function tool2str(tool){
+		switch(tool){
+		case 11: return "line";
+		case 12: return "arrow";
+		case 13: return "barrow";
+		case 14: return "dallow";
+		case 15: return "arc";
+		case 16: return "arcarrow";
+		case 17: return "arcbarrow";
+		case 18: return "rect";
+		case 19: return "ellipse";
+		case 20: return "rectfill";
+		case 21: return "ellipsefill";
+		case 22: return "star";
+		case 23: return "check";
+		case 24: return "done";
+		case 25: return "text";
+		default: return tool;
+		}
+	}
+
 	if (0 == mode) {	// regist
 		// send parts to server
 		var dat = "";
@@ -489,7 +510,7 @@ function drawCanvas(mode, str) {
 			dat += arr[i].x+","+arr[i].y;
 		}
 		var alldat = {
-			type: cur_tool,
+			type: tool2str(cur_tool),
 			color: cur_col,
 			thickness: cur_thin,
 			points: dat,
@@ -508,11 +529,33 @@ function redraw(pt) {
 	var org_col = cur_col;
 	var org_thin = cur_thin;
 //	var pt = str.split(",");
+
+	function str2tool(str){
+		switch(str){
+		case "line": return 11;
+		case "arrow": return 12;
+		case "barrow": return 13;
+		case "dallow": return 14;
+		case "arc": return 15;
+		case "arcarrow": return 16;
+		case "arcbarrow": return 17;
+		case "rect": return 18;
+		case "ellipse": return 19;
+		case "rectfill": return 20;
+		case "ellipsefill": return 21;
+		case "star": return 22;
+		case "check": return 23;
+		case "done": return 24;
+		case "text": return 25;
+		default: return str;
+		}
+	}
+
 	//alert("pt length="+pt.length);
 	for (i=0; i<pt.length; i++) {
 		var obj = pt[i];
 		var pt1 = obj.points.split(":");
-		cur_tool = obj.type;
+		cur_tool = str2tool(obj.type);
 		cur_col = obj.color;
 		cur_thin = obj.thickness;
 		for(var j = 0; j < pt1.length; j++){
