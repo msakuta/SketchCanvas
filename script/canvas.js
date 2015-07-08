@@ -305,7 +305,7 @@ function mouseLeftClick(e) {
 		}
 		else if (menuno <= 40) {
 			drawCBox(menuno);
-			cur_col = menuno;
+			cur_col = colnames[menuno-31];
 		}
 		else {
 			drawHBox(menuno);
@@ -344,10 +344,14 @@ function drawCanvas(mode, str) {
 	// DEBUG
 	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
 	var numPoints = 2;
+	switch(cur_tool){
+		// Set fillStyle only if the tool is filler.
+		case 20: case 21: ctx.fillStyle = coltable[cur_col]; break;
+		default:  ctx.strokeStyle = coltable[cur_col]; break;
+	}
 	switch (cur_tool) {
 	case 11:	// line
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.lineTo(arr[1].x, arr[1].y);
@@ -356,28 +360,24 @@ function drawCanvas(mode, str) {
 		break;
 	case 12:	// arrow
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		l_arrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 13:	// twin arrow
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		l_tarrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 14:	// double arrow
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		l_darrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 15:	// arc
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -387,7 +387,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 16:	// arc arrow
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -400,7 +399,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 17:	// arc twin arrow
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -415,7 +413,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 18:	// rect
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		ctx.stroke();
@@ -423,26 +420,22 @@ function drawCanvas(mode, str) {
 		break;
 	case 19:	// elipse
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		l_elipse(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 20:	// rect fill
 		ctx.beginPath();
-		ctx.fillStyle = colstr[cur_col-31];
 		ctx.fillRect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		break;
 	case 21:	// elipse fill
 		ctx.beginPath();
-		ctx.fillStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 40;
 		l_elipsef(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 22:	// star
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		//ctx.lineWidth = cur_thin - 40;
 		l_star(ctx, arr);
 		ctx.lineWidth = 1;
@@ -450,13 +443,11 @@ function drawCanvas(mode, str) {
 		break;
 	case 23:	// check
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		l_check(ctx, arr);
 		numPoints = 1;
 		break;
 	case 24:	// complete
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		l_complete(ctx, arr);
 		numPoints = 1;
 		break;
@@ -467,7 +458,6 @@ function drawCanvas(mode, str) {
 			return;
 		}
 		ctx.beginPath();
-		ctx.strokeStyle = colstr[cur_col-31];
 		ctx.lineWidth = cur_thin - 41;
 		
 		if (41 == cur_thin) ctx.font = i18n.t("14px 'Helvetica'");
@@ -956,10 +946,12 @@ var green = "rgb(0, 255, 0)";
 var red = "rgb(255, 0, 0)";
 var gray = "rgb(150, 150, 150)";
 var colstr = new Array(black,blue,red,green,white);
+var colnames = ["black", "blue", "red", "green", "white"];
+var coltable = {"black": black, "blue": blue, "red": red, "green": green, "white": white};
 var x0 = 0, y0 = 0, w0 = 1024, h0 = 640;
 var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 30;
-var cur_tool = 11, cur_col = 31, cur_thin = 41;
+var cur_tool = 11, cur_col = "black", cur_thin = 41;
 
 
