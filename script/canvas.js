@@ -623,13 +623,11 @@ function downloadList(){
 	}
 }
 
-function loadDataFromServerList(){
-	var sel = document.forms[0].serverselect;
-	var item = sel.options[sel.selectedIndex].text;
-
+function requestServerFile(item, hash){
 	// Asynchronous request for getting figure data in the server.
 	var xmlHttp = createXMLHttpRequest();
 	if(xmlHttp){
+		var request;
 		// The event handler is assigned here because xmlHttp is a free variable
 		// implicitly passed to the anonymous function without polluting the
 		// global namespace.
@@ -640,18 +638,70 @@ function loadDataFromServerList(){
 				var selData = xmlHttp.responseText;
 				if(!selData)
 					return;
+				if(hash){
+					var firstLine = selData.split("\n", 1)[0];
+					if(firstLine !== "succeeded")
+						throw "Failed to obtain revision " + selData;
+					selData = selData.substr(selData.indexOf("\n")+1);
+				}
 				dobjs = jsyaml.safeLoad(selData);
 				updateDrawData();
 				clearCanvas();
 				redraw(dobjs);
 			}
 			catch(e){
+				debug(e);
+			}
+		};
+		if(!hash)
+			request = datadir + "/" + encodeURI(item);
+		else
+			request = "history.php?fname=" + encodeURI(item) + "&hash=" + encodeURI(hash);
+		xmlHttp.open("GET", request, true);
+		xmlHttp.send();
+	}
+}
+
+function loadDataFromServerList(){
+	var sel = document.forms[0].serverselect;
+	var item = sel.options[sel.selectedIndex].text;
+
+	requestServerFile(item);
+
+	var historyQuery = createXMLHttpRequest();
+	if(historyQuery){
+		historyQuery.onreadystatechange = function(){
+			if(historyQuery.readyState !== 4 || historyQuery.status !== 200)
+				return;
+			try{
+				var res = historyQuery.responseText;
+				if(!res)
+					return;
+				var historyData = res.split("\n");
+				if(historyData[0] !== "succeeded")
+					return;
+				historyData = historyData.splice(1);
+				var sel = document.getElementById("historyselect");
+				if(sel){
+					setSelect(historyData, sel);
+					sel.size = historyData.length;
+				}
+			}
+			catch(e){
 				console.log(e);
 			}
 		};
-		xmlHttp.open("GET", datadir + "/" + item, true);
-		xmlHttp.send();
+		historyQuery.open("GET", "history.php?fname=" + encodeURI(item), true);
+		historyQuery.send();
 	}
+}
+
+function loadDataFromServerHistory(){
+	var sel = document.forms[0].serverselect;
+	var item = sel.options[sel.selectedIndex].text;
+	var histsel = document.getElementById("historyselect");
+
+	requestServerFile(item, histsel.options[histsel.selectedIndex].text.split(" ")[0]);
 }
 
 // clear canvas
@@ -662,25 +712,44 @@ function clearCanvas() {
 	zorder = 0;
 }
 
-// adding to selection
+/// @brief Set strings in array to select element
+///
+/// @param ca An array that contains strings to added as select options.
+///           Empty strings in the array are skipped.
+/// @param sel The select element object to set options subelements to.
+/// @returns Number of actually set options. This can differ from ca.length.
 function setSelect(ca, sel) {
 	var name = null;
 	var option = null;
 	var text = null;
+
+	// Remember previously selected item string to try to preserve the selection
+	// after the options are refreshed.  Note that remembering selectedIndex won't
+	// help much because items can not only be appended but also inserted before
+	// current selection.
+	var oldname = 0 < sel.selectedIndex ? sel.childNodes[sel.selectedIndex].text : "";
+
 	// clear
 	var n = sel.childNodes.length;
-	for (i=n-1; i>0; i--) sel.removeChild(sel.childNodes.item(i));
-	// create node
+	for (i=n-1; i>=0; i--) sel.removeChild(sel.childNodes.item(i));
+
+	// Counter for actually created items, empty strings in ca are ignored.
+	var ii = 0;
 	for(var i = 0; i < ca.length; i++){
 		var name = ca[i];
 		if(!name) // Skip blank lines
 			continue;
+		// create node
 		option = document.createElement("OPTION");
 		option.setAttribute("value", name);
 		text = document.createTextNode(name);
 		option.appendChild(text);
 		sel.appendChild(option);
+		if(name === oldname)
+			sel.selectedIndex = ii;
+		ii++;
 	}
+	return ii;
 }
 
 // obtain an id from selection

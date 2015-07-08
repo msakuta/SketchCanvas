@@ -36,9 +36,11 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
             <input type="button" value="Save (overwrite)" onclick="saveDataFromList()">
           </td>
           <td>
-            <select name="serverselect"><option value="0">no select</option></select>
+            Name: <select name="serverselect"><option value="0">no select</option></select>
             <input type="button" value="Show" onclick="loadDataFromServerList()">
-            <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()">
+            <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()"><br>
+            History: <select id="historyselect"></select>
+            <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()">
           </td>
         </tr>
         <tr>
@@ -54,7 +56,8 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           </td>
         </tr>
       </table>
-      <p style="font-size:14px">(*) Requires PHP configured server</p>
+      <p style="font-size:14px">(*) Requires PHP configured server.
+Also note that history will work only if Git client is set up in the server.</p>
       <p>Message:<span id="message"></span></p>
       <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
