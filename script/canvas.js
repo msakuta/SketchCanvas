@@ -492,6 +492,11 @@ function drawCanvas(mode, str) {
 		}
 	}
 
+	function set_default(t,k,v,def){
+		if(v !== def) 
+			t[k] = v;
+	}
+
 	if (0 == mode) {	// regist
 		// send parts to server
 		var dat = "";
@@ -501,10 +506,12 @@ function drawCanvas(mode, str) {
 		}
 		var alldat = {
 			type: tool2str(cur_tool),
-			color: cur_col,
 			thickness: cur_thin,
 			points: dat,
 		};
+		// Values with defaults needs not assigned a value when saved.
+		// This will save space if the drawn element properties use many default values.
+		set_default(alldat, "color", cur_col, "black");
 		if (25 == cur_tool) alldat.text = str;
 		ajaxparts(alldat);
 	}
@@ -546,7 +553,7 @@ function redraw(pt) {
 		var obj = pt[i];
 		var pt1 = obj.points.split(":");
 		cur_tool = str2tool(obj.type);
-		cur_col = obj.color;
+		cur_col = obj.color || "black";
 		cur_thin = obj.thickness;
 		for(var j = 0; j < pt1.length; j++){
 			var pt2 = pt1[j].split(",");
