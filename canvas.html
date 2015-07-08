@@ -14,15 +14,20 @@
     <script src="script/js-yaml.min.js"></script>
     <style type="text/css">
 <!--
-body{margin: 0 0 0 0;}
+body{margin: 0 0 0 0; background-color: #fff0e7}
+canvas{background-color: #fff}
+table{background-color: #f7c0a0; border: 3px solid #7f7f7f; border-collapse: collapse}
+td{background-color: #ffe0d0}
+th{background-color: #e0c0a0}
+td, th{padding: 10px; border: 2px solid #7f7f7f}
 -->
     </style>
   </head>
   <body>
     <canvas id="canvassample" width="1024" height="640"></canvas>
     <form name="form1" method="POST" action="upload.php" enctype="multipart/form-data">
-      <table border>
-        <tr><td></td><th>Client figures</th><th>Server figures <sup>(*)</sup></th></tr>
+      <table>
+        <tr><th></th><th>Client figures</th><th>Server figures <sup>(*)</sup></th></tr>
         <tr>
           <th>Saved figures</th>
           <td>

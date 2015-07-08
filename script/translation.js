@@ -20,6 +20,7 @@ var resources = {
 			"14px 'Helvetica'": "14px 'ＭＳ Ｐゴシック'",
 			"16px 'Helvetica'": "16px 'ＭＳ Ｐゴシック'",
 			"20px 'Helvetica'": "20px 'ＭＳ Ｐゴシック'",
+			"String": "文字列",
 		},
 		font : {
 			"orn" : "10px MS Gothic",
