@@ -309,7 +309,7 @@ function mouseLeftClick(e) {
 		}
 		else {
 			drawHBox(menuno);
-			cur_thin = menuno;
+			cur_thin = menuno - 40;
 		}
 		//if (1 == menuno) debug('x='+arr[0].x + 'y='+arr[0].y);
 	}
@@ -349,10 +349,16 @@ function drawCanvas(mode, str) {
 		case 20: case 21: ctx.fillStyle = coltable[cur_col]; break;
 		default:  ctx.strokeStyle = coltable[cur_col]; break;
 	}
+
+	switch(cur_tool){
+		case 20: case 22: case 23: case 24: break;
+		case 25: ctx.lineWidth = cur_thin - 1; break;
+		default: ctx.lineWidth = cur_thin; break;
+	}
+
 	switch (cur_tool) {
 	case 11:	// line
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.lineTo(arr[1].x, arr[1].y);
 		ctx.stroke();
@@ -360,25 +366,21 @@ function drawCanvas(mode, str) {
 		break;
 	case 12:	// arrow
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		l_arrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 13:	// twin arrow
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		l_tarrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 14:	// double arrow
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		l_darrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
 	case 15:	// arc
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
 		ctx.stroke();
@@ -387,7 +389,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 16:	// arc arrow
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
 		var a = new Array(2);
@@ -399,7 +400,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 17:	// arc twin arrow
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
 		var a = new Array(2);
@@ -413,14 +413,12 @@ function drawCanvas(mode, str) {
 		break;
 	case 18:	// rect
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		ctx.stroke();
 		ctx.lineWidth = 1;
 		break;
 	case 19:	// elipse
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		l_elipse(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
@@ -430,7 +428,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 21:	// elipse fill
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 40;
 		l_elipsef(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
@@ -458,10 +455,9 @@ function drawCanvas(mode, str) {
 			return;
 		}
 		ctx.beginPath();
-		ctx.lineWidth = cur_thin - 41;
 		
-		if (41 == cur_thin) ctx.font = i18n.t("14px 'Helvetica'");
-		else if (42 == cur_thin) ctx.font = i18n.t("16px 'Helvetica'");
+		if (1 == cur_thin) ctx.font = i18n.t("14px 'Helvetica'");
+		else if (2 == cur_thin) ctx.font = i18n.t("16px 'Helvetica'");
 		else ctx.font = i18n.t("20px 'Helvetica'");
 		ctx.strokeText(str, arr[0].x, arr[0].y);
 		ctx.font = i18n.t("14px 'Helvetica'");
@@ -506,12 +502,12 @@ function drawCanvas(mode, str) {
 		}
 		var alldat = {
 			type: tool2str(cur_tool),
-			thickness: cur_thin,
 			points: dat,
 		};
 		// Values with defaults needs not assigned a value when saved.
 		// This will save space if the drawn element properties use many default values.
 		set_default(alldat, "color", cur_col, "black");
+		set_default(alldat, "width", cur_thin, 1);
 		if (25 == cur_tool) alldat.text = str;
 		ajaxparts(alldat);
 	}
@@ -554,7 +550,7 @@ function redraw(pt) {
 		var pt1 = obj.points.split(":");
 		cur_tool = str2tool(obj.type);
 		cur_col = obj.color || "black";
-		cur_thin = obj.thickness;
+		cur_thin = obj.width || 1;
 		for(var j = 0; j < pt1.length; j++){
 			var pt2 = pt1[j].split(",");
 			arr[j] = {x:pt2[0]-0, y:pt2[1]-0};
@@ -959,6 +955,6 @@ var x0 = 0, y0 = 0, w0 = 1024, h0 = 640;
 var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 30;
-var cur_tool = 11, cur_col = "black", cur_thin = 41;
+var cur_tool = 11, cur_col = "black", cur_thin = 1;
 
 
