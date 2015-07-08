@@ -346,7 +346,7 @@ function drawCanvas(mode, str) {
 	var numPoints = 2;
 	switch(cur_tool){
 		// Set fillStyle only if the tool is filler.
-		case 20: case 21: ctx.fillStyle = coltable[cur_col]; break;
+		case 20: case 21: case 25: ctx.fillStyle = coltable[cur_col]; break;
 		default:  ctx.strokeStyle = coltable[cur_col]; break;
 	}
 
@@ -459,7 +459,7 @@ function drawCanvas(mode, str) {
 		if (1 == cur_thin) ctx.font = i18n.t("14px 'Helvetica'");
 		else if (2 == cur_thin) ctx.font = i18n.t("16px 'Helvetica'");
 		else ctx.font = i18n.t("20px 'Helvetica'");
-		ctx.strokeText(str, arr[0].x, arr[0].y);
+		ctx.fillText(str, arr[0].x, arr[0].y);
 		ctx.font = i18n.t("14px 'Helvetica'");
 		numPoints = 1;
 		break;
