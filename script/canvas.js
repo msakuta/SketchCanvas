@@ -449,7 +449,7 @@ function drawCanvas(mode, str) {
 		numPoints = 1;
 		break;
 	case 25:	// string
-		if (0 == mode) str = prompt("文字列:", "");
+		if (0 == mode) str = prompt(i18n.t("String") + ":", "");
 		if (null == str) {		// cancel
 			idx = 0;
 			return;
