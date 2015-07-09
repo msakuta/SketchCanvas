@@ -38,7 +38,8 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           <td>
             Name: <select name="serverselect"><option value="0">no select</option></select>
             <input type="button" value="Show" onclick="loadDataFromServerList()">
-            <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()"><br>
+            <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()">
+            <input type="button" value="Delete" onclick="deleteFromServerList()"><br>
             History: <select id="historyselect"></select>
             <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()">
           </td>

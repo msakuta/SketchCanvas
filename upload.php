@@ -7,6 +7,7 @@ $updir = "data/";
 do{
 	$fname = $_POST['fname'];
 	$fdata = $_POST['drawdata'];
+	$action = isset($_POST['action']) ? $_POST['action'] : 'up';
 	$fsize = strlen($fdata);
 
 	if($fname == ""){
@@ -18,6 +19,34 @@ do{
 		echo "file path delimiter is prohibited in the file name\n";
 		break;
 	}
+	else if($action === "delete"){
+		if(!unlink($updir.$fname)){
+			echo "failed\n";
+			echo "Couldn't unlink " . $fname . "\n";
+			break;
+		}
+
+		require_once('gitphp/Git.php');
+
+		// Try to delete the file in Git repository, too.
+		$comment = "";
+		try{
+			$repo = new GitRepo('data');
+			// The rm method accepts files either as an array of strings
+			// or a string.  It's unclear whether a space in a string should be
+			// treated as a delimiter or a part of the file name, but the API
+			// seems to be the former.
+			$repo->rm('"' . $fname . '"', true);
+			$repo->commit('Delete file ' . $fname);
+		}
+		catch(Exception $e){
+			$comment = $e->getMessage();
+		}
+		echo "succeeded\n";
+		echo $comment . "\n";
+		break;
+	}
+
 
 	// Allow overwriting to a file since we have git repository to backup previous revisions
 /*	if(file_exists($updir.$fname)==TRUE) {

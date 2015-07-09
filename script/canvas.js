@@ -994,8 +994,32 @@ function uploadDataNew(){
 
 function uploadDataFromServerList(){
 	var sel = document.forms[0].serverselect;
-	if(0 < sel.selectedIndex)
+	if(0 <= sel.selectedIndex)
 		uploadData(sel.options[sel.selectedIndex].text);
+}
+
+function deleteFromServerList(){
+	var sel = document.forms[0].serverselect;
+	if(sel.selectedIndex < 0)
+		return;
+	var fname = sel.options[sel.selectedIndex].text;
+
+	// Asynchronous request for deleting file in the server.
+	var xmlHttp = createXMLHttpRequest();
+	if(xmlHttp){
+		// The event handler is assigned here because xmlHttp is a free variable
+		// implicitly passed to the anonymous function without polluting the
+		// global namespace.
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
+				return;
+			debug(xmlHttp.responseText);
+			downloadList();
+		};
+		xmlHttp.open("POST", "upload.php", true);
+		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xmlHttp.send("fname=" + encodeURI(fname) + "&action=delete");
+	}
 }
 
 //------------------------ debug ------------------------
