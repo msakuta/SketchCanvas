@@ -1,4 +1,4 @@
-
+(function(){
 // Obtain the browser's preferred language.
 var currentLanguage = (window.navigator.language || window.navigator.userLanguage || window.navigator.userLanguage).substr(0, 2);
 
@@ -569,7 +569,7 @@ function redraw(pt) {
 	cur_thin = org_thin;
 }
 
-function loadData(){
+this.loadData = function(){
 	var drawdata = document.getElementById("drawdata");
 	try{
 		dobjs = jsyaml.safeLoad(drawdata.value);
@@ -580,7 +580,7 @@ function loadData(){
 	}
 }
 
-function loadDataFromList(){
+this.loadDataFromList = function(){
 	var sel = document.forms[0].canvasselect;
 	var item = sel.options[sel.selectedIndex].text;
 	try{
@@ -662,7 +662,7 @@ function requestServerFile(item, hash){
 	}
 }
 
-function loadDataFromServerList(){
+this.loadDataFromServerList = function(){
 	var sel = document.forms[0].serverselect;
 	var item = sel.options[sel.selectedIndex].text;
 
@@ -696,7 +696,7 @@ function loadDataFromServerList(){
 	}
 }
 
-function loadDataFromServerHistory(){
+this.loadDataFromServerHistory = function(){
 	var sel = document.forms[0].serverselect;
 	var item = sel.options[sel.selectedIndex].text;
 	var histsel = document.getElementById("historyselect");
@@ -837,17 +837,16 @@ function ajaxsave() {
 	return true;
 }
 
-function saveDataNew(){
+this.saveDataNew = function(){
 	var text = document.getElementById("clientfname").value;
 	if(null === text) return;
 	saveData(text);
 	ajaxsearch(0);
 }
 
-function saveDataFromList(){
+this.saveDataFromList = function(){
 	var sel = document.forms[0].canvasselect;
-	if(0 < sel.selectedIndex)
-		saveData(sel.options[sel.selectedIndex].text);
+	saveData(sel.options[sel.selectedIndex].text);
 }
 
 // append save
@@ -967,7 +966,7 @@ function createXMLHttpRequest(){
 	return xmlHttp;
 }
 
-function uploadData(fname){
+this.uploadData = function(fname){
 	var drawdata = document.getElementById("drawdata");
 
 	// Asynchronous request for getting figure data in the server.
@@ -988,7 +987,7 @@ function uploadData(fname){
 	}
 }
 
-function pull(){
+this.pull = function(){
 	var text = document.getElementById("remote").value;
 	// Asynchronous request for pulling.
 	var xmlHttp = createXMLHttpRequest();
@@ -1008,7 +1007,7 @@ function pull(){
 	}
 }
 
-function push(){
+this.push = function(){
 	// Asynchronous request for pulling.
 	var xmlHttp = createXMLHttpRequest();
 	if(xmlHttp){
@@ -1027,17 +1026,17 @@ function push(){
 	}
 }
 
-function uploadDataNew(){
+this.uploadDataNew = function(){
 	uploadData(document.getElementById("fname").value);
 }
 
-function uploadDataFromServerList(){
+this.uploadDataFromServerList = function(){
 	var sel = document.forms[0].serverselect;
 	if(0 <= sel.selectedIndex)
 		uploadData(sel.options[sel.selectedIndex].text);
 }
 
-function deleteFromServerList(){
+this.deleteFromServerList = function(){
 	var sel = document.forms[0].serverselect;
 	if(sel.selectedIndex < 0)
 		return;
@@ -1089,4 +1088,4 @@ var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 30;
 var cur_tool = 11, cur_col = "black", cur_thin = 1;
 
-
+})();
