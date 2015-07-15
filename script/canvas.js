@@ -4,6 +4,9 @@ var currentLanguage = (window.navigator.language || window.navigator.userLanguag
 
 i18n.init({lng: currentLanguage, fallbackLng: 'en', resStore: resources, getAsync: false});
 
+var dobjs; // Drawing objects
+var dhistory; // Drawing object history (for undoing)
+
 onload = function() {
   // Obtain node object of canvas element
   var canvas = document.getElementById('canvassample');
@@ -58,7 +61,7 @@ function drawPos(x, y) {
 
 // Menu
 function drawMenu(no) {
-	for(i=0;i<7;i++) {
+	for(var i=0;i<7;i++) {
 		if (no == i+1)
 			ctx.fillStyle = 'rgb(120, 255, 120)'; // green
 		else
@@ -72,7 +75,7 @@ function drawMenu(no) {
 
 // Tool Box
 function drawTBox(no) {
-	for(i=0;i<15;i++) {
+	for(var i=0;i<15;i++) {
 		if (no == i+11)
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
@@ -85,10 +88,10 @@ function drawTBox(no) {
 
 // Color Palette
 function drawCBox(no) {
-	for(i=0;i<5;i++) {
+	for(var i=0;i<5;i++) {
 		ctx.beginPath();
 		ctx.fillStyle = colstr[i];
-		x = mx2+(mw2+10)*i;
+		var x = mx2+(mw2+10)*i;
 		ctx.fillRect(x, my0, mw2, mh0);
 		ctx.stroke();
 		if (4==i) {		// border line if white
@@ -108,7 +111,7 @@ function drawCBox(no) {
 
 // Thin Box
 function drawHBox(no) {
-	for(i=0;i<3;i++) {
+	for(var i=0;i<3;i++) {
 		ctx.beginPath();
 		if (no == i+41)
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
@@ -496,7 +499,7 @@ function drawCanvas(mode, str) {
 	if (0 == mode) {	// regist
 		// send parts to server
 		var dat = "";
-		for (i=0; i<numPoints; i++){
+		for (var i=0; i<numPoints; i++){
 			if(i !== 0) dat += ":";
 			dat += arr[i].x+","+arr[i].y;
 		}
@@ -545,7 +548,7 @@ function redraw(pt) {
 	}
 
 	//alert("pt length="+pt.length);
-	for (i=0; i<pt.length; i++) {
+	for (var i=0; i<pt.length; i++) {
 		var obj = pt[i];
 		var pt1 = obj.points.split(":");
 		cur_tool = str2tool(obj.type);
@@ -731,7 +734,7 @@ function setSelect(ca, sel) {
 
 	// clear
 	var n = sel.childNodes.length;
-	for (i=n-1; i>=0; i--) sel.removeChild(sel.childNodes.item(i));
+	for (var i=n-1; i>=0; i--) sel.removeChild(sel.childNodes.item(i));
 
 	// Counter for actually created items, empty strings in ca are ignored.
 	var ii = 0;
@@ -780,7 +783,7 @@ function checkMenu(x, y) {
 function choiceMenu(x, y) {
 	// menu
 	if (y < my0 || y > my0+mh0) return 0;
-	for(i=0;i<8;i++) {
+	for(var i=0;i<8;i++) {
 		if (x >= mx1+(mw1+10)*i && x <= mx1+mw0+(mw1+10)*i) return i+1;
 	}
 
@@ -791,7 +794,7 @@ function choiceMenu(x, y) {
 function choiceTBox(x, y) {
 	// ToolBox
 	if (x < mx0 || x > mx0+mw0) return 0;
-	for(i=0;i<15;i++) {
+	for(var i=0;i<15;i++) {
 		if (y >= my0+(mh0+10)*i && y <= my0+mh0+(mh0+10)*i) return i+11;
 	}
 	
@@ -801,7 +804,7 @@ function choiceTBox(x, y) {
 	// Color Parett
 function choiceCBox(x, y) {
 	if (y < my0 || y > my0+mh0) return 0;
-	for(i=0;i<5;i++) {
+	for(var i=0;i<5;i++) {
 		if (x >= mx2+(mw2+10)*i && x <= mx2+mw2+(mw2+10)*i) return i+31;
 	}
 	
@@ -810,7 +813,7 @@ function choiceCBox(x, y) {
 	// Thin Box
 function choiceHBox(x, y) {
 	if (y < my0 || y > my0+mh0) return 0;
-	for(i=0;i<3;i++) {
+	for(var i=0;i<3;i++) {
 		if (x >= mx3+(mw2+10)*i && x <= mx3+mw2+(mw2+10)*i) return i+41;
 	}
 	
