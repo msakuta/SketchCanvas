@@ -9,6 +9,7 @@
     <script language="javascript" src="script/draw.js"></script>
     <script language="javascript" src="script/i18next-1.7.2.min.js"></script>
     <script language="javascript" src="script/translation.js"></script>
+    <script language="javascript" src="script/SketchCanvas.js"></script>
     <script language="javascript" src="script/canvas.js"></script>
 <!--    <script language="javascript" src="script/encoding.js"></script> -->
     <script src="script/js-yaml.min.js"></script>
@@ -32,18 +33,18 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           <th>Saved figures</th>
           <td>
             <select name="canvasselect"><option value="0">no select</option></select>
-            <input type="button" value="Show" onclick="loadDataFromList()">
-            <input type="button" value="Save (overwrite)" onclick="saveDataFromList()">
+            <input type="button" value="Show" onclick="skcanvas.loadDataFromList()">
+            <input type="button" value="Save (overwrite)" onclick="skcanvas.saveDataFromList()">
           </td>
           <td>
             Name: <select name="serverselect"><option value="0">no select</option></select>
-            <input type="button" value="Show" onclick="loadDataFromServerList()">
-            <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()">
-            <input type="button" value="Delete" onclick="deleteFromServerList()"><br>
+            <input type="button" value="Show" onclick="skcanvas.loadDataFromServerList()">
+            <input type="button" value="Upload (overwrite)" onclick="skcanvas.uploadDataFromServerList()">
+            <input type="button" value="Delete" onclick="skcanvas.deleteFromServerList()"><br>
             History: <select id="historyselect"></select>
-            <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()"><br>
-            <input type="button" value="Pull" onclick="pull()"> from or
-            <input type="button" value="Push" onclick="push()"> to:
+            <input type="button" value="Show Revision" onclick="skcanvas.loadDataFromServerHistory()"><br>
+            <input type="button" value="Pull" onclick="skcanvas.pull()"> from or
+            <input type="button" value="Push" onclick="skcanvas.push()"> to:
             <input type="text" id="remote" value="">
           </td>
         </tr>
@@ -51,19 +52,19 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           <th>New figure</th>
           <td>
             <input type="text" id="clientfname" name="clientfname" value="default">
-            <input type="button" value="Save (new)" onclick="saveDataNew()">
+            <input type="button" value="Save (new)" onclick="skcanvas.saveDataNew()">
           </td>
           </td>
           <td>
             <input type="text" id="fname" name="fname" value="default">
-            <input type="button" value="Upload (new)" onclick="uploadDataNew()">
+            <input type="button" value="Upload (new)" onclick="skcanvas.uploadDataNew()">
           </td>
         </tr>
       </table>
       <p style="font-size:14px">(*) Requires PHP configured server.
 Also note that history will work only if Git client is set up in the server.</p>
       <p>Message:<textarea id="message" rows="3" cols="80" readonly></textarea></p>
-      <p>Draw data: <input type="button" value="Load" onclick="loadData()"></p>
+      <p>Draw data: <input type="button" value="Load" onclick="skcanvas.loadData()"></p>
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>
     </form>
     <p>This application uses <a href="https://github.com/nodeca/js-yaml">js-yaml</a> JavaScript library.
