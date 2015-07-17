@@ -474,6 +474,51 @@ function drawCanvas(mode, str) {
 		debug("illegal tool no "+cur_tool);
 	}
 
+	if (0 == mode) {	// regist
+		// send parts to server
+		var dat = {
+			tool: cur_tool,
+			color: cur_col,
+			width: cur_thin,
+			points: Array(numPoints)
+		};
+		for(var i = 0; i < numPoints; i++)
+			dat.points[i] = arr[i];
+		// Values with defaults needs not assigned a value when saved.
+		// This will save space if the drawn element properties use many default values.
+		if (25 == cur_tool) dat.text = str;
+		ajaxparts(dat);
+	}
+	// clear
+	idx = 0;
+	
+}
+// redraw
+function redraw(pt) {
+	// backup
+	var org_tool = cur_tool;
+	var org_col = cur_col;
+	var org_thin = cur_thin;
+//	var pt = str.split(",");
+
+	for (var i=0; i<pt.length; i++) {
+		var obj = pt[i];
+		cur_tool = obj.tool;
+		cur_col = obj.color;
+		cur_thin = obj.width;
+		arr = obj.points;
+		var rstr = null;
+		if (25 == cur_tool) rstr = obj.text;
+		drawCanvas(1, rstr);
+	}	
+
+	// restore tools
+	cur_tool = org_tool;
+	cur_col = org_col;
+	cur_thin = org_thin;
+}
+
+function serializeSingle(obj){
 	function tool2str(tool){
 		switch(tool){
 		case 11: return "line";
@@ -500,36 +545,32 @@ function drawCanvas(mode, str) {
 			t[k] = v;
 	}
 
-	if (0 == mode) {	// regist
-		// send parts to server
-		var dat = "";
-		for (var i=0; i<numPoints; i++){
-			if(i !== 0) dat += ":";
-			dat += arr[i].x+","+arr[i].y;
-		}
-		var alldat = {
-			type: tool2str(cur_tool),
-			points: dat,
-		};
-		// Values with defaults needs not assigned a value when saved.
-		// This will save space if the drawn element properties use many default values.
-		set_default(alldat, "color", cur_col, "black");
-		set_default(alldat, "width", cur_thin, 1);
-		if (25 == cur_tool) alldat.text = str;
-		ajaxparts(alldat);
+	// send parts to server
+	var dat = "";
+	for (var i=0; i<obj.points.length; i++){
+		if(i !== 0) dat += ":";
+		dat += obj.points[i].x+","+obj.points[i].y;
 	}
-	// clear
-	idx = 0;
-	
+	var alldat = {
+		type: tool2str(obj.tool),
+		points: dat
+	};
+	// Values with defaults needs not assigned a value when saved.
+	// This will save space if the drawn element properties use many default values.
+	set_default(alldat, "color", obj.color, "black");
+	set_default(alldat, "width", obj.width, 1);
+	if (25 == obj.tool) alldat.text = obj.text;
+	return alldat;
 }
-// redraw
-function redraw(pt) {
-	// backup
-	var org_tool = cur_tool;
-	var org_col = cur_col;
-	var org_thin = cur_thin;
-//	var pt = str.split(",");
 
+function serialize(dobjs){
+	var ret = [];
+	for(var i = 0; i < dobjs.length; i++)
+		ret.push(serializeSingle(dobjs[i]));
+	return ret;
+}
+
+function deserialize(dat){
 	function str2tool(str){
 		switch(str){
 		case "line": return 11;
@@ -550,36 +591,34 @@ function redraw(pt) {
 		default: return str;
 		}
 	}
-
-	//alert("pt length="+pt.length);
-	for (var i=0; i<pt.length; i++) {
-		var obj = pt[i];
+	var ret = [];
+	for (var i=0; i<dat.length; i++) {
+		var obj = dat[i];
 		var pt1 = obj.points.split(":");
-		cur_tool = str2tool(obj.type);
-		cur_col = obj.color || "black";
-		cur_thin = obj.width || 1;
+		var robj = {
+			tool: str2tool(obj.type),
+			color: obj.color || "black",
+			width: obj.width || 1
+		};
+		var arr = [];
 		for(var j = 0; j < pt1.length; j++){
 			var pt2 = pt1[j].split(",");
-			arr[j] = {x:pt2[0]-0, y:pt2[1]-0};
+			arr.push({x:pt2[0]-0, y:pt2[1]-0});
 		}
 		for(var j = pt1.length; j < 3; j++){
-			arr[j] = {x:0, y:0};
+			arr.push({x:0, y:0});
 		}
-		var rstr = null;
-		if (25 == cur_tool) rstr = obj.text;
-		drawCanvas(1, rstr);
+		robj.points = arr;
+		if (undefined !== obj.text) robj.text = obj.text;
+		ret.push(robj);
 	}
-
-	// restore tools
-	cur_tool = org_tool;
-	cur_col = org_col;
-	cur_thin = org_thin;
+	return ret;
 }
 
 this.loadData = function(){
 	var drawdata = document.getElementById("drawdata");
 	try{
-		dobjs = jsyaml.safeLoad(drawdata.value);
+		dobjs = deserialize(jsyaml.safeLoad(drawdata.value));
 		clearCanvas();
 		redraw(dobjs);
 	} catch(e){
@@ -595,7 +634,7 @@ this.loadDataFromList = function(){
 		if(origData === null)
 			return;
 		var selData = jsyaml.safeLoad(origData);
-		dobjs = jsyaml.safeLoad(selData[item]);
+		dobjs = deserialize(jsyaml.safeLoad(selData[item]));
 		updateDrawData();
 		clearCanvas();
 		redraw(dobjs);
@@ -651,7 +690,7 @@ function requestServerFile(item, hash){
 						throw "Failed to obtain revision " + selData;
 					selData = selData.substr(selData.indexOf("\n")+1);
 				}
-				dobjs = jsyaml.safeLoad(selData);
+				dobjs = deserialize(jsyaml.safeLoad(selData));
 				updateDrawData();
 				clearCanvas();
 				redraw(dobjs);
@@ -830,7 +869,7 @@ function saveData(title){
 	if(typeof(Storage) !== "undefined"){
 		var str = localStorage.getItem("canvasDrawData");
 		var origData = str === null ? {} : jsyaml.safeLoad(str);
-		origData[title] = jsyaml.safeDump(dobjs);
+		origData[title] = jsyaml.safeDump(serialize(dobjs));
 		localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
 	}
 }
@@ -869,7 +908,7 @@ function ajaxappend() {
 
 	var str = localStorage.getItem("canvasDrawData");
 	var origData = str === null ? {} : jsyaml.safeLoad(str);
-	origData[title] = jsyaml.safeDump(dobjs);
+	origData[title] = jsyaml.safeDump(serialize(dobjs));
 	localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
 
 	return true;
@@ -919,7 +958,7 @@ function ajaxparts(str) {
 function updateDrawData(){
 	try{
 		var drawdata = document.getElementById('drawdata');
-		drawdata.value = jsyaml.safeDump(dobjs, {flowLevel: 2});
+		drawdata.value = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
 	} catch(e){
 		console.log(e);
 	}
