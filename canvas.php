@@ -1,3 +1,20 @@
+<?php
+$conf = array('git' => FALSE);
+try{
+	if(!include "conf/config.php"){
+		mkdir('conf');
+		$fp = fopen('conf/config.php', 'w');
+		if($fp){
+			fwrite($fp, "<?php\n" .
+			'$conf["git"] = FALSE;' . "\n");
+			fclose($fp);
+		}
+	}
+}
+catch(Exception $e){
+	echo $e->getMessage();
+}
+?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
   <head>
