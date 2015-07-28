@@ -79,14 +79,14 @@ function drawMenu(no) {
 
 // Tool Box
 function drawTBox(no) {
-	for(var i=0;i<15;i++) {
+	for(var i=0;i<16;i++) {
 		if (no == i+11)
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
 			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
-		ctx.fillRect(mx0, my0+40*i, mw0, mh0);
+		ctx.fillRect(mx0, my0+38*i, mw0, mh0);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
-		drawParts(i+11, mx0+10, my0+10+(mh0+10)*i);
+		drawParts(i+11, mx0+10, my0+10+(mh0+8)*i);
 	}
 }
 
@@ -258,11 +258,49 @@ function drawParts(no, x, y) {
 		ctx.strokeText(i18n.t('Text'), x+3, y+10);
 		ctx.strokeText('1', x+45, y+10);
 		break;
+	case 26:		// delete
+		ctx.beginPath();
+		ctx.moveTo(x, y);
+		ctx.lineTo(x+10, y+10);
+		ctx.moveTo(x, y+10);
+		ctx.lineTo(x+10, y);
+		ctx.stroke();
+		ctx.strokeText('1', x+45, y+10);
+		break;
 	default:
 		ctx.strokeText(i18n.t('Unimplemented'), x, y);
 	}
 }
 
+// Returns bounding box for a drawing object.
+function objBounds(obj, mx, my){
+	// Get bounding box of the object
+	var maxx, maxy, minx, miny;
+	for(var j = 0; j < obj.points.length; j++){
+		var x = obj.points[j].x;
+		if(maxx === undefined || maxx < x)
+			maxx = x;
+		if(minx === undefined || x < minx)
+			minx = x;
+		var y = obj.points[j].y;
+		if(maxy === undefined || maxy < y)
+			maxy = y;
+		if(miny === undefined || y < miny)
+			miny = y;
+	}
+	return {minx: minx, miny: miny, maxx: maxx, maxy: maxy};
+}
+
+// Expand given rectangle by an offset
+function expandRect(r, offset){
+	return {minx: r.minx - offset, miny : r.miny - offset,
+		maxx: r.maxx + offset, maxy: r.maxy + offset};
+}
+
+// Check if a point intersects with a rectangle
+function hitRect(r, x, y){
+	return r.minx < x && x < r.maxx && r.miny < y && y < r.maxy;
+}
 
 function mouseLeftClick(e) {
 	if (3 == e.which) mouseRightClick(e);
@@ -270,6 +308,24 @@ function mouseLeftClick(e) {
 		var menuno = checkMenu(e.pageX, e.pageY);
 		debug(menuno);
 		if (menuno == 0) {		// draw area
+			if(cur_tool === 26){ // delete
+				for(var i = 0; i < dobjs.length; i++){
+					// For the time being, we use the bounding boxes of the objects
+					// to determine the clicked object.  It may be surprising
+					// when a diagonal line gets deleted by clicking on seemingly
+					// empty space, but we could fix it in the future.
+					var bounds = expandRect(objBounds(dobjs[i]), 10);
+					if(hitRect(bounds, e.pageX, e.pageY)){
+						// If any dobj hits
+						dhistory.push(cloneObject(dobjs));
+						dobjs.splice(i, 1);
+						clearCanvas();
+						redraw(dobjs);
+						return;
+					}
+				}
+				return;
+			}
 			draw_point(e.pageX, e.pageY);
 		}
 		else if (menuno <= 10) {
@@ -483,7 +539,7 @@ function drawCanvas(mode, str) {
 			points: Array(numPoints)
 		};
 		for(var i = 0; i < numPoints; i++)
-			dat.points[i] = arr[i];
+			dat.points[i] = {x: arr[i].x, y: arr[i].y};
 		// Values with defaults needs not assigned a value when saved.
 		// This will save space if the drawn element properties use many default values.
 		if (25 == cur_tool) dat.text = str;
@@ -506,7 +562,7 @@ function redraw(pt) {
 		cur_tool = obj.tool;
 		cur_col = obj.color;
 		cur_thin = obj.width;
-		arr = obj.points;
+		arr = cloneObject(obj.points);
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
 		drawCanvas(1, rstr);
@@ -841,8 +897,8 @@ function choiceMenu(x, y) {
 function choiceTBox(x, y) {
 	// ToolBox
 	if (x < mx0 || x > mx0+mw0) return 0;
-	for(var i=0;i<15;i++) {
-		if (y >= my0+(mh0+10)*i && y <= my0+mh0+(mh0+10)*i) return i+11;
+	for(var i=0;i<16;i++) {
+		if (y >= my0+(mh0+8)*i && y <= my0+mh0+(mh0+8)*i) return i+11;
 	}
 	
 	return 0;
