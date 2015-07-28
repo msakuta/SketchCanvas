@@ -1,19 +1,5 @@
 <?php
-$conf = array('git' => FALSE);
-try{
-	if(!include "conf/config.php"){
-		mkdir('conf');
-		$fp = fopen('conf/config.php', 'w');
-		if($fp){
-			fwrite($fp, "<?php\n" .
-			'$conf["git"] = FALSE;' . "\n");
-			fclose($fp);
-		}
-	}
-}
-catch(Exception $e){
-	echo $e->getMessage();
-}
+require_once('conf/default_config.php');
 ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
@@ -58,11 +44,13 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
             <input type="button" value="Show" onclick="skcanvas.loadDataFromServerList()">
             <input type="button" value="Upload (overwrite)" onclick="skcanvas.uploadDataFromServerList()">
             <input type="button" value="Delete" onclick="skcanvas.deleteFromServerList()"><br>
+<?php if($conf['git']){ ?>
             History: <select id="historyselect"></select>
             <input type="button" value="Show Revision" onclick="skcanvas.loadDataFromServerHistory()"><br>
             <input type="button" value="Pull" onclick="skcanvas.pull()"> from or
             <input type="button" value="Push" onclick="skcanvas.push()"> to:
             <input type="text" id="remote" value="">
+<?php } ?>
           </td>
         </tr>
         <tr>

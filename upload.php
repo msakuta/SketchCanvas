@@ -4,6 +4,8 @@
 $maxsize = 100000;
 $updir = "data/";
 
+require_once('conf/default_config.php');
+
 do{
 	$fname = $_POST['fname'];
 	$fdata = $_POST['drawdata'];
@@ -26,21 +28,24 @@ do{
 			break;
 		}
 
-		require_once('gitphp/Git.php');
+		if($conf['git']){
+			require_once('gitphp/Git.php');
+			Git::set_bin($conf['git_path']);
 
-		// Try to delete the file in Git repository, too.
-		$comment = "";
-		try{
-			$repo = new GitRepo('data');
-			// The rm method accepts files either as an array of strings
-			// or a string.  It's unclear whether a space in a string should be
-			// treated as a delimiter or a part of the file name, but the API
-			// seems to be the former.
-			$repo->rm('"' . $fname . '"', true);
-			$repo->commit('Delete file ' . $fname);
-		}
-		catch(Exception $e){
-			$comment = $e->getMessage();
+			// Try to delete the file in Git repository, too.
+			$comment = "";
+			try{
+				$repo = new GitRepo('data');
+				// The rm method accepts files either as an array of strings
+				// or a string.  It's unclear whether a space in a string should be
+				// treated as a delimiter or a part of the file name, but the API
+				// seems to be the former.
+				$repo->rm('"' . $fname . '"', true);
+				$repo->commit('Delete file ' . $fname);
+			}
+			catch(Exception $e){
+				$comment = $e->getMessage();
+			}
 		}
 		echo "succeeded\n";
 		echo $comment . "\n";
@@ -66,22 +71,24 @@ do{
 		fwrite($fp, $fdata);
 		fclose($fp);
 
-		require_once('gitphp/Git.php');
+		if($conf['git']){
+			require_once('gitphp/Git.php');
+			Git::set_bin($conf['git_path']);
 
-		$comment = "";
-		try{
-			$repo = new GitRepo('data', true);
-			// The add method accepts files either as an array of strings
-			// or a string.  It's unclear whether a space in a string should be
-			// treated as a delimiter or a part of the file name, but the API
-			// seems to be the former.
-			$repo->add('"' . $fname . '"');
-			$repo->commit('Add file ' . $fname);
+			$comment = "";
+			try{
+				$repo = new GitRepo('data', true);
+				// The add method accepts files either as an array of strings
+				// or a string.  It's unclear whether a space in a string should be
+				// treated as a delimiter or a part of the file name, but the API
+				// seems to be the former.
+				$repo->add('"' . $fname . '"');
+				$repo->commit('Add file ' . $fname);
+			}
+			catch(Exception $e){
+				$comment = $e->getMessage();
+			}
 		}
-		catch(Exception $e){
-			$comment = $e->getMessage();
-		}
-
 
 /*	elseif(!is_uploaded_file($_FILES['fl']['tmp_name'])) {
 		echo "failed\n";

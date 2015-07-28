@@ -714,6 +714,10 @@ this.loadDataFromServerList = function(){
 
 	requestServerFile(item);
 
+	// If history list box is not present, the server is configured to disable Git support.
+	if(!document.getElementById("historyselect"))
+		return;
+
 	var historyQuery = createXMLHttpRequest();
 	if(historyQuery){
 		historyQuery.onreadystatechange = function(){
