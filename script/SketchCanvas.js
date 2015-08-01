@@ -340,12 +340,10 @@ function mouseLeftClick(e) {
 						if(cur_tool === 26){
 							dhistory.push(cloneObject(dobjs));
 							dobjs.splice(i, 1);
-							clearCanvas();
 							redraw(dobjs);
 						}
 						else{
 							selectobj = dobjs[i];
-							clearCanvas();
 							redraw(dobjs);
 						}
 						return;
@@ -353,7 +351,6 @@ function mouseLeftClick(e) {
 				}
 				if(cur_tool === 10){
 					selectobj = null;
-					clearCanvas();
 					redraw(dobjs);
 				}
 				return;
@@ -583,6 +580,8 @@ function drawCanvas(mode, str) {
 }
 // redraw
 function redraw(pt) {
+	clearCanvas();
+
 	// backup
 	var org_tool = cur_tool;
 	var org_col = cur_col;
@@ -729,7 +728,6 @@ this.loadData = function(){
 	var drawdata = document.getElementById("drawdata");
 	try{
 		dobjs = deserialize(jsyaml.safeLoad(drawdata.value));
-		clearCanvas();
 		redraw(dobjs);
 	} catch(e){
 		console.log(e);
@@ -746,7 +744,6 @@ this.loadDataFromList = function(){
 		var selData = jsyaml.safeLoad(origData);
 		dobjs = deserialize(jsyaml.safeLoad(selData[item]));
 		updateDrawData();
-		clearCanvas();
 		redraw(dobjs);
 	} catch(e){
 		console.log(e);
@@ -803,7 +800,6 @@ function requestServerFile(item, hash){
 				dobjs = deserialize(jsyaml.safeLoad(selData));
 				selectobj = null;
 				updateDrawData();
-				clearCanvas();
 				redraw(dobjs);
 			}
 			catch(e){
@@ -1094,13 +1090,11 @@ function ajaxundo() {
 	dobjs = dhistory[dhistory.length-1];
 	dhistory.pop();
 	updateDrawData();
-	clearCanvas();
 	redraw(dobjs);
 }
 
 // redraw
 function ajaxredraw(id) {
-	clearCanvas();
 	redraw(dobjs);
 }
 
