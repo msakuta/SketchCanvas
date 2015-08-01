@@ -1,7 +1,16 @@
 <?php header("Content-Type:text/plain"); ?>
 <?php
 $updir = "data/";
+
+require_once('conf/default_config.php');
+
 try{
+	if(!$conf['git']){
+		echo "failed\n";
+		echo "Git is not installed; history support requires Git installed on the server.";
+		return;
+	}
+
 	if(!isset($_GET['fname']) || $_GET['fname'] === '')
 		throw new Exception('fname is not specified.');
 	$fname = $_GET['fname'];
@@ -11,6 +20,7 @@ try{
 		$hash = "";
 
 	require_once('gitphp/Git.php');
+	Git::set_bin($conf['git_path']);
 
 	$repo = new GitRepo('data');
 	if($hash !== ""){
