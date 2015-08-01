@@ -20,7 +20,10 @@ function onload(){
     return false;
   }
 
-  canvas.onclick = mouseLeftClick;
+	canvas.onclick = mouseLeftClick;
+	canvas.onmousedown = mouseDown;
+	canvas.onmouseup = mouseUp;
+	canvas.addEventListener('mousemove', mouseMove, false);
 
   // 2D context
   ctx = canvas.getContext('2d');
@@ -413,6 +416,51 @@ function mouseRightClick(e) {
 	//arr[idx] = cood;
 	//idx++;
 	debug('idx='+idx);
+}
+
+var movebase = [0,0];
+var moving = false;
+function mouseDown(e){
+	if(cur_tool === 10){
+		selectobj = null;
+		for(var i = 0; i < dobjs.length; i++){
+			// For the time being, we use the bounding boxes of the objects
+			// to determine the clicked object.  It may be surprising
+			// when a diagonal line gets deleted by clicking on seemingly
+			// empty space, but we could fix it in the future.
+			var bounds = expandRect(objBounds(dobjs[i]), 10);
+			if(hitRect(bounds, e.pageX, e.pageY)){
+				selectobj = dobjs[i];
+				redraw(dobjs);
+			}
+		}
+		if(selectobj){
+			movebase = [e.clientX, e.clientY];
+			moving = true;
+		}
+	}
+}
+
+function mouseUp(e){
+	if(cur_tool === 10 && selectobj && moving){
+		dhistory.push(cloneObject(dobjs));
+		updateDrawData();
+	}
+	moving = false;
+}
+
+function mouseMove(e){
+//	debug("mousemove: " + e.clientX + "," + e.clientY);
+	if(cur_tool === 10 && selectobj && moving){
+		var dx = e.clientX - movebase[0];
+		var dy = e.clientY - movebase[1];
+		for(var i = 0; i < selectobj.points.length; i++){
+			selectobj.points[i].x += dx;
+			selectobj.points[i].y += dy;
+		}
+		movebase = [e.clientX, e.clientY];
+		redraw(dobjs);
+	}
 }
 
 // draw one click
