@@ -10,6 +10,7 @@ i18n.init({lng: currentLanguage, fallbackLng: 'en', resStore: resources, getAsyn
 
 var dobjs; // Drawing objects
 var dhistory; // Drawing object history (for undoing)
+var selectobj = null;
 
 // Called at the end of the constructor
 function onload(){
@@ -23,6 +24,12 @@ function onload(){
 
   // 2D context
   ctx = canvas.getContext('2d');
+	// Set a placeholder function to ignore setLineDash method for browsers that don't support it.
+	// The method is not compatible with many browsers, but we don't care if it's not supported
+	// because it's only used for selected object designation.
+	if(!ctx.setLineDash)
+		ctx.setLineDash = function(){};
+
   draw();
 
   // Draw objects
@@ -79,14 +86,14 @@ function drawMenu(no) {
 
 // Tool Box
 function drawTBox(no) {
-	for(var i=0;i<16;i++) {
-		if (no == i+11)
+	for(var i=0;i<17;i++) {
+		if (no == i+10)
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
 			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
-		ctx.fillRect(mx0, my0+38*i, mw0, mh0);
+		ctx.fillRect(mx0, my0+36*i, mw0, mh0);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
-		drawParts(i+11, mx0+10, my0+10+(mh0+8)*i);
+		drawParts(i+10, mx0+10, my0+10+(mh0+8)*i);
 	}
 }
 
@@ -136,6 +143,19 @@ function drawHBox(no) {
 function drawParts(no, x, y) {
 	var a = new Array(3);
 	switch (no) {
+	case 10:		// cursor
+		ctx.beginPath();
+		ctx.moveTo(x, y-5);
+		ctx.lineTo(x, y+10);
+		ctx.lineTo(x+4, y+7);
+		ctx.lineTo(x+6, y+11);
+		ctx.lineTo(x+8, y+9);
+		ctx.lineTo(x+6, y+5);
+		ctx.lineTo(x+10, y+3);
+		ctx.closePath();
+		ctx.stroke();
+		ctx.strokeText('1', x+45, y+10);
+		break;
 	case 11:		// line
 		ctx.beginPath();
 		ctx.moveTo(x, y);
@@ -308,7 +328,7 @@ function mouseLeftClick(e) {
 		var menuno = checkMenu(e.pageX, e.pageY);
 		debug(menuno);
 		if (menuno == 0) {		// draw area
-			if(cur_tool === 26){ // delete
+			if(cur_tool === 26 || cur_tool === 10){ // delete
 				for(var i = 0; i < dobjs.length; i++){
 					// For the time being, we use the bounding boxes of the objects
 					// to determine the clicked object.  It may be surprising
@@ -317,18 +337,30 @@ function mouseLeftClick(e) {
 					var bounds = expandRect(objBounds(dobjs[i]), 10);
 					if(hitRect(bounds, e.pageX, e.pageY)){
 						// If any dobj hits
-						dhistory.push(cloneObject(dobjs));
-						dobjs.splice(i, 1);
-						clearCanvas();
-						redraw(dobjs);
+						if(cur_tool === 26){
+							dhistory.push(cloneObject(dobjs));
+							dobjs.splice(i, 1);
+							clearCanvas();
+							redraw(dobjs);
+						}
+						else{
+							selectobj = dobjs[i];
+							clearCanvas();
+							redraw(dobjs);
+						}
 						return;
 					}
+				}
+				if(cur_tool === 10){
+					selectobj = null;
+					clearCanvas();
+					redraw(dobjs);
 				}
 				return;
 			}
 			draw_point(e.pageX, e.pageY);
 		}
-		else if (menuno <= 10) {
+		else if (menuno < 10) {
 			drawMenu(menuno);
 			cur_menu = menuno;
 			if (1 == cur_menu) {	// save
@@ -566,7 +598,32 @@ function redraw(pt) {
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
 		drawCanvas(1, rstr);
-	}	
+	}
+	if(selectobj){
+		var bounds = objBounds(selectobj);
+		ctx.beginPath();
+		ctx.fillStyle = '#ffff7f';
+		ctx.strokeStyle = '#000';
+		function drawHandle(x, y){
+			ctx.fillRect(x - 5, y - 5, 10, 10);
+			ctx.rect(x - 5, y - 5, 10, 10);
+		}
+		drawHandle(bounds.minx, bounds.miny);
+		drawHandle((bounds.minx+bounds.maxx)/2, bounds.miny);
+		drawHandle(bounds.maxx, bounds.miny);
+		drawHandle(bounds.maxx, (bounds.miny+bounds.maxy)/2);
+		drawHandle(bounds.minx, bounds.maxy);
+		drawHandle((bounds.minx+bounds.maxx)/2, bounds.maxy);
+		drawHandle(bounds.maxx, bounds.maxy);
+		drawHandle(bounds.minx, (bounds.miny+bounds.maxy)/2);
+		ctx.stroke();
+
+		ctx.beginPath();
+		ctx.setLineDash([5]);
+		ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
 
 	// restore tools
 	cur_tool = org_tool;
@@ -661,9 +718,6 @@ function deserialize(dat){
 			var pt2 = pt1[j].split(",");
 			arr.push({x:pt2[0]-0, y:pt2[1]-0});
 		}
-		for(var j = pt1.length; j < 3; j++){
-			arr.push({x:0, y:0});
-		}
 		robj.points = arr;
 		if (undefined !== obj.text) robj.text = obj.text;
 		ret.push(robj);
@@ -747,6 +801,7 @@ function requestServerFile(item, hash){
 					selData = selData.substr(selData.indexOf("\n")+1);
 				}
 				dobjs = deserialize(jsyaml.safeLoad(selData));
+				selectobj = null;
 				updateDrawData();
 				clearCanvas();
 				redraw(dobjs);
@@ -897,8 +952,8 @@ function choiceMenu(x, y) {
 function choiceTBox(x, y) {
 	// ToolBox
 	if (x < mx0 || x > mx0+mw0) return 0;
-	for(var i=0;i<16;i++) {
-		if (y >= my0+(mh0+8)*i && y <= my0+mh0+(mh0+8)*i) return i+11;
+	for(var i=0;i<17;i++) {
+		if (y >= my0+(mh0+8)*i && y <= my0+mh0+(mh0+8)*i) return i+10;
 	}
 	
 	return 0;
@@ -1027,6 +1082,7 @@ function updateDrawData(){
 // clear data
 function ajaxclear() {
 	dobjs = [];
+	selectobj = null;
 	updateDrawData();
 	clearCanvas();
 }
@@ -1191,8 +1247,8 @@ var coltable = {"black": black, "blue": blue, "red": red, "green": green, "white
 var x0 = 0, y0 = 0, w0 = 1024, h0 = 640;
 var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
-var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 30;
-var cur_tool = 11, cur_col = "black", cur_thin = 1;
+var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
+var cur_tool = 10, cur_col = "black", cur_thin = 1;
 
 onload();
 }
