@@ -1,4 +1,4 @@
-# ComicPunch
+# SketchCanvas
 A simple HTML5 figure editor and viewer
 
 
