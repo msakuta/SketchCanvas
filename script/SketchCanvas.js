@@ -367,10 +367,18 @@ function mouseLeftClick(e) {
 		else if (menuno <= 40) {
 			drawCBox(menuno);
 			cur_col = colnames[menuno-31];
+			if(selectobj){
+				selectobj.color = cur_col;
+				redraw(dobjs);
+			}
 		}
 		else {
 			drawHBox(menuno);
 			cur_thin = menuno - 40;
+			if(selectobj){
+				selectobj.width = cur_thin;
+				redraw(dobjs);
+			}
 		}
 		//if (1 == menuno) debug('x='+arr[0].x + 'y='+arr[0].y);
 	}
@@ -390,6 +398,9 @@ var sizing = false;
 var sizedir = 0;
 function mouseDown(e){
 	if(cur_tool === 10){
+		var menuno = checkMenu(e.pageX, e.pageY);
+		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
+			return;
 		selectobj = null;
 		for(var i = 0; i < dobjs.length; i++){
 			// For the time being, we use the bounding boxes of the objects
@@ -696,6 +707,8 @@ function redraw(pt) {
 	if(selectobj){
 		var bounds = objBounds(selectobj);
 		ctx.beginPath();
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = '#000';
 		ctx.setLineDash([5]);
 		ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
 		ctx.stroke();
