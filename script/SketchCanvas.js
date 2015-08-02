@@ -77,15 +77,15 @@ function drawPos(x, y) {
 
 // Menu
 function drawMenu(no) {
-	for(var i=0;i<7;i++) {
-		if (no == i+1)
+	for(var i=0;i<menus.length;i++) {
+		if (no === i)
 			ctx.fillStyle = 'rgb(120, 255, 120)'; // green
 		else
 			ctx.fillStyle = 'rgb(100, 200, 100)'; // green
-		ctx.fillRect(mx1+i*(mw1+10), my0, mw1, mh0);
+		ctx.fillRect(mx1+(i+0)*(mw1+10), my0, mw1, mh0);
 		//ctx.strokeStyle = 'rgb(50, 192, 177)'; // cyan
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
-		ctx.strokeText(menustr[i], mx1+10+i*(mw1+10), my0+20);
+		ctx.strokeText(menus[i].text, mx1+10+(i+0)*(mw1+10), my0+20);
 	}
 }
 
@@ -332,7 +332,7 @@ function mouseLeftClick(e) {
 	else {
 		var menuno = checkMenu(e.pageX, e.pageY);
 		debug(menuno);
-		if (menuno == 0) {		// draw area
+		if (menuno < 0) {		// draw area
 			if(cur_tool === 26){ // delete
 				for(var i = 0; i < dobjs.length; i++){
 					// For the time being, we use the bounding boxes of the objects
@@ -355,35 +355,7 @@ function mouseLeftClick(e) {
 		else if (menuno < 10) {
 			drawMenu(menuno);
 			cur_menu = menuno;
-			if (1 == cur_menu) {	// save
-				ajaxsave();
-			}
-			else if (2 == cur_menu) {	// list
-				//clearCanvas();
-				ajaxsearch(0);
-			}
-			else if (3 == cur_menu) {	// search
-				//clearCanvas();
-				ajaxsearch(1);
-			}
-			else if (4 == cur_menu) {	// clear
-				clearCanvas();
-				ajaxclear();
-			}
-			else if (5 == cur_menu) {	// redraw
-				clearCanvas();
-				ajaxredraw(selectedID());
-			}
-			else if (6 == cur_menu) {	// undo
-				clearCanvas();
-				ajaxundo();
-			}
-			else if (7 == cur_menu) {	// append
-				ajaxappend();
-			}
-			else if (8 == cur_menu) {	// append
-				postSave();
-			}
+			menus[cur_menu].onclick();
 		}
 		else if (menuno <= 30) {
 			drawTBox(menuno);
@@ -1020,7 +992,7 @@ function selectedID() {
 // check all menu
 function checkMenu(x, y) {
 	var no = choiceMenu(x, y);
-	if (no > 0) return no;
+	if (no >= 0) return no;
 	no = choiceTBox(x, y);
 	if (no > 0) return no;
 	no = choiceCBox(x, y);
@@ -1034,42 +1006,42 @@ function checkMenu(x, y) {
 
 function choiceMenu(x, y) {
 	// menu
-	if (y < my0 || y > my0+mh0) return 0;
-	for(var i=0;i<8;i++) {
-		if (x >= mx1+(mw1+10)*i && x <= mx1+mw0+(mw1+10)*i) return i+1;
+	if (y < my0 || y > my0+mh0) return -1;
+	for(var i=0;i<menus.length;i++) {
+		if (x >= mx1+(mw1+10)*i && x <= mx1+mw0+(mw1+10)*i) return i;
 	}
 
-	return 0;
+	return -1;
 }
 
 //
 function choiceTBox(x, y) {
 	// ToolBox
-	if (x < mx0 || x > mx0+mw0) return 0;
+	if (x < mx0 || x > mx0+mw0) return -1;
 	for(var i=0;i<17;i++) {
 		if (y >= my0+(mh0+8)*i && y <= my0+mh0+(mh0+8)*i) return i+10;
 	}
 	
-	return 0;
+	return -1;
 }
 
 	// Color Parett
 function choiceCBox(x, y) {
-	if (y < my0 || y > my0+mh0) return 0;
+	if (y < my0 || y > my0+mh0) return -1;
 	for(var i=0;i<5;i++) {
 		if (x >= mx2+(mw2+10)*i && x <= mx2+mw2+(mw2+10)*i) return i+31;
 	}
 	
-	return 0;
+	return -1;
 }
 	// Thin Box
 function choiceHBox(x, y) {
-	if (y < my0 || y > my0+mh0) return 0;
+	if (y < my0 || y > my0+mh0) return -1;
 	for(var i=0;i<3;i++) {
 		if (x >= mx3+(mw2+10)*i && x <= mx3+mw2+(mw2+10)*i) return i+41;
 	}
 	
-	return 0;
+	return -1;
 }
 
 //------------------- ajax -----------------------------------
@@ -1320,13 +1292,41 @@ function debug(msg) {
   darea.innerHTML = msg;
 }
 
+function MenuItem(text, onclick){
+	this.text = i18n.t(text);
+	this.onclick = onclick;
+}
+
 // init --------------------------------------------------
 //window.captureEvents(Event.click);
 //onclick=mouseLeftClick;
 var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
 var idx = 0, zorder = 0;
 var ctx;
-var menustr = new Array(i18n.t("Save"), i18n.t("List"), i18n.t("Search"), i18n.t("Clear"), i18n.t("Redraw"), i18n.t("Undo"), i18n.t("Overwrite"));
+var menus = [
+	new MenuItem("Save", ajaxsave), // save
+	new MenuItem("List", function(){
+		//clearCanvas();
+		ajaxsearch(0);
+	}),
+	new MenuItem("Search", function(){	 // search
+		//clearCanvas();
+		ajaxsearch(1);
+	}),
+	new MenuItem("Clear", function(){	// clear
+		clearCanvas();
+		ajaxclear();
+	}),
+	new MenuItem("Redraw", function(){	// redraw
+		clearCanvas();
+		ajaxredraw(selectedID());
+	}),
+	new MenuItem("Undo", function(){	// undo
+		clearCanvas();
+		ajaxundo();
+	}),
+	new MenuItem("Overwrite", ajaxappend), // append
+];
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
 var blue = "rgb(0, 100, 255)";
