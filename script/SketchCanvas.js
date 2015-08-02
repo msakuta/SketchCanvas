@@ -13,6 +13,8 @@ var dhistory; // Drawing object history (for undoing)
 var selectobj = null;
 
 var handleSize = 4;
+var gridEnable = false;
+var gridSize = 8;
 
 // Called at the end of the constructor
 function onload(){
@@ -414,7 +416,9 @@ function mouseDown(e){
 					}
 				}
 			}
-			movebase = [e.clientX, e.clientY];
+			var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
+			var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
+			movebase = [mx, my];
 			moving = true;
 		}
 	}
@@ -430,16 +434,17 @@ function mouseUp(e){
 }
 
 function mouseMove(e){
-//	debug("mousemove: " + e.clientX + "," + e.clientY);
 	if(cur_tool === 10 && selectobj){
+		var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
+		var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
 		if(moving){
-			var dx = e.clientX - movebase[0];
-			var dy = e.clientY - movebase[1];
+			var dx = mx - movebase[0];
+			var dy = my - movebase[1];
 			for(var i = 0; i < selectobj.points.length; i++){
 				selectobj.points[i].x += dx;
 				selectobj.points[i].y += dy;
 			}
-			movebase = [e.clientX, e.clientY];
+			movebase = [mx, my];
 			redraw(dobjs);
 		}
 		else if(sizing){
@@ -453,8 +458,8 @@ function mouseMove(e){
 			var bounds = objBounds(selectobj);
 			var ux = [-1,0,1,1,1,0,-1,-1][sizedir];
 			var uy = [-1,-1,-1,0,1,1,1,0][sizedir];
-			var xscale = ux === 0 ? 1 : (ux === 1 ? e.clientX - bounds.minx : bounds.maxx - e.clientX) / (bounds.maxx - bounds.minx);
-			var yscale = uy === 0 ? 1 : (uy === 1 ? e.clientY - bounds.miny : bounds.maxy - e.clientY) / (bounds.maxy - bounds.miny);
+			var xscale = ux === 0 ? 1 : (ux === 1 ? mx - bounds.minx : bounds.maxx - mx) / (bounds.maxx - bounds.minx);
+			var yscale = uy === 0 ? 1 : (uy === 1 ? my - bounds.miny : bounds.maxy - my) / (bounds.maxy - bounds.miny);
 			for(var i = 0; i < selectobj.points.length; i++){
 				if(ux !== 0 && xscale !== 0)
 					selectobj.points[i].x = ux === 1 ?
@@ -478,8 +483,12 @@ function mouseMove(e){
 // draw one click
 function draw_point(x, y) {
 	debug('idx='+idx+',x='+x+',y='+y);
-	cood = { x:x, y:y }
-	arr[idx] = cood;
+	var coord;
+	if(gridEnable)
+		coord = { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
+	else
+		coord = { x:x, y:y };
+	arr[idx] = coord;
 	idx++;
 	if (idx == points()) drawCanvas(0, null);
 }
@@ -658,6 +667,15 @@ function getHandleRect(bounds, i){
 // redraw
 function redraw(pt) {
 	clearCanvas();
+
+	if(gridEnable){
+		ctx.fillStyle = "#000";
+		for(var ix = Math.ceil(x1 / gridSize); ix < (x1 + w1) / gridSize; ix++){
+			for(var iy = Math.ceil(y1 / gridSize); iy < (y1 + h1) / gridSize; iy++){
+				ctx.fillRect(ix * gridSize, iy * gridSize, 1, 1);
+			}
+		}
+	}
 
 	// backup
 	var org_tool = cur_tool;
@@ -1304,7 +1322,10 @@ var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
 var idx = 0, zorder = 0;
 var ctx;
 var menus = [
-	new MenuItem("Save", ajaxsave), // save
+	new MenuItem("Grid", function(){
+		gridEnable = !gridEnable;
+		redraw(dobjs);
+	}),
 	new MenuItem("List", function(){
 		//clearCanvas();
 		ajaxsearch(0);
