@@ -1326,13 +1326,17 @@ var menus = [
 		gridEnable = !gridEnable;
 		redraw(dobjs);
 	}),
-	new MenuItem("List", function(){
-		//clearCanvas();
-		ajaxsearch(0);
+	new MenuItem("Grid+", function(){
+		if(gridSize < 32)
+			gridSize *= 2;
+		if(gridEnable)
+			redraw(dobjs);
 	}),
-	new MenuItem("Search", function(){	 // search
-		//clearCanvas();
-		ajaxsearch(1);
+	new MenuItem("Grid-", function(){
+		if(4 < gridSize)
+			gridSize /= 2;
+		if(gridEnable)
+			redraw(dobjs);
 	}),
 	new MenuItem("Clear", function(){	// clear
 		clearCanvas();
