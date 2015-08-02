@@ -12,6 +12,8 @@ var dobjs; // Drawing objects
 var dhistory; // Drawing object history (for undoing)
 var selectobj = null;
 
+var handleSize = 4;
+
 // Called at the end of the constructor
 function onload(){
 
@@ -23,7 +25,7 @@ function onload(){
 	canvas.onclick = mouseLeftClick;
 	canvas.onmousedown = mouseDown;
 	canvas.onmouseup = mouseUp;
-	canvas.addEventListener('mousemove', mouseMove, false);
+	canvas.onmousemove = mouseMove;
 
   // 2D context
   ctx = canvas.getContext('2d');
@@ -420,6 +422,8 @@ function mouseRightClick(e) {
 
 var movebase = [0,0];
 var moving = false;
+var sizing = false;
+var sizedir = 0;
 function mouseDown(e){
 	if(cur_tool === 10){
 		selectobj = null;
@@ -435,6 +439,17 @@ function mouseDown(e){
 			}
 		}
 		if(selectobj){
+			var bounds = objBounds(selectobj);
+			// Do not enter sizing mode if the object is point sized.
+			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
+				for(var i = 0; i < 8; i++){
+					if(hitRect(getHandleRect(bounds, i), e.pageX, e.pageY)){
+						sizedir = i;
+						sizing = true;
+						return;
+					}
+				}
+			}
 			movebase = [e.clientX, e.clientY];
 			moving = true;
 		}
@@ -442,24 +457,52 @@ function mouseDown(e){
 }
 
 function mouseUp(e){
-	if(cur_tool === 10 && selectobj && moving){
+	if(cur_tool === 10 && selectobj && (moving || sizing)){
 		dhistory.push(cloneObject(dobjs));
 		updateDrawData();
 	}
 	moving = false;
+	sizing = false;
 }
 
 function mouseMove(e){
 //	debug("mousemove: " + e.clientX + "," + e.clientY);
-	if(cur_tool === 10 && selectobj && moving){
-		var dx = e.clientX - movebase[0];
-		var dy = e.clientY - movebase[1];
-		for(var i = 0; i < selectobj.points.length; i++){
-			selectobj.points[i].x += dx;
-			selectobj.points[i].y += dy;
+	if(cur_tool === 10 && selectobj){
+		if(moving){
+			var dx = e.clientX - movebase[0];
+			var dy = e.clientY - movebase[1];
+			for(var i = 0; i < selectobj.points.length; i++){
+				selectobj.points[i].x += dx;
+				selectobj.points[i].y += dy;
+			}
+			movebase = [e.clientX, e.clientY];
+			redraw(dobjs);
 		}
-		movebase = [e.clientX, e.clientY];
-		redraw(dobjs);
+		else if(sizing){
+			/* Definition of handle index and position
+				0 --- 1 --- 2
+				|           |
+				7           3
+				|           |
+				6 --- 5 --- 4
+			*/
+			var bounds = objBounds(selectobj);
+			var ux = [-1,0,1,1,1,0,-1,-1][sizedir];
+			var uy = [-1,-1,-1,0,1,1,1,0][sizedir];
+			var xscale = ux === 0 ? 1 : (ux === 1 ? e.clientX - bounds.minx : bounds.maxx - e.clientX) / (bounds.maxx - bounds.minx);
+			var yscale = uy === 0 ? 1 : (uy === 1 ? e.clientY - bounds.miny : bounds.maxy - e.clientY) / (bounds.maxy - bounds.miny);
+			for(var i = 0; i < selectobj.points.length; i++){
+				if(ux !== 0 && xscale !== 0)
+					selectobj.points[i].x = ux === 1 ?
+						(selectobj.points[i].x - bounds.minx) * xscale + bounds.minx :
+						(selectobj.points[i].x - bounds.maxx) * xscale + bounds.maxx;
+				if(uy !== 0 && yscale !== 0)
+					selectobj.points[i].y = uy === 1 ?
+						(selectobj.points[i].y - bounds.miny) * yscale + bounds.miny :
+						(selectobj.points[i].y - bounds.maxy) * yscale + bounds.maxy;
+			}
+			redraw(dobjs);
+		}
 	}
 }
 
@@ -626,6 +669,23 @@ function drawCanvas(mode, str) {
 	idx = 0;
 	
 }
+
+function getHandleRect(bounds, i){
+	var x, y;
+	switch(i){
+	case 0: x = bounds.minx, y = bounds.miny; break;
+	case 1: x = (bounds.minx+bounds.maxx)/2, y = bounds.miny; break;
+	case 2: x = bounds.maxx, y = bounds.miny; break;
+	case 3: x = bounds.maxx, y = (bounds.miny+bounds.maxy)/2; break;
+	case 4: x = bounds.maxx, y = bounds.maxy; break;
+	case 5: x = (bounds.minx+bounds.maxx)/2, y = bounds.maxy; break;
+	case 6: x = bounds.minx, y = bounds.maxy; break;
+	case 7: x = bounds.minx, y = (bounds.miny+bounds.maxy)/2; break;
+	default: return;
+	}
+	return {minx: x - handleSize, miny: y - handleSize, maxx: x + handleSize, maxy: y + handleSize};
+}
+
 // redraw
 function redraw(pt) {
 	clearCanvas();
@@ -649,27 +709,20 @@ function redraw(pt) {
 	if(selectobj){
 		var bounds = objBounds(selectobj);
 		ctx.beginPath();
-		ctx.fillStyle = '#ffff7f';
-		ctx.strokeStyle = '#000';
-		function drawHandle(x, y){
-			ctx.fillRect(x - 5, y - 5, 10, 10);
-			ctx.rect(x - 5, y - 5, 10, 10);
-		}
-		drawHandle(bounds.minx, bounds.miny);
-		drawHandle((bounds.minx+bounds.maxx)/2, bounds.miny);
-		drawHandle(bounds.maxx, bounds.miny);
-		drawHandle(bounds.maxx, (bounds.miny+bounds.maxy)/2);
-		drawHandle(bounds.minx, bounds.maxy);
-		drawHandle((bounds.minx+bounds.maxx)/2, bounds.maxy);
-		drawHandle(bounds.maxx, bounds.maxy);
-		drawHandle(bounds.minx, (bounds.miny+bounds.maxy)/2);
-		ctx.stroke();
-
-		ctx.beginPath();
 		ctx.setLineDash([5]);
 		ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
 		ctx.stroke();
 		ctx.setLineDash([]);
+
+		ctx.beginPath();
+		ctx.strokeStyle = '#000';
+		for(var i = 0; i < 8; i++){
+			var r = getHandleRect(bounds, i);
+			ctx.fillStyle = sizing && i === sizedir ? '#7fff7f' : '#ffff7f';
+			ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+			ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+		}
+		ctx.stroke();
 	}
 
 	// restore tools
