@@ -493,6 +493,11 @@ function mouseMove(e){
 						(selectobj.points[i].y - bounds.miny) * yscale + bounds.miny :
 						(selectobj.points[i].y - bounds.maxy) * yscale + bounds.maxy;
 			}
+			// Invert handle selection when the handle is dragged to the other side to enable mirror scaling.
+			if(ux !== 0 && xscale < 0)
+				sizedir = [2,1,0,7,6,5,4,3][sizedir];
+			if(uy !== 0 && yscale < 0)
+				sizedir = [6,5,4,3,2,1,0,7][sizedir];
 			redraw(dobjs);
 		}
 	}
