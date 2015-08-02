@@ -333,7 +333,7 @@ function mouseLeftClick(e) {
 		var menuno = checkMenu(e.pageX, e.pageY);
 		debug(menuno);
 		if (menuno == 0) {		// draw area
-			if(cur_tool === 26 || cur_tool === 10){ // delete
+			if(cur_tool === 26){ // delete
 				for(var i = 0; i < dobjs.length; i++){
 					// For the time being, we use the bounding boxes of the objects
 					// to determine the clicked object.  It may be surprising
@@ -341,22 +341,12 @@ function mouseLeftClick(e) {
 					// empty space, but we could fix it in the future.
 					var bounds = expandRect(objBounds(dobjs[i]), 10);
 					if(hitRect(bounds, e.pageX, e.pageY)){
-						// If any dobj hits
-						if(cur_tool === 26){
-							dhistory.push(cloneObject(dobjs));
-							dobjs.splice(i, 1);
-							redraw(dobjs);
-						}
-						else{
-							selectobj = dobjs[i];
-							redraw(dobjs);
-						}
+						// If any dobj hits, save the current state to the undo buffer and delete the object.
+						dhistory.push(cloneObject(dobjs));
+						dobjs.splice(i, 1);
+						redraw(dobjs);
 						return;
 					}
-				}
-				if(cur_tool === 10){
-					selectobj = null;
-					redraw(dobjs);
 				}
 				return;
 			}
@@ -435,9 +425,11 @@ function mouseDown(e){
 			var bounds = expandRect(objBounds(dobjs[i]), 10);
 			if(hitRect(bounds, e.pageX, e.pageY)){
 				selectobj = dobjs[i];
-				redraw(dobjs);
+				break;
 			}
 		}
+		redraw(dobjs);
+
 		if(selectobj){
 			var bounds = objBounds(selectobj);
 			// Do not enter sizing mode if the object is point sized.
