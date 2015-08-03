@@ -1,8 +1,19 @@
 /// @brief The SketchCanvas class accepts a canvas object to draw on.
+/// @param canvas The canvas to draw the figure to.
+/// @param options An initialization parameters table that contains following items:
+///                editmode: The canvas is used for editing when true.
 ///
 /// Make sure to invoke this class's constructor with "new" prepended
 /// and keep the returned object to some variable.
-function SketchCanvas(canvas){
+///
+/// It has a event handler onLocalChange that can be assigned as this object's method.
+/// The function has the signature:
+/// function onLocalChange();
+/// This event is invoked when the canvas saves its contents into localStorage of the
+/// browser.  Use this event to update list of locally saved figures.
+function SketchCanvas(canvas, options){
+var editmode = options && options.editmode;
+
 // Obtain the browser's preferred language.
 var currentLanguage = (window.navigator.language || window.navigator.userLanguage || window.navigator.userLanguage).substr(0, 2);
 
@@ -24,10 +35,13 @@ function onload(){
     return false;
   }
 
-	canvas.onclick = mouseLeftClick;
-	canvas.onmousedown = mouseDown;
-	canvas.onmouseup = mouseUp;
-	canvas.onmousemove = mouseMove;
+	// Ignore mouse events if it's non-edit mode.
+	if(editmode){
+		canvas.onclick = mouseLeftClick;
+		canvas.onmousedown = mouseDown;
+		canvas.onmouseup = mouseUp;
+		canvas.onmousemove = mouseMove;
+	}
 
   // 2D context
   ctx = canvas.getContext('2d');
@@ -45,9 +59,6 @@ function onload(){
   // And the history of operations
   dhistory = [];
 
-  // Load saved figure list from localStorage
-  ajaxsearch(0);
-
   // Download saved figures list from the server
   downloadList();
 };
@@ -55,6 +66,8 @@ function onload(){
 var datadir = "data";
 
 function draw() {
+	if(!editmode)
+		return;
   // Draw a rectangle
   ctx.beginPath();
   ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
@@ -877,7 +890,7 @@ function downloadList(){
 	}
 }
 
-function requestServerFile(item, hash){
+this.requestServerFile = function(item, hash){
 	// Asynchronous request for getting figure data in the server.
 	var xmlHttp = createXMLHttpRequest();
 	if(xmlHttp){
@@ -920,7 +933,7 @@ this.loadDataFromServerList = function(){
 	var sel = document.forms[0].serverselect;
 	var item = sel.options[sel.selectedIndex].text;
 
-	requestServerFile(item);
+	this.requestServerFile(item);
 
 	// If history list box is not present, the server is configured to disable Git support.
 	if(!document.getElementById("historyselect"))
@@ -959,7 +972,7 @@ this.loadDataFromServerHistory = function(){
 	var item = sel.options[sel.selectedIndex].text;
 	var histsel = document.getElementById("historyselect");
 
-	requestServerFile(item, histsel.options[histsel.selectedIndex].text.split(" ")[0]);
+	this.requestServerFile(item, histsel.options[histsel.selectedIndex].text.split(" ")[0]);
 }
 
 // clear canvas
@@ -1091,7 +1104,8 @@ function ajaxsave() {
 	var title = prompt("TITLE:", "");
 	if (null === title) return false;
 	saveData(title);
-	ajaxsearch(0);
+	if(this.onLocalChange)
+		this.onLocalChange();
 	return true;
 }
 
@@ -1099,7 +1113,8 @@ this.saveDataNew = function(){
 	var text = document.getElementById("clientfname").value;
 	if(null === text) return;
 	saveData(text);
-	ajaxsearch(0);
+	if(this.onLocalChange)
+		this.onLocalChange();
 }
 
 this.saveDataFromList = function(){
@@ -1127,7 +1142,7 @@ function ajaxappend() {
 }
 
 // search
-function ajaxsearch(mode) {
+this.listLocal = function(selectElement) {
 
 	if(typeof(Storage) !== "undefined"){
 		var str = localStorage.getItem("canvasDrawData");
@@ -1141,7 +1156,7 @@ function ajaxsearch(mode) {
 		for(var name in origData)
 			keys.push(name);
 
-		setSelect(keys, document.forms[0].canvasselect);
+		setSelect(keys, selectElement);
 	}
 
 }
