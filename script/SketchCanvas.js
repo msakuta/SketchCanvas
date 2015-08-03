@@ -2,6 +2,7 @@
 /// @param canvas The canvas to draw the figure to.
 /// @param options An initialization parameters table that contains following items:
 ///                editmode: The canvas is used for editing when true.
+///                debug: A function with one argument to output debug string.
 ///
 /// Make sure to invoke this class's constructor with "new" prepended
 /// and keep the returned object to some variable.
@@ -1334,8 +1335,8 @@ this.deleteFromServerList = function(){
 
 //------------------------ debug ------------------------
 function debug(msg) {
-  var darea = document.getElementById('message');
-  darea.innerHTML = msg;
+	if(options && options.debug)
+		options.debug(msg);
 }
 
 function MenuItem(text, onclick){
