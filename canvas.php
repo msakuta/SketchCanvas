@@ -51,6 +51,7 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
             <input type="button" value="Push" onclick="skcanvas.push()"> to:
             <input type="text" id="remote" value="">
 <?php } ?>
+            <br><a href="gallery.php">Gallery of server figures</a>
           </td>
         </tr>
         <tr>
