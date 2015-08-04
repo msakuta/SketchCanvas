@@ -13,6 +13,15 @@ require_once('conf/default_config.php');
     <script language="javascript" src="script/i18next-1.7.2.min.js"></script>
     <script language="javascript" src="script/translation.js"></script>
     <script language="javascript" src="script/SketchCanvas.js"></script>
+    <script language="javascript">
+<?php
+echo 'var showingFigureName = ';
+if(isset($_GET['fname']))
+	echo '"' . addslashes($_GET['fname']) . '";';
+else
+	echo 'null;';
+?>
+    </script>
     <script language="javascript" src="script/canvas.js"></script>
 <!--    <script language="javascript" src="script/encoding.js"></script> -->
     <script src="script/js-yaml.min.js"></script>

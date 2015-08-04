@@ -31,7 +31,7 @@ onload = function(){
 	var gallery = document.getElementById('gallery');
 	for(var i = 0; i < files.length; i++){
 		var div = document.createElement('div');
-		div.innerHTML = files[i] + '<br>';
+		div.innerHTML = '<a href="canvas.php?fname=' + encodeURI(files[i]) + '">' + files[i] + '</a><br>';
 		var canvas = document.createElement('canvas');
 		canvas.id = 'canvassample' + i;
 		canvas.width = 1024 * scale;

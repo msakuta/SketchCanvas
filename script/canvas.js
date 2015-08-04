@@ -17,9 +17,16 @@ onload = function(){
 
 	skcanvas.onUpdateServerList = function(list){
 		skcanvas.setSelect(list, document.forms[0].serverselect);
+		if(undefined !== showingFigureName)
+			document.forms[0].serverselect.value = showingFigureName;
 	}
 
 	// Load saved figure list from localStorage
 	skcanvas.listLocal(document.forms[0].canvasselect);
+
+	if(undefined !== showingFigureName){
+		skcanvas.requestServerFile(showingFigureName);
+		skcanvas.requestServerFileHistory(showingFigureName);
+	}
 }
 
