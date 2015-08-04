@@ -7,11 +7,15 @@
 /// Make sure to invoke this class's constructor with "new" prepended
 /// and keep the returned object to some variable.
 ///
-/// It has a event handler onLocalChange that can be assigned as this object's method.
-/// The function has the signature:
+/// It has following event handlers that can be assigned as this object's method.
+///
 /// function onLocalChange();
 /// This event is invoked when the canvas saves its contents into localStorage of the
 /// browser.  Use this event to update list of locally saved figures.
+///
+/// function onUpdateServerList(list);
+/// This event is invoked when the object requests the server to refresh figure list
+/// and receives response.
 function SketchCanvas(canvas, options){
 var editmode = options && options.editmode;
 var scale = options && options.scale ? options.scale : 1;
@@ -891,7 +895,8 @@ function downloadList(){
 				var selData = xmlHttp.responseText;
 				if(!selData)
 					return;
-				setSelect(selData.split("\n"), document.forms[0].serverselect);
+				if(self.onUpdateServerList)
+					self.onUpdateServerList(selData.split("\n"));
 			}
 			catch(e){
 				console.log(e);
@@ -951,6 +956,10 @@ this.loadDataFromServerList = function(){
 	if(!document.getElementById("historyselect"))
 		return;
 
+	this.requestServerFileHistory(item);
+}
+
+this.requestServerFileHistory = function(item){
 	var historyQuery = createXMLHttpRequest();
 	if(historyQuery){
 		historyQuery.onreadystatechange = function(){
@@ -966,7 +975,7 @@ this.loadDataFromServerList = function(){
 				historyData = historyData.splice(1);
 				var sel = document.getElementById("historyselect");
 				if(sel){
-					setSelect(historyData, sel);
+					self.setSelect(historyData, sel);
 					sel.size = historyData.length;
 				}
 			}
@@ -1001,7 +1010,7 @@ function clearCanvas() {
 ///           Empty strings in the array are skipped.
 /// @param sel The select element object to set options subelements to.
 /// @returns Number of actually set options. This can differ from ca.length.
-function setSelect(ca, sel) {
+this.setSelect = function(ca, sel) {
 	var name = null;
 	var option = null;
 	var text = null;
@@ -1168,7 +1177,7 @@ this.listLocal = function(selectElement) {
 		for(var name in origData)
 			keys.push(name);
 
-		setSelect(keys, selectElement);
+		this.setSelect(keys, selectElement);
 	}
 
 }
@@ -1406,6 +1415,12 @@ var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
 var cur_tool = 10, cur_col = "black", cur_thin = 1;
+
+// A pseudo-this pointer that can be used in private methods.
+// Private methods mean local functions in this constructor, which
+// don't share this pointer with the constructor itself unless the
+// form "function.call(this)" is used.
+var self = this;
 
 onload();
 }
