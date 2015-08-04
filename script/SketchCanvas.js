@@ -14,6 +14,7 @@
 /// browser.  Use this event to update list of locally saved figures.
 function SketchCanvas(canvas, options){
 var editmode = options && options.editmode;
+var scale = options && options.scale ? options.scale : 1;
 
 // Obtain the browser's preferred language.
 var currentLanguage = (window.navigator.language || window.navigator.userLanguage || window.navigator.userLanguage).substr(0, 2);
@@ -641,12 +642,17 @@ function drawCanvas(mode, str) {
 			return;
 		}
 		ctx.beginPath();
+
+		// A local function to set font size with the global scaling factor in mind.
+		function setFont(baseSize){
+			ctx.font = (baseSize * scale) + 'px ' + i18n.t("'Helvetica'");
+		}
 		
-		if (1 == cur_thin) ctx.font = i18n.t("14px 'Helvetica'");
-		else if (2 == cur_thin) ctx.font = i18n.t("16px 'Helvetica'");
-		else ctx.font = i18n.t("20px 'Helvetica'");
+		if (1 == cur_thin) setFont(14);
+		else if (2 == cur_thin) setFont(16);
+		else setFont(20);
 		ctx.fillText(str, arr[0].x, arr[0].y);
-		ctx.font = i18n.t("14px 'Helvetica'");
+		ctx.font = setFont(14);
 		numPoints = 1;
 		break;
 	default:
@@ -714,6 +720,11 @@ function redraw(pt) {
 		cur_col = obj.color;
 		cur_thin = obj.width;
 		arr = cloneObject(obj.points);
+		// Scale the point coordinates accordingly before passing them to drawCanvas().
+		for(var j=0; j<arr.length; j++){
+			arr[j].x *= scale;
+			arr[j].y *= scale;
+		}
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
 		drawCanvas(1, rstr);

@@ -27,17 +27,18 @@ foreach($files as $filename){
 
 canvases = [];
 onload = function(){
+	var scale = 0.5;
 	var gallery = document.getElementById('gallery');
 	for(var i = 0; i < files.length; i++){
 		var div = document.createElement('div');
 		div.innerHTML = files[i] + '<br>';
 		var canvas = document.createElement('canvas');
 		canvas.id = 'canvassample' + i;
-		canvas.width = 1024;
-		canvas.height = 640;
+		canvas.width = 1024 * scale;
+		canvas.height = 640 * scale;
 		div.appendChild(canvas);
 		gallery.appendChild(div);
-		var skcanvas = new SketchCanvas(canvas);
+		var skcanvas = new SketchCanvas(canvas, {scale: scale});
 		skcanvas.requestServerFile(files[i]);
 		canvases.push(skcanvas);
 	}
