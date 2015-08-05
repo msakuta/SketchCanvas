@@ -64,9 +64,6 @@ function onload(){
 
   // And the history of operations
   dhistory = [];
-
-  // Download saved figures list from the server
-  downloadList();
 };
 
 var datadir = "data";
@@ -909,6 +906,8 @@ function downloadList(){
 		xmlHttp.send();
 	}
 }
+
+this.listServer = downloadList;
 
 this.requestServerFile = function(item, hash){
 	// Asynchronous request for getting figure data in the server.
