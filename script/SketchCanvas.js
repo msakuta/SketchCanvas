@@ -649,7 +649,7 @@ function drawCanvas(mode, str) {
 
 		// A local function to set font size with the global scaling factor in mind.
 		function setFont(baseSize){
-			ctx.font = (baseSize * scale) + 'px ' + i18n.t("'Helvetica'");
+			ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
 		}
 		
 		if (1 == cur_thin) setFont(14);
@@ -724,14 +724,17 @@ function redraw(pt) {
 		cur_col = obj.color;
 		cur_thin = obj.width;
 		arr = cloneObject(obj.points);
-		// Scale the point coordinates accordingly before passing them to drawCanvas().
-		for(var j=0; j<arr.length; j++){
-			arr[j].x *= scale;
-			arr[j].y *= scale;
-		}
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
+
+		// Scale the point coordinates by applying scaling matrix before invoking drawCanvas().
+		if(scale !== 1){
+			ctx.save();
+			ctx.scale(scale, scale);
+		}
 		drawCanvas(1, rstr);
+		if(scale !== 1)
+			ctx.restore();
 	}
 	if(selectobj){
 		var bounds = objBounds(selectobj);
