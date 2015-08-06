@@ -854,10 +854,9 @@ function deserialize(dat){
 	return ret;
 }
 
-this.loadData = function(){
-	var drawdata = document.getElementById("drawdata");
+this.loadData = function(value){
 	try{
-		dobjs = deserialize(jsyaml.safeLoad(drawdata.value));
+		dobjs = deserialize(jsyaml.safeLoad(value));
 		redraw(dobjs);
 	} catch(e){
 		console.log(e);
