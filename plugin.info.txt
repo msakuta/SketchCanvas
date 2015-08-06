@@ -1,0 +1,7 @@
+base   skcanvas
+author Masahiro Sakuta
+email  gltest26@gmail.com
+date   2015-08-06
+name   sketch canvas embedder
+desc   Write SketchCanvas documents embedded in DokuWiki.
+url    https://github.com/msakuta/SketchCanvas
