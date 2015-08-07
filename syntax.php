@@ -32,10 +32,6 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, &$handler){
         switch ($state) {
           case DOKU_LEXER_ENTER :
-                list($color, $background) = preg_split("/\//u", substr($match, 6, -1), 2);
-                if ($color = $this->_isValid($color));
-		$color = "color:#ff0000;";
-                if ($background = $this->_isValid($background)) $background = "background-color:$background;";
                 return array($state, array(true));
  
           case DOKU_LEXER_UNMATCHED :  return array($state, $match);
@@ -83,23 +79,6 @@ skcanvas.loadData(text);
             return true;
         }
         return false;
-    }
- 
-    // validate color value $c
-    // this is cut price validation - only to ensure the basic format is correct and there is nothing harmful
-    // three basic formats  "colorname", "#fff[fff]", "rgb(255[%],255[%],255[%])"
-    function _isValid($c) {
-        $c = trim($c);
- 
-        $pattern = "/^\s*(
-            ([a-zA-Z]+)|                                #colorname - not verified
-            (\#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))|        #colorvalue
-            (rgb\(([0-9]{1,3}%?,){2}[0-9]{1,3}%?\))     #rgb triplet
-            )\s*$/x";
- 
-        if (preg_match($pattern, $c)) return trim($c);
- 
-        return "";
     }
 }
 ?>
