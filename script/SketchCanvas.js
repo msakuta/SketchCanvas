@@ -316,16 +316,16 @@ function drawParts(no, x, y) {
 }
 
 // Returns bounding box for a drawing object.
-function objBounds(obj, mx, my){
+function objBounds(obj, rawvalue){
 	// Get bounding box of the object
 	var maxx, maxy, minx, miny;
 	for(var j = 0; j < obj.points.length; j++){
-		var x = obj.points[j].x;
+		var x = obj.points[j].x + (rawvalue ? 0 : offset.x);
 		if(maxx === undefined || maxx < x)
 			maxx = x;
 		if(minx === undefined || x < minx)
 			minx = x;
-		var y = obj.points[j].y;
+		var y = obj.points[j].y + (rawvalue ? 0 : offset.y);
 		if(maxy === undefined || maxy < y)
 			maxy = y;
 		if(miny === undefined || y < miny)
@@ -482,7 +482,9 @@ function mouseMove(e){
 				|           |
 				6 --- 5 --- 4
 			*/
-			var bounds = objBounds(selectobj);
+			mx -= offset.x;
+			my -= offset.y;
+			var bounds = objBounds(selectobj, true);
 			var ux = [-1,0,1,1,1,0,-1,-1][sizedir];
 			var uy = [-1,-1,-1,0,1,1,1,0][sizedir];
 			var xscale = ux === 0 ? 1 : (ux === 1 ? mx - bounds.minx : bounds.maxx - mx) / (bounds.maxx - bounds.minx);
@@ -515,9 +517,16 @@ function draw_point(x, y) {
 		coord = { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
 	else
 		coord = { x:x, y:y };
-	arr[idx] = coord;
+	arr[idx] = { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
 	idx++;
-	if (idx == points()) drawCanvas(0, null);
+	if (idx == points()){
+		ctx.save();
+		// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
+		ctx.translate(offset.x, offset.y);
+		ctx.scale(scale, scale);
+		drawCanvas(0, null);
+		ctx.restore();
+	}
 }
 
 // return tool points
@@ -715,6 +724,10 @@ function redraw(pt) {
 	var org_thin = cur_thin;
 //	var pt = str.split(",");
 
+	// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
+	ctx.save();
+	ctx.translate(offset.x, offset.y);
+	ctx.scale(scale, scale);
 	for (var i=0; i<pt.length; i++) {
 		var obj = pt[i];
 		cur_tool = obj.tool;
@@ -723,16 +736,10 @@ function redraw(pt) {
 		arr = cloneObject(obj.points);
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
-
-		// Scale the point coordinates by applying scaling matrix before invoking drawCanvas().
-		if(scale !== 1){
-			ctx.save();
-			ctx.scale(scale, scale);
-		}
 		drawCanvas(1, rstr);
-		if(scale !== 1)
-			ctx.restore();
 	}
+	ctx.restore();
+
 	if(selectobj){
 		var bounds = objBounds(selectobj);
 		ctx.beginPath();
@@ -1416,6 +1423,7 @@ var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
 var cur_tool = 10, cur_col = "black", cur_thin = 1;
+var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
 
 // A pseudo-this pointer that can be used in private methods.
 // Private methods mean local functions in this constructor, which
