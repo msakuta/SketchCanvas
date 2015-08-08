@@ -25,14 +25,16 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
     function connectTo($mode) { $this->Lexer->addEntryPattern('<skcanvas.*?>(?=.*?</skcanvas>)',$mode,'plugin_skcanvas'); }
     function postConnect() { $this->Lexer->addExitPattern('</skcanvas>','plugin_skcanvas'); }
  
- 
+    /// Generator for canvas ids
+    var $generator = 1;
+
     /**
      * Handle the match
      */
     function handle($match, $state, $pos, &$handler){
         switch ($state) {
           case DOKU_LEXER_ENTER :
-                return array($state, array(true));
+                return array($state, array(true, $this->generator++));
  
           case DOKU_LEXER_UNMATCHED :  return array($state, $match);
           case DOKU_LEXER_EXIT :       return array($state, array(false));
@@ -48,8 +50,9 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
             list($state, $match) = $data;
             switch ($state) {
               case DOKU_LEXER_ENTER :      
-                list($active) = $match;
-                $renderer->doc .= '<canvas id="canvas" width="1024" height="640">
+                list($active, $num) = $match;
+                $canvasId = 'canvas' . $num;
+                $renderer->doc .= '<canvas id="' . $canvasId . '" width="1024" height="640">
 <script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/SketchCanvas.js') . '"></script>' .
 '<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/draw.js') . '"></script>' . "\n" .
 '<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/i18next-1.7.2.min.js') . '"></script>' . "\n" .
@@ -58,7 +61,7 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
 "
 <script language='javascript'>
 (function(){
-var skcanvas = new SketchCanvas(document.getElementById('canvas'));
+var skcanvas = new SketchCanvas(document.getElementById('$canvasId'));
 var text = \"";
                 break;
  
