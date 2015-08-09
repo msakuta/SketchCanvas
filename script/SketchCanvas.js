@@ -27,7 +27,7 @@ i18n.init({lng: currentLanguage, fallbackLng: 'en', resStore: resources, getAsyn
 
 var dobjs; // Drawing objects
 var dhistory; // Drawing object history (for undoing)
-var selectobj = null;
+var selectobj = [];
 
 var handleSize = 4;
 var gridEnable = false;
@@ -47,6 +47,7 @@ function onload(){
 		canvas.onmousedown = mouseDown;
 		canvas.onmouseup = mouseUp;
 		canvas.onmousemove = mouseMove;
+		canvas.onmouseout = mouseleave;
 	}
 
   // 2D context
@@ -316,16 +317,16 @@ function drawParts(no, x, y) {
 }
 
 // Returns bounding box for a drawing object.
-function objBounds(obj, mx, my){
+function objBounds(obj, rawvalue){
 	// Get bounding box of the object
 	var maxx, maxy, minx, miny;
 	for(var j = 0; j < obj.points.length; j++){
-		var x = obj.points[j].x;
+		var x = obj.points[j].x + (rawvalue ? 0 : offset.x);
 		if(maxx === undefined || maxx < x)
 			maxx = x;
 		if(minx === undefined || x < minx)
 			minx = x;
-		var y = obj.points[j].y;
+		var y = obj.points[j].y + (rawvalue ? 0 : offset.y);
 		if(maxy === undefined || maxy < y)
 			maxy = y;
 		if(miny === undefined || y < miny)
@@ -343,6 +344,11 @@ function expandRect(r, offset){
 // Check if a point intersects with a rectangle
 function hitRect(r, x, y){
 	return r.minx < x && x < r.maxx && r.miny < y && y < r.maxy;
+}
+
+// Check if two rectangles intersect each other
+function intersectRect(r1, r2){
+	return r1.minx < r2.maxx && r2.minx < r1.maxx && r1.miny < r2.maxy && r2.miny < r1.maxy;
 }
 
 function mouseLeftClick(e) {
@@ -383,16 +389,18 @@ function mouseLeftClick(e) {
 		else if (menuno <= 40) {
 			drawCBox(menuno);
 			cur_col = colnames[menuno-31];
-			if(selectobj){
-				selectobj.color = cur_col;
+			if(0 < selectobj.length){
+				for(var i = 0; i < selectobj.length; i++)
+					selectobj[i].color = cur_col;
 				redraw(dobjs);
 			}
 		}
 		else {
 			drawHBox(menuno);
 			cur_thin = menuno - 40;
-			if(selectobj){
-				selectobj.width = cur_thin;
+			if(0 < selectobj.length){
+				for(var i = 0; i < selectobj.length; i++)
+					selectobj[i].width = cur_thin;
 				redraw(dobjs);
 			}
 		}
@@ -409,15 +417,17 @@ function mouseRightClick(e) {
 }
 
 var movebase = [0,0];
+var dragstart = [0,0];
+var dragend = [0,0];
 var moving = false;
-var sizing = false;
+var sizing = null; // Reference to object being resized. Null if no resizing is in progress.
 var sizedir = 0;
+var boxselecting = false;
 function mouseDown(e){
 	if(cur_tool === 10){
 		var menuno = checkMenu(e.pageX, e.pageY);
 		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
 			return;
-		selectobj = null;
 		for(var i = 0; i < dobjs.length; i++){
 			// For the time being, we use the bounding boxes of the objects
 			// to determine the clicked object.  It may be surprising
@@ -425,51 +435,83 @@ function mouseDown(e){
 			// empty space, but we could fix it in the future.
 			var bounds = expandRect(objBounds(dobjs[i]), 10);
 			if(hitRect(bounds, e.pageX, e.pageY)){
-				selectobj = dobjs[i];
+				var pointOnSelection = false;
+				// If we click on one of already selected objects, do not clear the selection
+				// and check if we should enter moving or scaling mode later.
+				for(var j = 0; j < selectobj.length; j++){
+					if(selectobj[j] === dobjs[i]){
+						pointOnSelection = true;
+						break;
+					}
+				}
+				// If we haven't selected an object but clicked on an object, select it.
+				if(!pointOnSelection){
+					selectobj = [dobjs[i]];
+					pointOnSelection = true;
+				}
 				break;
 			}
 		}
 		redraw(dobjs);
 
-		if(selectobj){
-			var bounds = objBounds(selectobj);
+		// Check to see if we are dragging any of scaling handles.
+		for(var n = 0; n < selectobj.length; n++){
+			var bounds = objBounds(selectobj[n]);
 			// Do not enter sizing mode if the object is point sized.
 			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
 				for(var i = 0; i < 8; i++){
 					if(hitRect(getHandleRect(bounds, i), e.pageX, e.pageY)){
 						sizedir = i;
-						sizing = true;
+						sizing = selectobj[n];
+						dhistory.push(cloneObject(dobjs));
 						return;
 					}
 				}
 			}
+		}
+
+		// If we're starting dragging on a selected object, enter moving mode.
+		if(pointOnSelection){
 			var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
 			var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
 			movebase = [mx, my];
 			moving = true;
+			dhistory.push(cloneObject(dobjs));
+		}
+		else{
+			// If no object is selected and dragging is started, it's box selection mode.
+			boxselecting = true;
+			selectobj = [];
+			dragstart = [e.pageX , e.pageY];
 		}
 	}
 }
 
 function mouseUp(e){
-	if(cur_tool === 10 && selectobj && (moving || sizing)){
-		dhistory.push(cloneObject(dobjs));
+	if(cur_tool === 10 && 0 < selectobj.length && (moving || sizing)){
 		updateDrawData();
 	}
 	moving = false;
-	sizing = false;
+	sizing = null;
+	var needsRedraw = boxselecting;
+	boxselecting = false;
+	if(needsRedraw) // Redraw to clear selection box
+		redraw(dobjs);
 }
 
 function mouseMove(e){
-	if(cur_tool === 10 && selectobj){
+	if(cur_tool === 10 && 0 < selectobj.length){
 		var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
 		var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
-			for(var i = 0; i < selectobj.points.length; i++){
-				selectobj.points[i].x += dx;
-				selectobj.points[i].y += dy;
+			for(var n = 0; n < selectobj.length; n++){
+				var obj = selectobj[n];
+				for(var i = 0; i < obj.points.length; i++){
+					obj.points[i].x += dx;
+					obj.points[i].y += dy;
+				}
 			}
 			movebase = [mx, my];
 			redraw(dobjs);
@@ -482,20 +524,23 @@ function mouseMove(e){
 				|           |
 				6 --- 5 --- 4
 			*/
-			var bounds = objBounds(selectobj);
+			mx -= offset.x;
+			my -= offset.y;
+			var bounds = objBounds(sizing, true);
 			var ux = [-1,0,1,1,1,0,-1,-1][sizedir];
 			var uy = [-1,-1,-1,0,1,1,1,0][sizedir];
 			var xscale = ux === 0 ? 1 : (ux === 1 ? mx - bounds.minx : bounds.maxx - mx) / (bounds.maxx - bounds.minx);
 			var yscale = uy === 0 ? 1 : (uy === 1 ? my - bounds.miny : bounds.maxy - my) / (bounds.maxy - bounds.miny);
-			for(var i = 0; i < selectobj.points.length; i++){
+			var obj = sizing;
+			for(var i = 0; i < obj.points.length; i++){
 				if(ux !== 0 && xscale !== 0)
-					selectobj.points[i].x = ux === 1 ?
-						(selectobj.points[i].x - bounds.minx) * xscale + bounds.minx :
-						(selectobj.points[i].x - bounds.maxx) * xscale + bounds.maxx;
+					obj.points[i].x = ux === 1 ?
+						(obj.points[i].x - bounds.minx) * xscale + bounds.minx :
+						(obj.points[i].x - bounds.maxx) * xscale + bounds.maxx;
 				if(uy !== 0 && yscale !== 0)
-					selectobj.points[i].y = uy === 1 ?
-						(selectobj.points[i].y - bounds.miny) * yscale + bounds.miny :
-						(selectobj.points[i].y - bounds.maxy) * yscale + bounds.maxy;
+					obj.points[i].y = uy === 1 ?
+						(obj.points[i].y - bounds.miny) * yscale + bounds.miny :
+						(obj.points[i].y - bounds.maxy) * yscale + bounds.maxy;
 			}
 			// Invert handle selection when the handle is dragged to the other side to enable mirror scaling.
 			if(ux !== 0 && xscale < 0)
@@ -505,6 +550,34 @@ function mouseMove(e){
 			redraw(dobjs);
 		}
 	}
+
+	// We could use e.buttons to check if it's supported by all the browsers,
+	// but it seems not much trusty.
+	if(cur_tool === 10 && !moving && !sizing && boxselecting){
+		var mx = e.pageX;
+		var my = e.pageY;
+		dragend = [mx, my];
+		var box = {
+			minx: Math.min(dragstart[0], mx),
+			maxx: Math.max(dragstart[0], mx),
+			miny: Math.min(dragstart[1], my),
+			maxy: Math.max(dragstart[1], my),
+		}
+		selectobj = [];
+		// Select all intersecting objects with the dragged box.
+		for(var i = 0; i < dobjs.length; i++){
+			var bounds = expandRect(objBounds(dobjs[i]), 10);
+			if(intersectRect(bounds, box))
+				selectobj.push(dobjs[i]);
+		}
+		redraw(dobjs);
+	}
+}
+
+function mouseleave(e){
+	moving = false;
+	sizing = null;
+	boxselecting = false;
 }
 
 // draw one click
@@ -515,9 +588,16 @@ function draw_point(x, y) {
 		coord = { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
 	else
 		coord = { x:x, y:y };
-	arr[idx] = coord;
+	arr[idx] = { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
 	idx++;
-	if (idx == points()) drawCanvas(0, null);
+	if (idx == points()){
+		ctx.save();
+		// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
+		ctx.translate(offset.x, offset.y);
+		ctx.scale(scale, scale);
+		drawCanvas(0, null);
+		ctx.restore();
+	}
 }
 
 // return tool points
@@ -698,6 +778,14 @@ function getHandleRect(bounds, i){
 
 // redraw
 function redraw(pt) {
+	if(!editmode){
+		// Resize the canvas so that the figure fits the size of canvas.
+		// It's only done in view mode because we should show the toolbar and the menu bar
+		// in edit mode.
+		canvas.width = metaObj.size[0] * scale;
+		canvas.height = metaObj.size[1] * scale;
+	}
+
 	clearCanvas();
 
 	if(gridEnable){
@@ -715,6 +803,10 @@ function redraw(pt) {
 	var org_thin = cur_thin;
 //	var pt = str.split(",");
 
+	// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
+	ctx.save();
+	ctx.translate(offset.x, offset.y);
+	ctx.scale(scale, scale);
 	for (var i=0; i<pt.length; i++) {
 		var obj = pt[i];
 		cur_tool = obj.tool;
@@ -723,18 +815,22 @@ function redraw(pt) {
 		arr = cloneObject(obj.points);
 		var rstr = null;
 		if (25 == cur_tool) rstr = obj.text;
-
-		// Scale the point coordinates by applying scaling matrix before invoking drawCanvas().
-		if(scale !== 1){
-			ctx.save();
-			ctx.scale(scale, scale);
-		}
 		drawCanvas(1, rstr);
-		if(scale !== 1)
-			ctx.restore();
 	}
-	if(selectobj){
-		var bounds = objBounds(selectobj);
+	ctx.restore();
+
+	if(boxselecting){
+		ctx.beginPath();
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = '#000';
+		ctx.setLineDash([5]);
+		ctx.rect(dragstart[0], dragstart[1], dragend[0] - dragstart[0], dragend[1] - dragstart[1]);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	for(var n = 0; n < selectobj.length; n++){
+		var bounds = objBounds(selectobj[n]);
 		ctx.beginPath();
 		ctx.lineWidth = 1;
 		ctx.strokeStyle = '#000';
@@ -747,7 +843,7 @@ function redraw(pt) {
 		ctx.strokeStyle = '#000';
 		for(var i = 0; i < 8; i++){
 			var r = getHandleRect(bounds, i);
-			ctx.fillStyle = sizing && i === sizedir ? '#7fff7f' : '#ffff7f';
+			ctx.fillStyle = sizing === selectobj[n] && i === sizedir ? '#7fff7f' : '#ffff7f';
 			ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
 			ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
 		}
@@ -806,7 +902,7 @@ function serializeSingle(obj){
 }
 
 function serialize(dobjs){
-	var ret = [];
+	var ret = [metaObj];
 	for(var i = 0; i < dobjs.length; i++)
 		ret.push(serializeSingle(dobjs[i]));
 	return ret;
@@ -833,9 +929,15 @@ function deserialize(dat){
 		default: return str;
 		}
 	}
+	// Reset the metaObj before deserialization
+	metaObj = cloneObject(defaultMetaObj);
 	var ret = [];
 	for (var i=0; i<dat.length; i++) {
 		var obj = dat[i];
+		if(obj.type === 'meta'){
+			metaObj = obj;
+			continue;
+		}
 		var pt1 = obj.points.split(":");
 		var robj = {
 			tool: str2tool(obj.type),
@@ -930,7 +1032,7 @@ this.requestServerFile = function(item, hash){
 					selData = selData.substr(selData.indexOf("\n")+1);
 				}
 				dobjs = deserialize(jsyaml.safeLoad(selData));
-				selectobj = null;
+				selectobj = [];
 				updateDrawData();
 				redraw(dobjs);
 			}
@@ -999,8 +1101,11 @@ this.loadDataFromServerHistory = function(){
 
 // clear canvas
 function clearCanvas() {
-	ctx.fillStyle = white;
+	// Fill outside of valid figure area defined by metaObj.size with gray color.
+	ctx.fillStyle = '#7f7f7f';
 	ctx.fillRect(x1,y1, w1, h1);
+	ctx.fillStyle = white;
+	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
 	idx = 0;
 	zorder = 0;
 }
@@ -1053,6 +1158,14 @@ function selectedID() {
 	var sel = document.forms[0].canvasselect;
 	var idx = sel.selectedIndex;
 	return sel.options[idx].value;
+}
+
+// Sets the size of the canvas
+function setSize(sx, sy){
+	metaObj.size[0] = sx;
+	metaObj.size[1] = sy;
+	updateDrawData();
+	redraw(dobjs);
 }
 
 // check all menu
@@ -1216,7 +1329,7 @@ function updateDrawData(){
 // clear data
 function ajaxclear() {
 	dobjs = [];
-	selectobj = null;
+	selectobj = [];
 	updateDrawData();
 	clearCanvas();
 }
@@ -1227,6 +1340,7 @@ function ajaxundo() {
 		return;
 	dobjs = dhistory[dhistory.length-1];
 	dhistory.pop();
+	selectobj = [];
 	updateDrawData();
 	redraw(dobjs);
 }
@@ -1400,7 +1514,51 @@ var menus = [
 		clearCanvas();
 		ajaxundo();
 	}),
-	new MenuItem("Overwrite", ajaxappend), // append
+	new MenuItem("Size", function(){
+		// Show size input layer on top of the canvas because the canvas cannot have
+		// a text input element.
+		if(!sizeLayer){
+			sizeLayer = document.createElement('div');
+			var lay = sizeLayer;
+			lay.id = 'bookingLayer';
+			lay.style.position = 'absolute';
+			lay.style.padding = '5px 5px 5px 5px';
+			lay.style.borderStyle = 'solid';
+			lay.style.borderColor = '#cf0000';
+			lay.style.borderWidth = '2px';
+			// Drop shadow to make it distinguishable from the figure contents.
+			lay.style.boxShadow = '0px 0px 20px grey';
+			lay.style.background = '#cfffcf';
+			lay.innerHTML = i18n.t('Input image size in pixels') + ':<br>'
+				+ 'x:<input id="sizeinputx" type="text">'
+				+ 'y:<input id="sizeinputy" type="text">';
+			var okbutton = document.createElement('input');
+			okbutton.type = 'button';
+			okbutton.value = 'OK';
+			okbutton.onclick = function(s){
+				lay.style.display = 'none';
+				setSize(parseFloat(document.getElementById('sizeinputx').value),
+					parseFloat(document.getElementById('sizeinputy').value));
+			}
+			var cancelbutton = document.createElement('input');
+			cancelbutton.type = 'button';
+			cancelbutton.value = 'Cancel';
+			cancelbutton.onclick = function(s){
+				lay.style.display = 'none';
+			}
+			lay.appendChild(document.createElement('br'));
+			lay.appendChild(okbutton);
+			lay.appendChild(cancelbutton);
+			document.body.insertBefore(lay, canvas);
+		}
+		else // Just show the created layer in the second invocation.
+			sizeLayer.style.display = 'block';
+		var canvasRect = canvas.getBoundingClientRect();
+		sizeLayer.style.left = (canvasRect.left + 150) + 'px';
+		sizeLayer.style.top = (canvasRect.top + 50) + 'px';
+		document.getElementById('sizeinputx').value = metaObj.size[0];
+		document.getElementById('sizeinputy').value = metaObj.size[1];
+	}), // size
 ];
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
@@ -1416,6 +1574,19 @@ var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
 var cur_tool = 10, cur_col = "black", cur_thin = 1;
+var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
+
+// The layer to show input controls for width and height sizes of the figure.
+// It's kept as a member variable in order to reuse in the second and later invocations.
+var sizeLayer = null;
+
+// The default metaObj values used for resetting.
+var defaultMetaObj = {type: "meta", size: [1024-x1, 640-y1]};
+
+// The meta object is always the first element in the serialized figure text,
+// but is not an element of dobjs array.
+// It's automatically loaded when deserialized and included when serialized.
+var metaObj = cloneObject(defaultMetaObj);
 
 // A pseudo-this pointer that can be used in private methods.
 // Private methods mean local functions in this constructor, which
