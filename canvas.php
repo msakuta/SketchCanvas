@@ -20,6 +20,12 @@ if(isset($_GET['fname']))
 	echo '"' . addslashes($_GET['fname']) . '";';
 else
 	echo 'null;';
+
+echo 'var showingData = ';
+if(isset($_POST['data']))
+  echo '"' . str_replace(array("\r", "\n"), array('\r', '\n'), addslashes($_POST['data'])) . '";';
+else
+  echo 'null;';
 ?>
     </script>
     <script language="javascript" src="script/canvas.js"></script>
