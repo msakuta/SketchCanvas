@@ -119,5 +119,9 @@ do{
 			fclose($fp);
 		}
 	}
+	else{
+		echo "failed\n";
+		echo "Couldn't open output file\n";
+	}
 } while(0);
 ?>

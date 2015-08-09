@@ -1,3 +1,4 @@
+'use strict';
 //--- draw.hs -- lib for canvas.js 
 // draw arrow
 
