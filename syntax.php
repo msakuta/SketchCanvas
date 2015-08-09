@@ -51,28 +51,22 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
             switch ($state) {
               case DOKU_LEXER_ENTER :      
                 list($active, $num) = $match;
-                $canvasId = 'canvas' . $num;
+                $canvasId = '__sketchcanvas' . $num;
                 $renderer->doc .= <<<EOT
-<canvas id="$canvasId" width="1024" height="640">
-<script language='javascript'><!--
-(function(){
-var skcanvas = new SketchCanvas(document.getElementById('$canvasId'));
-var text = "
+<canvas id="$canvasId" width="1024" height="640"></canvas>
+<div id="__sketchcanvas_text$num" style="display: none">
 EOT;
                 break;
  
               case DOKU_LEXER_UNMATCHED :
                    list($active) = $match;
                    if($active)
-                       $renderer->doc .= str_replace(array("\r", "\n"), array('\r', '\n'), addslashes($match));
+                       $renderer->doc .= /*str_replace(array("\r", "\n"), array('\r', '\n'), addslashes(*/$renderer->_xmlEntities(($match));
                    else
                        $renderer->doc .= $renderer->_xmlEntities($match);
                    break;
               case DOKU_LEXER_EXIT :
-                   $renderer->doc .= "\";
-skcanvas.loadData(text);
-})();
---></script>";
+                   $renderer->doc .= "</div>";
                    break;
             }
             return true;

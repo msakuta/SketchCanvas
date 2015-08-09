@@ -40,6 +40,22 @@ class action_plugin_skcanvas extends DokuWiki_Action_Plugin {
                 'src'     => 'lib/plugins/' . $this->getPluginName() . '/script/' . $file,
                 '_data'   => '',
     	           );
+        $event->data['script'][] = array(
+            'type'    => 'text/javascript',
+            'charset' => 'utf-8',
+            '_data'   => <<<EOT
+document.addEventListener('DOMContentLoaded', function(){
+    var canvas;
+    for(var i = 1; (canvas = document.getElementById("__sketchcanvas" + i)); i++) {
+        var text = document.getElementById("__sketchcanvas_text" + i);
+        if(text) {
+            var skcanvas = new SketchCanvas(canvas);
+            skcanvas.loadData(text.innerHTML);
+        }
+    }
+});
+EOT
+               );
     }
 
 }
