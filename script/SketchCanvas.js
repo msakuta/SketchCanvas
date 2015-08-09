@@ -17,11 +17,13 @@
 /// This event is invoked when the object requests the server to refresh figure list
 /// and receives response.
 function SketchCanvas(canvas, options){
+'use strict';
 var editmode = options && options.editmode;
 var scale = options && options.scale ? options.scale : 1;
 
 // Obtain the browser's preferred language.
-var currentLanguage = (window.navigator.language || window.navigator.userLanguage || window.navigator.userLanguage).substr(0, 2);
+var currentLanguage = (window.navigator.language || window.navigator.userLanguage || window.navigator.userLanguage);
+currentLanguage = currentLanguage.substr(0, 2);
 
 i18n.init({lng: currentLanguage, fallbackLng: 'en', resStore: resources, getAsync: false});
 
@@ -55,8 +57,9 @@ function onload(){
 	// Set a placeholder function to ignore setLineDash method for browsers that don't support it.
 	// The method is not compatible with many browsers, but we don't care if it's not supported
 	// because it's only used for selected object designation.
-	if(!ctx.setLineDash)
+	if(!ctx.setLineDash) {
 		ctx.setLineDash = function(){};
+	}
 
   draw();
 
@@ -65,7 +68,7 @@ function onload(){
 
   // And the history of operations
   dhistory = [];
-};
+}
 
 var datadir = "data";
 
@@ -87,7 +90,7 @@ function draw() {
   drawTBox(cur_tool);
   drawCBox(cur_col);
   drawHBox(cur_thin);
-};
+}
 
 // draw coord(for Debug)
 function drawPos(x, y) {
@@ -725,7 +728,7 @@ function drawCanvas(mode, str) {
 		ctx.beginPath();
 
 		// A local function to set font size with the global scaling factor in mind.
-		function setFont(baseSize){
+		var setFont = function(baseSize) {
 			ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
 		}
 		

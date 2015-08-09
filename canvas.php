@@ -69,7 +69,6 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
             <input type="text" id="clientfname" name="clientfname" value="default">
             <input type="button" value="Save (new)" onclick="skcanvas.saveDataNew()">
           </td>
-          </td>
           <td>
             <input type="text" id="fname" name="fname" value="default">
             <input type="button" value="Upload (new)" onclick="skcanvas.uploadDataNew()">
