@@ -83,6 +83,8 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
       </table>
       <p style="font-size:14px">(*) Requires PHP configured server.
 Also note that history will work only if Git client is set up in the server.</p>
+      <p><input type="button" value="Convert to PNG Image" onclick="skcanvas.saveAsImage(document.getElementById('imageForSave'))">
+        <img id="imageForSave">(Right click on the image to save)</p>
       <p>Message:<textarea id="message" rows="3" cols="80" readonly></textarea></p>
       <p>Draw data: <input type="button" value="Load" onclick="skcanvas.loadData(document.getElementById('drawdata').value)"></p>
       <textarea id="drawdata" name="drawdata" rows="10" cols="50"></textarea>

@@ -775,15 +775,30 @@ function getHandleRect(bounds, i){
 	return {minx: x - handleSize, miny: y - handleSize, maxx: x + handleSize, maxy: y + handleSize};
 }
 
-// redraw
-function redraw(pt) {
+// Resize the canvas so that it fits the contents.
+// Note that the canvas contents are also cleared, so we might need to redraw everything.
+function resizeCanvas(){
 	if(!editmode){
 		// Resize the canvas so that the figure fits the size of canvas.
 		// It's only done in view mode because we should show the toolbar and the menu bar
 		// in edit mode.
 		canvas.width = metaObj.size[0] * scale;
 		canvas.height = metaObj.size[1] * scale;
+		x1 = 0;
+		y1 = 0;
+		offset = {x:0, y:0};
 	}
+	else{
+		canvas.width = 1024;
+		canvas.height = 640;
+		x1 = 90;
+		y1 = 50;
+		offset = {x:x1, y:y1};
+	}
+}
+
+// redraw
+function redraw(pt) {
 
 	clearCanvas();
 
@@ -958,9 +973,27 @@ function deserialize(dat){
 this.loadData = function(value){
 	try{
 		dobjs = deserialize(jsyaml.safeLoad(value));
+		resizeCanvas();
+		draw();
 		redraw(dobjs);
 	} catch(e){
 		console.log(e);
+	}
+}
+
+this.saveAsImage = function(img){
+	var reset = editmode;
+	if(editmode){
+		editmode = false;
+		resizeCanvas();
+		redraw(dobjs);
+	}
+	img.src = canvas.toDataURL();
+	if(reset){
+		editmode = true;
+		resizeCanvas();
+		draw();
+		redraw(dobjs);
 	}
 }
 
@@ -1033,6 +1066,8 @@ this.requestServerFile = function(item, hash){
 				dobjs = deserialize(jsyaml.safeLoad(selData));
 				selectobj = [];
 				updateDrawData();
+				resizeCanvas();
+				draw();
 				redraw(dobjs);
 			}
 			catch(e){
@@ -1100,9 +1135,11 @@ this.loadDataFromServerHistory = function(){
 
 // clear canvas
 function clearCanvas() {
-	// Fill outside of valid figure area defined by metaObj.size with gray color.
-	ctx.fillStyle = '#7f7f7f';
-	ctx.fillRect(x1,y1, w1, h1);
+	if(editmode){
+		// Fill outside of valid figure area defined by metaObj.size with gray color.
+		ctx.fillStyle = '#7f7f7f';
+		ctx.fillRect(x1,y1, w1, h1);
+	}
 	ctx.fillStyle = white;
 	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
 	idx = 0;
