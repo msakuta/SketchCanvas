@@ -778,6 +778,14 @@ function getHandleRect(bounds, i){
 
 // redraw
 function redraw(pt) {
+	if(!editmode){
+		// Resize the canvas so that the figure fits the size of canvas.
+		// It's only done in view mode because we should show the toolbar and the menu bar
+		// in edit mode.
+		canvas.width = metaObj.size[0] * scale;
+		canvas.height = metaObj.size[1] * scale;
+	}
+
 	clearCanvas();
 
 	if(gridEnable){
@@ -894,7 +902,7 @@ function serializeSingle(obj){
 }
 
 function serialize(dobjs){
-	var ret = [];
+	var ret = [metaObj];
 	for(var i = 0; i < dobjs.length; i++)
 		ret.push(serializeSingle(dobjs[i]));
 	return ret;
@@ -921,9 +929,15 @@ function deserialize(dat){
 		default: return str;
 		}
 	}
+	// Reset the metaObj before deserialization
+	metaObj = cloneObject(defaultMetaObj);
 	var ret = [];
 	for (var i=0; i<dat.length; i++) {
 		var obj = dat[i];
+		if(obj.type === 'meta'){
+			metaObj = obj;
+			continue;
+		}
 		var pt1 = obj.points.split(":");
 		var robj = {
 			tool: str2tool(obj.type),
@@ -1087,8 +1101,11 @@ this.loadDataFromServerHistory = function(){
 
 // clear canvas
 function clearCanvas() {
-	ctx.fillStyle = white;
+	// Fill outside of valid figure area defined by metaObj.size with gray color.
+	ctx.fillStyle = '#7f7f7f';
 	ctx.fillRect(x1,y1, w1, h1);
+	ctx.fillStyle = white;
+	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
 	idx = 0;
 	zorder = 0;
 }
@@ -1141,6 +1158,14 @@ function selectedID() {
 	var sel = document.forms[0].canvasselect;
 	var idx = sel.selectedIndex;
 	return sel.options[idx].value;
+}
+
+// Sets the size of the canvas
+function setSize(sx, sy){
+	metaObj.size[0] = sx;
+	metaObj.size[1] = sy;
+	updateDrawData();
+	redraw(dobjs);
 }
 
 // check all menu
@@ -1489,7 +1514,51 @@ var menus = [
 		clearCanvas();
 		ajaxundo();
 	}),
-	new MenuItem("Overwrite", ajaxappend), // append
+	new MenuItem("Size", function(){
+		// Show size input layer on top of the canvas because the canvas cannot have
+		// a text input element.
+		if(!sizeLayer){
+			sizeLayer = document.createElement('div');
+			var lay = sizeLayer;
+			lay.id = 'bookingLayer';
+			lay.style.position = 'absolute';
+			lay.style.padding = '5px 5px 5px 5px';
+			lay.style.borderStyle = 'solid';
+			lay.style.borderColor = '#cf0000';
+			lay.style.borderWidth = '2px';
+			// Drop shadow to make it distinguishable from the figure contents.
+			lay.style.boxShadow = '0px 0px 20px grey';
+			lay.style.background = '#cfffcf';
+			lay.innerHTML = i18n.t('Input image size in pixels') + ':<br>'
+				+ 'x:<input id="sizeinputx" type="text">'
+				+ 'y:<input id="sizeinputy" type="text">';
+			var okbutton = document.createElement('input');
+			okbutton.type = 'button';
+			okbutton.value = 'OK';
+			okbutton.onclick = function(s){
+				lay.style.display = 'none';
+				setSize(parseFloat(document.getElementById('sizeinputx').value),
+					parseFloat(document.getElementById('sizeinputy').value));
+			}
+			var cancelbutton = document.createElement('input');
+			cancelbutton.type = 'button';
+			cancelbutton.value = 'Cancel';
+			cancelbutton.onclick = function(s){
+				lay.style.display = 'none';
+			}
+			lay.appendChild(document.createElement('br'));
+			lay.appendChild(okbutton);
+			lay.appendChild(cancelbutton);
+			document.body.insertBefore(lay, canvas);
+		}
+		else // Just show the created layer in the second invocation.
+			sizeLayer.style.display = 'block';
+		var canvasRect = canvas.getBoundingClientRect();
+		sizeLayer.style.left = (canvasRect.left + 150) + 'px';
+		sizeLayer.style.top = (canvasRect.top + 50) + 'px';
+		document.getElementById('sizeinputx').value = metaObj.size[0];
+		document.getElementById('sizeinputy').value = metaObj.size[1];
+	}), // size
 ];
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
@@ -1506,6 +1575,18 @@ var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
 var cur_tool = 10, cur_col = "black", cur_thin = 1;
 var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
+
+// The layer to show input controls for width and height sizes of the figure.
+// It's kept as a member variable in order to reuse in the second and later invocations.
+var sizeLayer = null;
+
+// The default metaObj values used for resetting.
+var defaultMetaObj = {type: "meta", size: [1024-x1, 640-y1]};
+
+// The meta object is always the first element in the serialized figure text,
+// but is not an element of dobjs array.
+// It's automatically loaded when deserialized and included when serialized.
+var metaObj = cloneObject(defaultMetaObj);
 
 // A pseudo-this pointer that can be used in private methods.
 // Private methods mean local functions in this constructor, which
