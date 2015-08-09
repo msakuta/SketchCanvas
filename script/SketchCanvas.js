@@ -86,7 +86,7 @@ function draw() {
   ctx.stroke();
 
   // menu
-  drawMenu(0);
+  drawMenu();
   drawTBox(cur_tool);
   drawCBox(cur_col);
   drawHBox(cur_thin);
@@ -98,12 +98,9 @@ function drawPos(x, y) {
 }
 
 // Menu
-function drawMenu(no) {
+function drawMenu() {
 	for(var i=0;i<menus.length;i++) {
-		if (no === i)
-			ctx.fillStyle = 'rgb(120, 255, 120)'; // green
-		else
-			ctx.fillStyle = 'rgb(100, 200, 100)'; // green
+		ctx.fillStyle = 'rgb(100, 200, 100)'; // green
 		ctx.fillRect(mx1+(i+0)*(mw1+10), my0, mw1, mh0);
 		//ctx.strokeStyle = 'rgb(50, 192, 177)'; // cyan
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
@@ -380,9 +377,8 @@ function mouseLeftClick(e) {
 			draw_point(e.pageX, e.pageY);
 		}
 		else if (menuno < 10) {
-			drawMenu(menuno);
-			cur_menu = menuno;
-			menus[cur_menu].onclick();
+			drawMenu();
+			menus[menuno].onclick();
 		}
 		else if (menuno <= 30) {
 			drawTBox(menuno);
