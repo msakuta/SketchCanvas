@@ -21,6 +21,8 @@ var resources = {
 			"16px 'Helvetica'": "16px 'ＭＳ Ｐゴシック'",
 			"20px 'Helvetica'": "20px 'ＭＳ Ｐゴシック'",
 			"String": "文字列",
+			"Size": "サイズ",
+			"Input image size in pixels": "画像サイズを入力してください(ピクセル)",
 		},
 		font : {
 			"orn" : "10px MS Gothic",
