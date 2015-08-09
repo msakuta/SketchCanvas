@@ -52,17 +52,13 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
               case DOKU_LEXER_ENTER :      
                 list($active, $num) = $match;
                 $canvasId = 'canvas' . $num;
-                $renderer->doc .= '<canvas id="' . $canvasId . '" width="1024" height="640">
-<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/SketchCanvas.js') . '"></script>' .
-'<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/draw.js') . '"></script>' . "\n" .
-'<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/i18next-1.7.2.min.js') . '"></script>' . "\n" .
-'<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/js-yaml.min.js') . '"></script>' . "\n" .
-'<script language="javascript" src="' . addslashes('lib/plugins/skcanvas/script/translation.js') . '"></script>' . "\n" .
-"
-<script language='javascript'>
+                $renderer->doc .= <<<EOT
+<canvas id="$canvasId" width="1024" height="640">
+<script language='javascript'><!--
 (function(){
 var skcanvas = new SketchCanvas(document.getElementById('$canvasId'));
-var text = \"";
+var text = "
+EOT;
                 break;
  
               case DOKU_LEXER_UNMATCHED :
@@ -76,7 +72,7 @@ var text = \"";
                    $renderer->doc .= "\";
 skcanvas.loadData(text);
 })();
-</script>";
+--></script>";
                    break;
             }
             return true;
