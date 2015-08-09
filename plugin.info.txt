@@ -1,6 +1,6 @@
 base   skcanvas
 author Masahiro Sakuta
-email  gltest26@gmail.com
+email  masahiro.sakuta@gmail.com
 date   2015-08-06
 name   sketch canvas embedder
 desc   Write SketchCanvas documents embedded in DokuWiki.
