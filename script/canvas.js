@@ -31,5 +31,9 @@ onload = function(){
 		skcanvas.requestServerFile(showingFigureName);
 		skcanvas.requestServerFileHistory(showingFigureName);
 	}
+	else if(null !== showingData){
+		skcanvas.loadData(showingData);
+		document.getElementById('drawdata').innerHTML = showingData;
+	}
 }
 
