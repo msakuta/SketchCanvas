@@ -51,6 +51,14 @@ document.addEventListener('DOMContentLoaded', function(){
         if(text) {
             var skcanvas = new SketchCanvas(canvas);
             skcanvas.loadData(text.innerHTML);
+            var form = document.forms['__sketchcanvas_form' + i];
+            if(form){
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = "data";
+                input.value = text.innerHTML;
+                form.appendChild(input);
+            }
         }
     }
 });

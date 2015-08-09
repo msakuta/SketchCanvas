@@ -34,10 +34,10 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, &$handler){
         switch ($state) {
           case DOKU_LEXER_ENTER :
-                return array($state, array(true, $this->generator++));
+                return array($state, array(true, $this->generator));
  
           case DOKU_LEXER_UNMATCHED :  return array($state, $match);
-          case DOKU_LEXER_EXIT :       return array($state, array(false));
+          case DOKU_LEXER_EXIT :       return array($state, array(false, $this->generator++));
         }
         return array();
     }
@@ -49,7 +49,7 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
         if($mode == 'xhtml'){
             list($state, $match) = $data;
             switch ($state) {
-              case DOKU_LEXER_ENTER :      
+              case DOKU_LEXER_ENTER :
                 list($active, $num) = $match;
                 $canvasId = '__sketchcanvas' . $num;
                 $renderer->doc .= <<<EOT
@@ -61,12 +61,18 @@ EOT;
               case DOKU_LEXER_UNMATCHED :
                    list($active) = $match;
                    if($active)
-                       $renderer->doc .= /*str_replace(array("\r", "\n"), array('\r', '\n'), addslashes(*/$renderer->_xmlEntities(($match));
+                       $renderer->doc .= /*str_replace(array("\r", "\n"), array('\r', '\n'), addslashes*/($renderer->_xmlEntities($match));
                    else
                        $renderer->doc .= $renderer->_xmlEntities($match);
                    break;
               case DOKU_LEXER_EXIT :
-                   $renderer->doc .= "</div>";
+                  list($active, $num) = $match;
+                   $renderer->doc .= <<<EOT
+</div>
+<form id="__sketchcanvas_form$num" action="lib/plugins/skcanvas/canvas.php" method="POST">
+<input type="submit" value="Edit"></input>
+</form>
+EOT;
                    break;
             }
             return true;
