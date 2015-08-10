@@ -16,6 +16,9 @@
 /// function onUpdateServerList(list);
 /// This event is invoked when the object requests the server to refresh figure list
 /// and receives response.
+///
+/// function onUpdateData(data);
+/// This event is invoked when the contents of figure data is modified.
 function SketchCanvas(canvas, options){
 'use strict';
 var editmode = options && options.editmode;
@@ -1363,8 +1366,13 @@ function ajaxparts(str) {
 
 function updateDrawData(){
 	try{
-		var drawdata = document.getElementById('drawdata');
-		drawdata.value = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
+		var text = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
+		if('onUpdateData' in self)
+			self.onUpdateData(text);
+		else{
+			var drawdata = document.getElementById('drawdata');
+			drawdata.value = text;
+		}
 	} catch(e){
 		console.log(e);
 	}
