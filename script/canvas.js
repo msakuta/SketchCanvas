@@ -21,6 +21,11 @@ onload = function(){
 			document.forms[0].serverselect.value = showingFigureName;
 	}
 
+	skcanvas.onUpdateData = function(text){
+		var drawdata = document.getElementById('drawdata');
+		drawdata.value = text;
+	}
+
 	// Load saved figure list from localStorage
 	skcanvas.listLocal(document.forms[0].canvasselect);
 

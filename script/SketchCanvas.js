@@ -1369,10 +1369,6 @@ function updateDrawData(){
 		var text = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
 		if('onUpdateData' in self)
 			self.onUpdateData(text);
-		else{
-			var drawdata = document.getElementById('drawdata');
-			drawdata.value = text;
-		}
 	} catch(e){
 		console.log(e);
 	}
