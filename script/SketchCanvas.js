@@ -1587,13 +1587,14 @@ var menus = [
 			lay.appendChild(document.createElement('br'));
 			lay.appendChild(okbutton);
 			lay.appendChild(cancelbutton);
-			document.body.insertBefore(lay, canvas);
+			canvas.parentNode.insertBefore(lay, canvas);
 		}
 		else // Just show the created layer in the second invocation.
 			sizeLayer.style.display = 'block';
 		var canvasRect = canvas.getBoundingClientRect();
-		sizeLayer.style.left = (canvasRect.left + 150) + 'px';
-		sizeLayer.style.top = (canvasRect.top + 50) + 'px';
+		var parentRect = canvas.parentNode.getBoundingClientRect();
+		sizeLayer.style.left = (canvasRect.left - parentRect.left + 150) + 'px';
+		sizeLayer.style.top = (canvasRect.top - parentRect.top + 50) + 'px';
 		document.getElementById('sizeinputx').value = metaObj.size[0];
 		document.getElementById('sizeinputy').value = metaObj.size[1];
 	}), // size
