@@ -354,7 +354,10 @@ function intersectRect(r1, r2){
 function mouseLeftClick(e) {
 	if (3 == e.which) mouseRightClick(e);
 	else {
-		var menuno = checkMenu(e.pageX, e.pageY);
+		var clrect = canvas.getBoundingClientRect();
+		var mx = e.clientX - clrect.left;
+		var my = e.clientY - clrect.top;
+		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
 			if(cur_tool === 26){ // delete
@@ -364,7 +367,7 @@ function mouseLeftClick(e) {
 					// when a diagonal line gets deleted by clicking on seemingly
 					// empty space, but we could fix it in the future.
 					var bounds = expandRect(objBounds(dobjs[i]), 10);
-					if(hitRect(bounds, e.pageX, e.pageY)){
+					if(hitRect(bounds, mx, my)){
 						// If any dobj hits, save the current state to the undo buffer and delete the object.
 						dhistory.push(cloneObject(dobjs));
 						dobjs.splice(i, 1);
@@ -374,7 +377,7 @@ function mouseLeftClick(e) {
 				}
 				return;
 			}
-			draw_point(e.pageX, e.pageY);
+			draw_point(mx, my);
 		}
 		else if (menuno < 10) {
 			drawMenu();
@@ -424,7 +427,10 @@ var sizedir = 0;
 var boxselecting = false;
 function mouseDown(e){
 	if(cur_tool === 10){
-		var menuno = checkMenu(e.pageX, e.pageY);
+		var clrect = canvas.getBoundingClientRect();
+		var mx = e.clientX - clrect.left;
+		var my = e.clientY - clrect.top;
+		var menuno = checkMenu(mx, my);
 		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
 			return;
 		for(var i = 0; i < dobjs.length; i++){
@@ -433,7 +439,7 @@ function mouseDown(e){
 			// when a diagonal line gets deleted by clicking on seemingly
 			// empty space, but we could fix it in the future.
 			var bounds = expandRect(objBounds(dobjs[i]), 10);
-			if(hitRect(bounds, e.pageX, e.pageY)){
+			if(hitRect(bounds, mx, my)){
 				var pointOnSelection = false;
 				// If we click on one of already selected objects, do not clear the selection
 				// and check if we should enter moving or scaling mode later.
@@ -459,7 +465,7 @@ function mouseDown(e){
 			// Do not enter sizing mode if the object is point sized.
 			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
 				for(var i = 0; i < 8; i++){
-					if(hitRect(getHandleRect(bounds, i), e.pageX, e.pageY)){
+					if(hitRect(getHandleRect(bounds, i), mx, my)){
 						sizedir = i;
 						sizing = selectobj[n];
 						dhistory.push(cloneObject(dobjs));
@@ -471,8 +477,8 @@ function mouseDown(e){
 
 		// If we're starting dragging on a selected object, enter moving mode.
 		if(pointOnSelection){
-			var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
-			var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
+			var mx = gridEnable ? Math.round(mx / gridSize) * gridSize : mx;
+			var my = gridEnable ? Math.round(my / gridSize) * gridSize : my;
 			movebase = [mx, my];
 			moving = true;
 			dhistory.push(cloneObject(dobjs));
@@ -481,7 +487,7 @@ function mouseDown(e){
 			// If no object is selected and dragging is started, it's box selection mode.
 			boxselecting = true;
 			selectobj = [];
-			dragstart = [e.pageX , e.pageY];
+			dragstart = [mx, my];
 		}
 	}
 }
@@ -500,8 +506,9 @@ function mouseUp(e){
 
 function mouseMove(e){
 	if(cur_tool === 10 && 0 < selectobj.length){
-		var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
-		var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
+		var clrect = canvas.getBoundingClientRect();
+		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
@@ -553,8 +560,9 @@ function mouseMove(e){
 	// We could use e.buttons to check if it's supported by all the browsers,
 	// but it seems not much trusty.
 	if(cur_tool === 10 && !moving && !sizing && boxselecting){
-		var mx = e.pageX;
-		var my = e.pageY;
+		var clrect = canvas.getBoundingClientRect();
+		var mx = e.clientX - clrect.left;
+		var my = e.clientY - clrect.top;
 		dragend = [mx, my];
 		var box = {
 			minx: Math.min(dragstart[0], mx),
