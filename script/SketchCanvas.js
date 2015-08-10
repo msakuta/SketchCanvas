@@ -1383,11 +1383,6 @@ function ajaxundo() {
 	redraw(dobjs);
 }
 
-// redraw
-function ajaxredraw(id) {
-	redraw(dobjs);
-}
-
 // Create and return a XMLHttpRequest object or ActiveXObject for IE6-
 function createXMLHttpRequest(){
 	var xmlHttp = null;
@@ -1544,10 +1539,7 @@ var menus = [
 		clearCanvas();
 		ajaxclear();
 	}),
-	new MenuItem("Redraw", function(){	// redraw
-		clearCanvas();
-		ajaxredraw(selectedID());
-	}),
+	new MenuItem("Redraw", function(){redraw(dobjs);}),// redraw
 	new MenuItem("Undo", function(){	// undo
 		clearCanvas();
 		ajaxundo();
