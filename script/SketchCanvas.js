@@ -64,6 +64,7 @@ function onload(){
 		ctx.setLineDash = function(){};
 	}
 
+  resizeCanvas();
   draw();
 
   // Draw objects
