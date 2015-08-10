@@ -73,7 +73,7 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           <th>New figure</th>
           <td>
             <input type="text" id="clientfname" name="clientfname" value="default">
-            <input type="button" value="Save (new)" onclick="skcanvas.saveDataNew()">
+            <input type="button" value="Save (new)" onclick="skcanvas.saveDataNew(document.getElementById('clientfname').value)">
           </td>
           <td>
             <input type="text" id="fname" name="fname" value="default">

@@ -1282,20 +1282,10 @@ function saveData(title){
 }
 
 // save data
-function ajaxsave() {
-	var title = prompt("TITLE:", "");
-	if (null === title) return false;
-	saveData(title);
-	if(this.onLocalChange)
-		this.onLocalChange();
-	return true;
-}
-
-this.saveDataNew = function(){
-	var text = document.getElementById("clientfname").value;
-	if(null === text) return;
-	saveData(text);
-	if(this.onLocalChange)
+this.saveDataNew = function(fname){
+	if(!fname) return;
+	saveData(fname);
+	if(('onLocalChange' in this) && this.onLocalChange)
 		this.onLocalChange();
 }
 
@@ -1367,7 +1357,7 @@ function ajaxparts(str) {
 function updateDrawData(){
 	try{
 		var text = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
-		if('onUpdateData' in self)
+		if(('onUpdateData' in self) && self.onUpdateData)
 			self.onUpdateData(text);
 	} catch(e){
 		console.log(e);
