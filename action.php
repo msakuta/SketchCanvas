@@ -19,6 +19,9 @@ class action_plugin_skcanvas extends DokuWiki_Action_Plugin {
      */
     public function register(Doku_Event_Handler $controller) {
        $controller->register_hook('TPL_METAHEADER_OUTPUT', 'BEFORE', $this, 'metaheader');
+
+       $controller->register_hook('HTML_SECEDIT_BUTTON', 'BEFORE', $this, 'editButton');
+       $controller->register_hook('HTML_EDIT_FORMSELECTION', 'BEFORE', $this, 'editForm');
     }
 
     /**
@@ -66,4 +69,38 @@ EOT
                );
     }
 
+    public function editButton(Doku_Event $event, $param){
+        if($event->data['target'] !== 'plugin_skcanvas')
+            return;
+
+        $event->data['name'] = /*$this->getLang*/('Edit Figure');
+    }
+
+    public function editForm(Doku_Event $event, $param){
+        global $TEXT;
+        if($event->data['target'] !== 'plugin_skcanvas')
+            return;
+        $event->preventDefault();
+
+        $event->data['media_manager'] = false;
+
+        $escText = '"' . str_replace(array("\r", "\n"), array('\r', '\n'), addslashes($TEXT)) . '"';
+
+        echo <<<EOT
+<canvas id="editcanvas"></canvas>
+<script type="text/javascript"><!--
+(function(){
+    var skcanvas = new SketchCanvas(document.getElementById('editcanvas'), {editmode: true});
+    skcanvas.loadData($escText);
+    skcanvas.onUpdateData = function(data){
+        var wikitext = document.getElementById('wiki__text');
+        wikitext.innerHTML = data;
+    }
+})();
+--></script>
+EOT;
+        $attr = array();
+        if(!$event->data['wr']) $attr['readonly'] = 'readonly';
+        $event->data['form']->addElement(form_makeWikiText($TEXT, $attr));
+    }
 }

@@ -34,14 +34,14 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, &$handler){
         switch ($state) {
           case DOKU_LEXER_ENTER :
-                return array($state, array(true, $this->generator));
- 
-          case DOKU_LEXER_UNMATCHED :  return array($state, $match);
-          case DOKU_LEXER_EXIT :       return array($state, array(false, $this->generator++));
+                return array($state, array(true, $this->generator, 'bytepos_start' => $pos + strlen($match)));
+
+          case DOKU_LEXER_UNMATCHED : return array($state, $match);
+          case DOKU_LEXER_EXIT :       return array($state, array(false, $this->generator++, 'bytepos_end' => $pos));
         }
         return array();
     }
- 
+
     /**
      * Create output
      */
@@ -51,8 +51,12 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
             switch ($state) {
               case DOKU_LEXER_ENTER :
                 list($active, $num) = $match;
+                $class = '';
+                if(method_exists($renderer, 'startSectionEdit'))
+                  $class = $renderer->startSectionEdit($match['bytepos_start'], 'plugin_skcanvas');
                 $canvasId = '__sketchcanvas' . $num;
                 $renderer->doc .= <<<EOT
+<div class="$class">
 <canvas id="$canvasId" width="1024" height="640"></canvas>
 <div id="__sketchcanvas_text$num" style="display: none">
 EOT;
@@ -69,11 +73,11 @@ EOT;
                   list($active, $num) = $match;
                    $renderer->doc .= <<<EOT
 </div>
-<form id="__sketchcanvas_form$num" action="lib/plugins/skcanvas/canvas.php" method="POST">
-<input type="submit" value="Edit"></input>
-</form>
+</div>
 EOT;
-                   break;
+                if(method_exists($renderer, 'finishSectionEdit'))
+                  $renderer->finishSectionEdit($match['bytepos_end']);
+                break;
             }
             return true;
         }
