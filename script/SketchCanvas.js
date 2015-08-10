@@ -375,6 +375,7 @@ function mouseLeftClick(e) {
 						dhistory.push(cloneObject(dobjs));
 						dobjs.splice(i, 1);
 						redraw(dobjs);
+						updateDrawData();
 						return;
 					}
 				}
