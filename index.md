@@ -101,4 +101,18 @@ Blue areas are planned but not implemented yet.
 
 A DokuWiki plugin for rendering and editing SketchCanvas sketches is available.
 
+https://www.dokuwiki.org/plugin:sketchcanvas
+
 ![DokuWiki plugin image](media/screenshot-dokuwiki.png)
+
+
+## Edit button
+
+An included sketch looks like this:
+
+![DokuWiki Edit button](media/EditButton.png)
+
+Pressing the edit button brings you to the edit page.
+
+![DokuWiki Edit button](media/EditButtonAfter.png)
+
