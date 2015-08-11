@@ -93,14 +93,14 @@ EOT
         $canvasText = <<<EOT
 <canvas id="editcanvas"></canvas>
 <script type="text/javascript"><!--
-(function(){
+document.addEventListener('DOMContentLoaded', function(){
     var skcanvas = new SketchCanvas(document.getElementById('editcanvas'), {editmode: true});
     skcanvas.loadData($escText);
     skcanvas.onUpdateData = function(data){
         var wikitext = document.getElementById('wiki__text');
         wikitext.innerHTML = data;
     }
-})();
+});
 --></script>
 <textarea name="wikitext" id="wiki__text" class="edit" cols="80" rows="10">$TEXT</textarea>
 EOT;
