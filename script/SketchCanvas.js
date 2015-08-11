@@ -16,6 +16,9 @@
 /// function onUpdateServerList(list);
 /// This event is invoked when the object requests the server to refresh figure list
 /// and receives response.
+///
+/// function onUpdateData(data);
+/// This event is invoked when the contents of figure data is modified.
 function SketchCanvas(canvas, options){
 'use strict';
 var editmode = options && options.editmode;
@@ -61,6 +64,7 @@ function onload(){
 		ctx.setLineDash = function(){};
 	}
 
+  resizeCanvas();
   draw();
 
   // Draw objects
@@ -86,7 +90,7 @@ function draw() {
   ctx.stroke();
 
   // menu
-  drawMenu(0);
+  drawMenu();
   drawTBox(cur_tool);
   drawCBox(cur_col);
   drawHBox(cur_thin);
@@ -98,12 +102,9 @@ function drawPos(x, y) {
 }
 
 // Menu
-function drawMenu(no) {
+function drawMenu() {
 	for(var i=0;i<menus.length;i++) {
-		if (no === i)
-			ctx.fillStyle = 'rgb(120, 255, 120)'; // green
-		else
-			ctx.fillStyle = 'rgb(100, 200, 100)'; // green
+		ctx.fillStyle = 'rgb(100, 200, 100)'; // green
 		ctx.fillRect(mx1+(i+0)*(mw1+10), my0, mw1, mh0);
 		//ctx.strokeStyle = 'rgb(50, 192, 177)'; // cyan
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
@@ -357,7 +358,10 @@ function intersectRect(r1, r2){
 function mouseLeftClick(e) {
 	if (3 == e.which) mouseRightClick(e);
 	else {
-		var menuno = checkMenu(e.pageX, e.pageY);
+		var clrect = canvas.getBoundingClientRect();
+		var mx = e.clientX - clrect.left;
+		var my = e.clientY - clrect.top;
+		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
 			if(cur_tool === 26){ // delete
@@ -367,22 +371,22 @@ function mouseLeftClick(e) {
 					// when a diagonal line gets deleted by clicking on seemingly
 					// empty space, but we could fix it in the future.
 					var bounds = expandRect(objBounds(dobjs[i]), 10);
-					if(hitRect(bounds, e.pageX, e.pageY)){
+					if(hitRect(bounds, mx, my)){
 						// If any dobj hits, save the current state to the undo buffer and delete the object.
 						dhistory.push(cloneObject(dobjs));
 						dobjs.splice(i, 1);
 						redraw(dobjs);
+						updateDrawData();
 						return;
 					}
 				}
 				return;
 			}
-			draw_point(e.pageX, e.pageY);
+			draw_point(mx, my);
 		}
 		else if (menuno < 10) {
-			drawMenu(menuno);
-			cur_menu = menuno;
-			menus[cur_menu].onclick();
+			drawMenu();
+			menus[menuno].onclick();
 		}
 		else if (menuno <= 30) {
 			drawTBox(menuno);
@@ -428,7 +432,10 @@ var sizedir = 0;
 var boxselecting = false;
 function mouseDown(e){
 	if(cur_tool === 10){
-		var menuno = checkMenu(e.pageX, e.pageY);
+		var clrect = canvas.getBoundingClientRect();
+		var mx = e.clientX - clrect.left;
+		var my = e.clientY - clrect.top;
+		var menuno = checkMenu(mx, my);
 		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
 			return;
 		for(var i = 0; i < dobjs.length; i++){
@@ -437,7 +444,7 @@ function mouseDown(e){
 			// when a diagonal line gets deleted by clicking on seemingly
 			// empty space, but we could fix it in the future.
 			var bounds = expandRect(objBounds(dobjs[i]), 10);
-			if(hitRect(bounds, e.pageX, e.pageY)){
+			if(hitRect(bounds, mx, my)){
 				var pointOnSelection = false;
 				// If we click on one of already selected objects, do not clear the selection
 				// and check if we should enter moving or scaling mode later.
@@ -463,7 +470,7 @@ function mouseDown(e){
 			// Do not enter sizing mode if the object is point sized.
 			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
 				for(var i = 0; i < 8; i++){
-					if(hitRect(getHandleRect(bounds, i), e.pageX, e.pageY)){
+					if(hitRect(getHandleRect(bounds, i), mx, my)){
 						sizedir = i;
 						sizing = selectobj[n];
 						dhistory.push(cloneObject(dobjs));
@@ -475,8 +482,8 @@ function mouseDown(e){
 
 		// If we're starting dragging on a selected object, enter moving mode.
 		if(pointOnSelection){
-			var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
-			var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
+			var mx = gridEnable ? Math.round(mx / gridSize) * gridSize : mx;
+			var my = gridEnable ? Math.round(my / gridSize) * gridSize : my;
 			movebase = [mx, my];
 			moving = true;
 			dhistory.push(cloneObject(dobjs));
@@ -485,7 +492,7 @@ function mouseDown(e){
 			// If no object is selected and dragging is started, it's box selection mode.
 			boxselecting = true;
 			selectobj = [];
-			dragstart = [e.pageX , e.pageY];
+			dragstart = [mx, my];
 		}
 	}
 }
@@ -504,8 +511,9 @@ function mouseUp(e){
 
 function mouseMove(e){
 	if(cur_tool === 10 && 0 < selectobj.length){
-		var mx = gridEnable ? Math.round(e.pageX / gridSize) * gridSize : e.pageX;
-		var my = gridEnable ? Math.round(e.pageY / gridSize) * gridSize : e.pageY;
+		var clrect = canvas.getBoundingClientRect();
+		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
@@ -557,8 +565,9 @@ function mouseMove(e){
 	// We could use e.buttons to check if it's supported by all the browsers,
 	// but it seems not much trusty.
 	if(cur_tool === 10 && !moving && !sizing && boxselecting){
-		var mx = e.pageX;
-		var my = e.pageY;
+		var clrect = canvas.getBoundingClientRect();
+		var mx = e.clientX - clrect.left;
+		var my = e.clientY - clrect.top;
 		dragend = [mx, my];
 		var box = {
 			minx: Math.min(dragstart[0], mx),
@@ -779,15 +788,30 @@ function getHandleRect(bounds, i){
 	return {minx: x - handleSize, miny: y - handleSize, maxx: x + handleSize, maxy: y + handleSize};
 }
 
-// redraw
-function redraw(pt) {
+// Resize the canvas so that it fits the contents.
+// Note that the canvas contents are also cleared, so we might need to redraw everything.
+function resizeCanvas(){
 	if(!editmode){
 		// Resize the canvas so that the figure fits the size of canvas.
 		// It's only done in view mode because we should show the toolbar and the menu bar
 		// in edit mode.
 		canvas.width = metaObj.size[0] * scale;
 		canvas.height = metaObj.size[1] * scale;
+		x1 = 0;
+		y1 = 0;
+		offset = {x:0, y:0};
 	}
+	else{
+		canvas.width = 1024;
+		canvas.height = 640;
+		x1 = 90;
+		y1 = 50;
+		offset = {x:x1, y:y1};
+	}
+}
+
+// redraw
+function redraw(pt) {
 
 	clearCanvas();
 
@@ -962,9 +986,27 @@ function deserialize(dat){
 this.loadData = function(value){
 	try{
 		dobjs = deserialize(jsyaml.safeLoad(value));
+		resizeCanvas();
+		draw();
 		redraw(dobjs);
 	} catch(e){
 		console.log(e);
+	}
+}
+
+this.saveAsImage = function(img){
+	var reset = editmode;
+	if(editmode){
+		editmode = false;
+		resizeCanvas();
+		redraw(dobjs);
+	}
+	img.src = canvas.toDataURL();
+	if(reset){
+		editmode = true;
+		resizeCanvas();
+		draw();
+		redraw(dobjs);
 	}
 }
 
@@ -1037,6 +1079,8 @@ this.requestServerFile = function(item, hash){
 				dobjs = deserialize(jsyaml.safeLoad(selData));
 				selectobj = [];
 				updateDrawData();
+				resizeCanvas();
+				draw();
 				redraw(dobjs);
 			}
 			catch(e){
@@ -1104,9 +1148,11 @@ this.loadDataFromServerHistory = function(){
 
 // clear canvas
 function clearCanvas() {
-	// Fill outside of valid figure area defined by metaObj.size with gray color.
-	ctx.fillStyle = '#7f7f7f';
-	ctx.fillRect(x1,y1, w1, h1);
+	if(editmode){
+		// Fill outside of valid figure area defined by metaObj.size with gray color.
+		ctx.fillStyle = '#7f7f7f';
+		ctx.fillRect(x1,y1, w1, h1);
+	}
 	ctx.fillStyle = white;
 	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
 	idx = 0;
@@ -1238,20 +1284,10 @@ function saveData(title){
 }
 
 // save data
-function ajaxsave() {
-	var title = prompt("TITLE:", "");
-	if (null === title) return false;
-	saveData(title);
-	if(this.onLocalChange)
-		this.onLocalChange();
-	return true;
-}
-
-this.saveDataNew = function(){
-	var text = document.getElementById("clientfname").value;
-	if(null === text) return;
-	saveData(text);
-	if(this.onLocalChange)
+this.saveDataNew = function(fname){
+	if(!fname) return;
+	saveData(fname);
+	if(('onLocalChange' in this) && this.onLocalChange)
 		this.onLocalChange();
 }
 
@@ -1322,8 +1358,9 @@ function ajaxparts(str) {
 
 function updateDrawData(){
 	try{
-		var drawdata = document.getElementById('drawdata');
-		drawdata.value = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
+		var text = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
+		if(('onUpdateData' in self) && self.onUpdateData)
+			self.onUpdateData(text);
 	} catch(e){
 		console.log(e);
 	}
@@ -1345,11 +1382,6 @@ function ajaxundo() {
 	dhistory.pop();
 	selectobj = [];
 	updateDrawData();
-	redraw(dobjs);
-}
-
-// redraw
-function ajaxredraw(id) {
 	redraw(dobjs);
 }
 
@@ -1509,10 +1541,7 @@ var menus = [
 		clearCanvas();
 		ajaxclear();
 	}),
-	new MenuItem("Redraw", function(){	// redraw
-		clearCanvas();
-		ajaxredraw(selectedID());
-	}),
+	new MenuItem("Redraw", function(){redraw(dobjs);}),// redraw
 	new MenuItem("Undo", function(){	// undo
 		clearCanvas();
 		ajaxundo();
@@ -1552,13 +1581,20 @@ var menus = [
 			lay.appendChild(document.createElement('br'));
 			lay.appendChild(okbutton);
 			lay.appendChild(cancelbutton);
-			document.body.insertBefore(lay, canvas);
+			// Append as the body element's child because style.position = "absolute" would
+			// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+			document.body.appendChild(lay);
 		}
 		else // Just show the created layer in the second invocation.
 			sizeLayer.style.display = 'block';
 		var canvasRect = canvas.getBoundingClientRect();
-		sizeLayer.style.left = (canvasRect.left + 150) + 'px';
-		sizeLayer.style.top = (canvasRect.top + 50) + 'px';
+		// Cross-browser scroll position query
+		var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+		var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+		// getBoundingClientRect() returns coordinates relative to view, which means we have to
+		// add scroll position into them.
+		sizeLayer.style.left = (canvasRect.left + scrollX + 150) + 'px';
+		sizeLayer.style.top = (canvasRect.top + scrollY + 50) + 'px';
 		document.getElementById('sizeinputx').value = metaObj.size[0];
 		document.getElementById('sizeinputy').value = metaObj.size[1];
 	}), // size
