@@ -836,12 +836,11 @@ function drawCanvas(mode, str) {
 		register(arr, numPoints, str);
 	function register(arr, numPoints, str){
 		// send parts to server
-		var dat = {
-			tool: cur_tool,
-			color: cur_col,
-			width: cur_thin,
-			points: Array(numPoints)
-		};
+		var dat = cur_tool === 25 ? new TextObject() : new DrawObject();
+		dat.tool = cur_tool;
+		dat.color = cur_col;
+		dat.width = cur_thin;
+		dat.points = Array(numPoints);
 		for(var i = 0; i < numPoints; i++)
 			dat.points[i] = {x: arr[i].x, y: arr[i].y};
 		// Values with defaults needs not assigned a value when saved.
@@ -965,7 +964,16 @@ function redraw(pt) {
 	cur_thin = org_thin;
 }
 
-function serializeSingle(obj){
+
+function DrawObject(){
+	this.tool = 11;
+	this.color = "black";
+	this.width = 1;
+	this.points = [];
+}
+//inherit(DrawObject, Object);
+
+DrawObject.prototype.serialize = function(){
 	function tool2str(tool){
 		switch(tool){
 		case 11: return "line";
@@ -994,26 +1002,55 @@ function serializeSingle(obj){
 
 	// send parts to server
 	var dat = "";
-	for (var i=0; i<obj.points.length; i++){
+	for (var i=0; i<this.points.length; i++){
 		if(i !== 0) dat += ":";
-		dat += obj.points[i].x+","+obj.points[i].y;
+		dat += this.points[i].x+","+this.points[i].y;
 	}
 	var alldat = {
-		type: tool2str(obj.tool),
+		type: tool2str(this.tool),
 		points: dat
 	};
 	// Values with defaults needs not assigned a value when saved.
 	// This will save space if the drawn element properties use many default values.
-	set_default(alldat, "color", obj.color, "black");
-	set_default(alldat, "width", obj.width, 1);
-	if (25 == obj.tool) alldat.text = obj.text;
+	set_default(alldat, "color", this.color, "black");
+	set_default(alldat, "width", this.width, 1);
+	return alldat;
+};
+
+DrawObject.prototype.deserialize = function(obj){
+	this.color = obj.color || "black";
+	this.width = obj.width || 1;
+	var pt1 = obj.points.split(":");
+	var arr = [];
+	for(var j = 0; j < pt1.length; j++){
+		var pt2 = pt1[j].split(",");
+		arr.push({x:pt2[0]-0, y:pt2[1]-0});
+	}
+	this.points = arr;
+};
+
+function TextObject(){
+	DrawObject.call(this);
+	this.text = "";
+}
+inherit(TextObject, DrawObject);
+
+TextObject.prototype.serialize = function(){
+	var alldat = DrawObject.prototype.serialize.call(this);
+	alldat.text = this.text;
 	return alldat;
 }
+
+TextObject.prototype.deserialize = function(obj){
+	DrawObject.prototype.deserialize.call(this, obj);
+	if (undefined !== obj.text) this.text = obj.text;
+};
+
 
 function serialize(dobjs){
 	var ret = [metaObj];
 	for(var i = 0; i < dobjs.length; i++)
-		ret.push(serializeSingle(dobjs[i]));
+		ret.push(dobjs[i].serialize());
 	return ret;
 }
 
@@ -1047,19 +1084,9 @@ function deserialize(dat){
 			metaObj = obj;
 			continue;
 		}
-		var pt1 = obj.points.split(":");
-		var robj = {
-			tool: str2tool(obj.type),
-			color: obj.color || "black",
-			width: obj.width || 1
-		};
-		var arr = [];
-		for(var j = 0; j < pt1.length; j++){
-			var pt2 = pt1[j].split(",");
-			arr.push({x:pt2[0]-0, y:pt2[1]-0});
-		}
-		robj.points = arr;
-		if (undefined !== obj.text) robj.text = obj.text;
+		var robj = obj.type === 'text' ? new TextObject() : new DrawObject();
+		robj.tool = str2tool(obj.type);
+		robj.deserialize(obj);
 		ret.push(robj);
 	}
 	return ret;
@@ -1417,13 +1444,35 @@ this.listLocal = function(selectElement) {
 
 }
 
+/// Custom inheritance function that prevents the super class's constructor
+/// from being called on inehritance.
+/// Also assigns constructor property of the subclass properly.
+/// Inheriting is closely related to cloneObject()
+function inherit(subclass,base){
+	// If the browser or ECMAScript supports Object.create, use it
+	// (but don't remember to redirect constructor pointer to subclass)
+	if(Object.create){
+		subclass.prototype = Object.create(base.prototype);
+	}
+	else{
+		var sub = function(){};
+		sub.prototype = base.prototype;
+		subclass.prototype = new sub;
+	}
+	subclass.prototype.constructor = subclass;
+}
+
 // Create a deep clone of objects
 function cloneObject(obj) {
 	if (obj === null || typeof obj !== 'object') {
 		return obj;
 	}
 
-	var temp = obj.constructor(); // give temp the original obj's constructor
+	// give temp the original obj's constructor
+	// this 'new' is important in case obj is user-defined class which was created by
+	// 'new ClassName()', no matter inherited or not.
+	// I wonder why Array and Object (built-in classes) don't need new operator.
+	var temp = new obj.constructor();
 	for (var key in obj) {
 		temp[key] = cloneObject(obj[key]);
 	}
