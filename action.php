@@ -93,15 +93,17 @@ EOT
         $canvasText = <<<EOT
 <canvas id="editcanvas"></canvas>
 <script type="text/javascript"><!--
+var skcanvas;
 document.addEventListener('DOMContentLoaded', function(){
-    var skcanvas = new SketchCanvas(document.getElementById('editcanvas'), {editmode: true});
+    skcanvas = new SketchCanvas(document.getElementById('editcanvas'), {editmode: true});
     skcanvas.loadData($escText);
     skcanvas.onUpdateData = function(data){
         var wikitext = document.getElementById('wiki__text');
-        wikitext.innerHTML = data;
+        wikitext.value = data;
     }
 });
 --></script>
+<input type="button" value="Load data from text" onclick="skcanvas.loadData(document.getElementById('wiki__text').value)">
 <textarea name="wikitext" id="wiki__text" class="edit" cols="80" rows="10">$TEXT</textarea>
 EOT;
         $form->addElement($canvasText);
