@@ -322,21 +322,14 @@ function drawParts(no, x, y) {
 
 // Returns bounding box for a drawing object.
 function objBounds(obj, rawvalue){
-	// Get bounding box of the object
-	var maxx, maxy, minx, miny;
-	for(var j = 0; j < obj.points.length; j++){
-		var x = obj.points[j].x + (rawvalue ? 0 : offset.x);
-		if(maxx === undefined || maxx < x)
-			maxx = x;
-		if(minx === undefined || x < minx)
-			minx = x;
-		var y = obj.points[j].y + (rawvalue ? 0 : offset.y);
-		if(maxy === undefined || maxy < y)
-			maxy = y;
-		if(miny === undefined || y < miny)
-			miny = y;
+	var ret = obj.getBoundingRect(rawvalue);
+	if(!rawvalue){
+		ret.minx += offset.x;
+		ret.maxx += offset.x;
+		ret.miny += offset.y;
+		ret.maxy += offset.y;
 	}
-	return {minx: minx, miny: miny, maxx: maxx, maxy: maxy};
+	return ret;
 }
 
 // Expand given rectangle by an offset
@@ -466,6 +459,9 @@ function mouseDown(e){
 
 		// Check to see if we are dragging any of scaling handles.
 		for(var n = 0; n < selectobj.length; n++){
+			// Do not try to change size of non-sizeable object.
+			if(!selectobj[n].isSizeable())
+				continue;
 			var bounds = objBounds(selectobj[n]);
 			// Do not enter sizing mode if the object is point sized.
 			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
@@ -619,6 +615,11 @@ function points() {
 	else return 2;
 }
 
+// A local function to set font size with the global scaling factor in mind.
+function setFont(baseSize) {
+	ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+}
+
 // draw parts
 function drawCanvas(mode, str) {
 	// DEBUG
@@ -730,11 +731,6 @@ function drawCanvas(mode, str) {
 		break;
 	case 25:	// string
 		var setText = function(str, x, y){
-			// A local function to set font size with the global scaling factor in mind.
-			function setFont(baseSize) {
-				ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
-			}
-
 			if (null == str) {		// cancel
 				idx = 0;
 				return;
@@ -965,6 +961,7 @@ function redraw(pt) {
 }
 
 
+// ==================== DrawObject class definition ================================= //
 function DrawObject(){
 	this.tool = 11;
 	this.color = "black";
@@ -1017,6 +1014,10 @@ DrawObject.prototype.serialize = function(){
 	return alldat;
 };
 
+DrawObject.prototype.isSizeable = function(){
+	return true;
+}
+
 DrawObject.prototype.deserialize = function(obj){
 	this.color = obj.color || "black";
 	this.width = obj.width || 1;
@@ -1029,6 +1030,26 @@ DrawObject.prototype.deserialize = function(obj){
 	this.points = arr;
 };
 
+DrawObject.prototype.getBoundingRect = function(){
+	// Get bounding box of the object
+	var maxx, maxy, minx, miny;
+	for(var j = 0; j < this.points.length; j++){
+		var x = this.points[j].x;
+		if(maxx === undefined || maxx < x)
+			maxx = x;
+		if(minx === undefined || x < minx)
+			minx = x;
+		var y = this.points[j].y;
+		if(maxy === undefined || maxy < y)
+			maxy = y;
+		if(miny === undefined || y < miny)
+			miny = y;
+	}
+	return {minx: minx, miny: miny, maxx: maxx, maxy: maxy};
+};
+// ==================== DrawObject class definition end ================================= //
+
+// ==================== TextObject class definition ================================= //
 function TextObject(){
 	DrawObject.call(this);
 	this.text = "";
@@ -1045,6 +1066,21 @@ TextObject.prototype.deserialize = function(obj){
 	DrawObject.prototype.deserialize.call(this, obj);
 	if (undefined !== obj.text) this.text = obj.text;
 };
+
+TextObject.prototype.isSizeable = function(){
+	return false;
+}
+
+TextObject.prototype.getBoundingRect = function(){
+	var height = this.width === 1 ? 14 : this.width === 16 ? 2 : 20;
+	var oldfont = ctx.font;
+	ctx.font = setFont(height);
+	var width = ctx.measureText(this.text).width;
+	ctx.font = oldfont;
+	return {minx: this.points[0].x, miny: this.points[0].y - height,
+		maxx: this.points[0].x + width, maxy: this.points[0].y};
+}
+// ==================== TextObject class definition end ================================= //
 
 
 function serialize(dobjs){
