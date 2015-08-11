@@ -367,6 +367,13 @@ function mouseLeftClick(e) {
 					if(hitRect(bounds, mx, my)){
 						// If any dobj hits, save the current state to the undo buffer and delete the object.
 						dhistory.push(cloneObject(dobjs));
+						// Delete from selected object list, too.
+						for(var j = 0; j < selectobj.length;){
+							if(selectobj[j] === dobjs[i])
+								selectobj.splice(j, 1);
+							else
+								j++;
+						}
 						dobjs.splice(i, 1);
 						redraw(dobjs);
 						updateDrawData();
