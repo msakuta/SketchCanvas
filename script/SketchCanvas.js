@@ -322,21 +322,14 @@ function drawParts(no, x, y) {
 
 // Returns bounding box for a drawing object.
 function objBounds(obj, rawvalue){
-	// Get bounding box of the object
-	var maxx, maxy, minx, miny;
-	for(var j = 0; j < obj.points.length; j++){
-		var x = obj.points[j].x + (rawvalue ? 0 : offset.x);
-		if(maxx === undefined || maxx < x)
-			maxx = x;
-		if(minx === undefined || x < minx)
-			minx = x;
-		var y = obj.points[j].y + (rawvalue ? 0 : offset.y);
-		if(maxy === undefined || maxy < y)
-			maxy = y;
-		if(miny === undefined || y < miny)
-			miny = y;
+	var ret = obj.getBoundingRect(rawvalue);
+	if(!rawvalue){
+		ret.minx += offset.x;
+		ret.maxx += offset.x;
+		ret.miny += offset.y;
+		ret.maxy += offset.y;
 	}
-	return {minx: minx, miny: miny, maxx: maxx, maxy: maxy};
+	return ret;
 }
 
 // Expand given rectangle by an offset
@@ -374,6 +367,13 @@ function mouseLeftClick(e) {
 					if(hitRect(bounds, mx, my)){
 						// If any dobj hits, save the current state to the undo buffer and delete the object.
 						dhistory.push(cloneObject(dobjs));
+						// Delete from selected object list, too.
+						for(var j = 0; j < selectobj.length;){
+							if(selectobj[j] === dobjs[i])
+								selectobj.splice(j, 1);
+							else
+								j++;
+						}
 						dobjs.splice(i, 1);
 						redraw(dobjs);
 						updateDrawData();
@@ -466,6 +466,9 @@ function mouseDown(e){
 
 		// Check to see if we are dragging any of scaling handles.
 		for(var n = 0; n < selectobj.length; n++){
+			// Do not try to change size of non-sizeable object.
+			if(!selectobj[n].isSizeable())
+				continue;
 			var bounds = objBounds(selectobj[n]);
 			// Do not enter sizing mode if the object is point sized.
 			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
@@ -619,6 +622,11 @@ function points() {
 	else return 2;
 }
 
+// A local function to set font size with the global scaling factor in mind.
+function setFont(baseSize) {
+	ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+}
+
 // draw parts
 function drawCanvas(mode, str) {
 	// DEBUG
@@ -729,37 +737,113 @@ function drawCanvas(mode, str) {
 		numPoints = 1;
 		break;
 	case 25:	// string
-		if (0 == mode) str = prompt(i18n.t("String") + ":", "");
-		if (null == str) {		// cancel
-			idx = 0;
-			return;
-		}
-		ctx.beginPath();
+		var setText = function(str, x, y){
+			if (null == str) {		// cancel
+				idx = 0;
+				return;
+			}
+			ctx.beginPath();
+			if (1 == cur_thin) setFont(14);
+			else if (2 == cur_thin) setFont(16);
+			else setFont(20);
+			ctx.fillText(str, x, y);
+			ctx.font = setFont(14);
+		};
 
-		// A local function to set font size with the global scaling factor in mind.
-		var setFont = function(baseSize) {
-			ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+		if (0 == mode) {
+			// Show size input layer on top of the canvas because the canvas cannot have
+			// a text input element.
+			if(!textLayer){
+				textLayer = document.createElement('div');
+				// Create field for remembering position of text being inserted.
+				// Free variables won't work well.
+				textLayer.canvasPos = {x:0, y:0};
+				var lay = textLayer;
+				lay.id = 'textLayer';
+				lay.style.position = 'absolute';
+				lay.style.padding = '5px 5px 5px 5px';
+				lay.style.borderStyle = 'solid';
+				lay.style.borderColor = '#cf0000';
+				lay.style.borderWidth = '2px';
+				// Drop shadow to make it distinguishable from the figure contents.
+				lay.style.boxShadow = '0px 0px 20px grey';
+				lay.style.background = '#cfffcf';
+
+				// Create and assign the input element to a field of the textLayer object
+				// to keep track of the input element after this function is exited.
+				lay.textInput = document.createElement('input');
+				lay.textInput.id = "textinput";
+				lay.textInput.type = "text";
+				lay.textInput.onkeyup = function(e){
+					// Convert enter key event to OK button click
+					if(e.keyCode === 13)
+						okbutton.onclick();
+				};
+				lay.appendChild(lay.textInput);
+
+				var okbutton = document.createElement('input');
+				okbutton.type = 'button';
+				okbutton.value = 'OK';
+				okbutton.onclick = function(e){
+					lay.style.display = 'none';
+					// Ignore blank text
+					if(lay.textInput.value == '')
+						return;
+					register([lay.canvasPos], 1, lay.textInput.value);
+					updateDrawData();
+					redraw(dobjs);
+				}
+				var cancelbutton = document.createElement('input');
+				cancelbutton.type = 'button';
+				cancelbutton.value = 'Cancel';
+				cancelbutton.onclick = function(s){
+					lay.style.display = 'none';
+				}
+				lay.appendChild(document.createElement('br'));
+				lay.appendChild(okbutton);
+				lay.appendChild(cancelbutton);
+				// Append as the body element's child because style.position = "absolute" would
+				// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+				document.body.appendChild(lay);
+			}
+			else
+				textLayer.style.display = 'block';
+			textLayer.canvasPos.x = arr[0].x;
+			textLayer.canvasPos.y = arr[0].y;
+			textLayer.textInput.value = "";
+			var canvasRect = canvas.getBoundingClientRect();
+			// Cross-browser scroll position query
+			var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+			var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+			// getBoundingClientRect() returns coordinates relative to view, which means we have to
+			// add scroll position into them.
+			textLayer.style.left = (canvasRect.left + scrollX + offset.x + arr[0].x) + 'px';
+			textLayer.style.top = (canvasRect.top + scrollY + offset.y + arr[0].y) + 'px';
+			// focus() should be called after textLayer is positioned, otherwise the page may
+			// unexpectedly scroll to somewhere.
+			textLayer.textInput.focus();
+
+			// Reset the point buffer
+			idx = 0;
+			return; // Skip registration
 		}
-		
-		if (1 == cur_thin) setFont(14);
-		else if (2 == cur_thin) setFont(16);
-		else setFont(20);
-		ctx.fillText(str, arr[0].x, arr[0].y);
-		ctx.font = setFont(14);
+		else
+			setText(str, arr[0].x, arr[0].y);
 		numPoints = 1;
 		break;
 	default:
 		debug("illegal tool no "+cur_tool);
 	}
 
-	if (0 == mode) {	// regist
+	if (0 == mode)
+		register(arr, numPoints, str);
+	function register(arr, numPoints, str){
 		// send parts to server
-		var dat = {
-			tool: cur_tool,
-			color: cur_col,
-			width: cur_thin,
-			points: Array(numPoints)
-		};
+		var dat = cur_tool === 25 ? new TextObject() : new DrawObject();
+		dat.tool = cur_tool;
+		dat.color = cur_col;
+		dat.width = cur_thin;
+		dat.points = Array(numPoints);
 		for(var i = 0; i < numPoints; i++)
 			dat.points[i] = {x: arr[i].x, y: arr[i].y};
 		// Values with defaults needs not assigned a value when saved.
@@ -883,7 +967,17 @@ function redraw(pt) {
 	cur_thin = org_thin;
 }
 
-function serializeSingle(obj){
+
+// ==================== DrawObject class definition ================================= //
+function DrawObject(){
+	this.tool = 11;
+	this.color = "black";
+	this.width = 1;
+	this.points = [];
+}
+//inherit(DrawObject, Object);
+
+DrawObject.prototype.serialize = function(){
 	function tool2str(tool){
 		switch(tool){
 		case 11: return "line";
@@ -912,26 +1006,94 @@ function serializeSingle(obj){
 
 	// send parts to server
 	var dat = "";
-	for (var i=0; i<obj.points.length; i++){
+	for (var i=0; i<this.points.length; i++){
 		if(i !== 0) dat += ":";
-		dat += obj.points[i].x+","+obj.points[i].y;
+		dat += this.points[i].x+","+this.points[i].y;
 	}
 	var alldat = {
-		type: tool2str(obj.tool),
+		type: tool2str(this.tool),
 		points: dat
 	};
 	// Values with defaults needs not assigned a value when saved.
 	// This will save space if the drawn element properties use many default values.
-	set_default(alldat, "color", obj.color, "black");
-	set_default(alldat, "width", obj.width, 1);
-	if (25 == obj.tool) alldat.text = obj.text;
+	set_default(alldat, "color", this.color, "black");
+	set_default(alldat, "width", this.width, 1);
+	return alldat;
+};
+
+DrawObject.prototype.isSizeable = function(){
+	return true;
+}
+
+DrawObject.prototype.deserialize = function(obj){
+	this.color = obj.color || "black";
+	this.width = obj.width || 1;
+	var pt1 = obj.points.split(":");
+	var arr = [];
+	for(var j = 0; j < pt1.length; j++){
+		var pt2 = pt1[j].split(",");
+		arr.push({x:pt2[0]-0, y:pt2[1]-0});
+	}
+	this.points = arr;
+};
+
+DrawObject.prototype.getBoundingRect = function(){
+	// Get bounding box of the object
+	var maxx, maxy, minx, miny;
+	for(var j = 0; j < this.points.length; j++){
+		var x = this.points[j].x;
+		if(maxx === undefined || maxx < x)
+			maxx = x;
+		if(minx === undefined || x < minx)
+			minx = x;
+		var y = this.points[j].y;
+		if(maxy === undefined || maxy < y)
+			maxy = y;
+		if(miny === undefined || y < miny)
+			miny = y;
+	}
+	return {minx: minx, miny: miny, maxx: maxx, maxy: maxy};
+};
+// ==================== DrawObject class definition end ================================= //
+
+// ==================== TextObject class definition ================================= //
+function TextObject(){
+	DrawObject.call(this);
+	this.text = "";
+}
+inherit(TextObject, DrawObject);
+
+TextObject.prototype.serialize = function(){
+	var alldat = DrawObject.prototype.serialize.call(this);
+	alldat.text = this.text;
 	return alldat;
 }
+
+TextObject.prototype.deserialize = function(obj){
+	DrawObject.prototype.deserialize.call(this, obj);
+	if (undefined !== obj.text) this.text = obj.text;
+};
+
+TextObject.prototype.isSizeable = function(){
+	return false;
+}
+
+TextObject.prototype.getBoundingRect = function(){
+	var height = this.width === 1 ? 14 : this.width === 16 ? 2 : 20;
+	var oldfont = ctx.font;
+	ctx.font = setFont(height);
+	var width = ctx.measureText(this.text).width;
+	ctx.font = oldfont;
+	return {minx: this.points[0].x, miny: this.points[0].y - height,
+		maxx: this.points[0].x + width, maxy: this.points[0].y};
+}
+// ==================== TextObject class definition end ================================= //
+
 
 function serialize(dobjs){
 	var ret = [metaObj];
 	for(var i = 0; i < dobjs.length; i++)
-		ret.push(serializeSingle(dobjs[i]));
+		ret.push(dobjs[i].serialize());
 	return ret;
 }
 
@@ -965,19 +1127,9 @@ function deserialize(dat){
 			metaObj = obj;
 			continue;
 		}
-		var pt1 = obj.points.split(":");
-		var robj = {
-			tool: str2tool(obj.type),
-			color: obj.color || "black",
-			width: obj.width || 1
-		};
-		var arr = [];
-		for(var j = 0; j < pt1.length; j++){
-			var pt2 = pt1[j].split(",");
-			arr.push({x:pt2[0]-0, y:pt2[1]-0});
-		}
-		robj.points = arr;
-		if (undefined !== obj.text) robj.text = obj.text;
+		var robj = obj.type === 'text' ? new TextObject() : new DrawObject();
+		robj.tool = str2tool(obj.type);
+		robj.deserialize(obj);
 		ret.push(robj);
 	}
 	return ret;
@@ -1335,13 +1487,35 @@ this.listLocal = function(selectElement) {
 
 }
 
+/// Custom inheritance function that prevents the super class's constructor
+/// from being called on inehritance.
+/// Also assigns constructor property of the subclass properly.
+/// Inheriting is closely related to cloneObject()
+function inherit(subclass,base){
+	// If the browser or ECMAScript supports Object.create, use it
+	// (but don't remember to redirect constructor pointer to subclass)
+	if(Object.create){
+		subclass.prototype = Object.create(base.prototype);
+	}
+	else{
+		var sub = function(){};
+		sub.prototype = base.prototype;
+		subclass.prototype = new sub;
+	}
+	subclass.prototype.constructor = subclass;
+}
+
 // Create a deep clone of objects
 function cloneObject(obj) {
 	if (obj === null || typeof obj !== 'object') {
 		return obj;
 	}
 
-	var temp = obj.constructor(); // give temp the original obj's constructor
+	// give temp the original obj's constructor
+	// this 'new' is important in case obj is user-defined class which was created by
+	// 'new ClassName()', no matter inherited or not.
+	// I wonder why Array and Object (built-in classes) don't need new operator.
+	var temp = new obj.constructor();
 	for (var key in obj) {
 		temp[key] = cloneObject(obj[key]);
 	}
@@ -1618,6 +1792,10 @@ var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
 // The layer to show input controls for width and height sizes of the figure.
 // It's kept as a member variable in order to reuse in the second and later invocations.
 var sizeLayer = null;
+
+// The layer to input text.
+// It used to be prompt() function, but it's not beautiful.
+var textLayer = null;
 
 // The default metaObj values used for resetting.
 var defaultMetaObj = {type: "meta", size: [1024-x1, 640-y1]};
