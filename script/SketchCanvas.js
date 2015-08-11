@@ -729,30 +729,112 @@ function drawCanvas(mode, str) {
 		numPoints = 1;
 		break;
 	case 25:	// string
-		if (0 == mode) str = prompt(i18n.t("String") + ":", "");
-		if (null == str) {		// cancel
-			idx = 0;
-			return;
-		}
-		ctx.beginPath();
+		var setText = function(str, x, y){
+			// A local function to set font size with the global scaling factor in mind.
+			function setFont(baseSize) {
+				ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+			}
 
-		// A local function to set font size with the global scaling factor in mind.
-		var setFont = function(baseSize) {
-			ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+			if (null == str) {		// cancel
+				idx = 0;
+				return;
+			}
+			ctx.beginPath();
+			if (1 == cur_thin) setFont(14);
+			else if (2 == cur_thin) setFont(16);
+			else setFont(20);
+			ctx.fillText(str, x, y);
+			ctx.font = setFont(14);
+		};
+
+		if (0 == mode) {
+			// Show size input layer on top of the canvas because the canvas cannot have
+			// a text input element.
+			if(!textLayer){
+				textLayer = document.createElement('div');
+				// Create field for remembering position of text being inserted.
+				// Free variables won't work well.
+				textLayer.canvasPos = {x:0, y:0};
+				var lay = textLayer;
+				lay.id = 'textLayer';
+				lay.style.position = 'absolute';
+				lay.style.padding = '5px 5px 5px 5px';
+				lay.style.borderStyle = 'solid';
+				lay.style.borderColor = '#cf0000';
+				lay.style.borderWidth = '2px';
+				// Drop shadow to make it distinguishable from the figure contents.
+				lay.style.boxShadow = '0px 0px 20px grey';
+				lay.style.background = '#cfffcf';
+
+				// Create and assign the input element to a field of the textLayer object
+				// to keep track of the input element after this function is exited.
+				lay.textInput = document.createElement('input');
+				lay.textInput.id = "textinput";
+				lay.textInput.type = "text";
+				lay.textInput.onkeyup = function(e){
+					// Convert enter key event to OK button click
+					if(e.keyCode === 13)
+						okbutton.onclick();
+				};
+				lay.appendChild(lay.textInput);
+
+				var okbutton = document.createElement('input');
+				okbutton.type = 'button';
+				okbutton.value = 'OK';
+				okbutton.onclick = function(e){
+					lay.style.display = 'none';
+					// Ignore blank text
+					if(lay.textInput.value == '')
+						return;
+					register([lay.canvasPos], 1, lay.textInput.value);
+					updateDrawData();
+					redraw(dobjs);
+				}
+				var cancelbutton = document.createElement('input');
+				cancelbutton.type = 'button';
+				cancelbutton.value = 'Cancel';
+				cancelbutton.onclick = function(s){
+					lay.style.display = 'none';
+				}
+				lay.appendChild(document.createElement('br'));
+				lay.appendChild(okbutton);
+				lay.appendChild(cancelbutton);
+				// Append as the body element's child because style.position = "absolute" would
+				// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+				document.body.appendChild(lay);
+			}
+			else
+				textLayer.style.display = 'block';
+			textLayer.canvasPos.x = arr[0].x;
+			textLayer.canvasPos.y = arr[0].y;
+			textLayer.textInput.value = "";
+			var canvasRect = canvas.getBoundingClientRect();
+			// Cross-browser scroll position query
+			var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+			var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+			// getBoundingClientRect() returns coordinates relative to view, which means we have to
+			// add scroll position into them.
+			textLayer.style.left = (canvasRect.left + scrollX + offset.x + arr[0].x) + 'px';
+			textLayer.style.top = (canvasRect.top + scrollY + offset.y + arr[0].y) + 'px';
+			// focus() should be called after textLayer is positioned, otherwise the page may
+			// unexpectedly scroll to somewhere.
+			textLayer.textInput.focus();
+
+			// Reset the point buffer
+			idx = 0;
+			return; // Skip registration
 		}
-		
-		if (1 == cur_thin) setFont(14);
-		else if (2 == cur_thin) setFont(16);
-		else setFont(20);
-		ctx.fillText(str, arr[0].x, arr[0].y);
-		ctx.font = setFont(14);
+		else
+			setText(str, arr[0].x, arr[0].y);
 		numPoints = 1;
 		break;
 	default:
 		debug("illegal tool no "+cur_tool);
 	}
 
-	if (0 == mode) {	// regist
+	if (0 == mode)
+		register(arr, numPoints, str);
+	function register(arr, numPoints, str){
 		// send parts to server
 		var dat = {
 			tool: cur_tool,
@@ -1618,6 +1700,10 @@ var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
 // The layer to show input controls for width and height sizes of the figure.
 // It's kept as a member variable in order to reuse in the second and later invocations.
 var sizeLayer = null;
+
+// The layer to input text.
+// It used to be prompt() function, but it's not beautiful.
+var textLayer = null;
 
 // The default metaObj values used for resetting.
 var defaultMetaObj = {type: "meta", size: [1024-x1, 640-y1]};
