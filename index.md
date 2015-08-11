@@ -1,5 +1,5 @@
 ---
-title: SketchCanvas README
+title: SketchCanvas Introduction Main Page
 layout: main
 ---
 # SketchCanvas
