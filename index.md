@@ -96,3 +96,9 @@ Blue areas are planned but not implemented yet.
 
 ![Roadmap](media/Roadmap.png)
 
+
+# DokuWiki plugin
+
+A DokuWiki plugin for rendering and editing SketchCanvas sketches is available.
+
+![DokuWiki plugin image](media/screenshot-dokuwiki.png)
