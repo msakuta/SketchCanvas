@@ -1581,14 +1581,20 @@ var menus = [
 			lay.appendChild(document.createElement('br'));
 			lay.appendChild(okbutton);
 			lay.appendChild(cancelbutton);
-			canvas.parentNode.insertBefore(lay, canvas);
+			// Append as the body element's child because style.position = "absolute" would
+			// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+			document.body.appendChild(lay);
 		}
 		else // Just show the created layer in the second invocation.
 			sizeLayer.style.display = 'block';
 		var canvasRect = canvas.getBoundingClientRect();
-		var parentRect = canvas.parentNode.getBoundingClientRect();
-		sizeLayer.style.left = (canvasRect.left - parentRect.left + 150) + 'px';
-		sizeLayer.style.top = (canvasRect.top - parentRect.top + 50) + 'px';
+		// Cross-browser scroll position query
+		var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+		var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+		// getBoundingClientRect() returns coordinates relative to view, which means we have to
+		// add scroll position into them.
+		sizeLayer.style.left = (canvasRect.left + scrollX + 150) + 'px';
+		sizeLayer.style.top = (canvasRect.top + scrollY + 50) + 'px';
 		document.getElementById('sizeinputx').value = metaObj.size[0];
 		document.getElementById('sizeinputy').value = metaObj.size[1];
 	}), // size
