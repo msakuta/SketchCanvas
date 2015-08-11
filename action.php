@@ -164,7 +164,16 @@ EOT;
                 // edit view of a table (first edit)
                 $INPUT->post->set('target', 'plugin_skcanvas');
                 $TEXT = "";
-                foreach(explode("\n", $fields['text']) as $line) {
+                $lines = explode("\n", $fields['text']);
+
+                // Delete opening and closing <skcanvas> tags from the input because they're not part of
+                // the figure source and the tags will be added on the save button anyway
+                if(preg_match('/^<skcanvas.*?>/', $lines[0]))
+                    array_shift($lines);
+                if(preg_match('/^<\/skcanvas>/', end($lines)))
+                    array_pop($lines);
+
+                foreach($lines as $line) {
                     $TEXT .= "$line\n";
                 }
                 break;
