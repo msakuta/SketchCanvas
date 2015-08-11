@@ -89,3 +89,10 @@ The source looks like this:
   width: 2
 
 ~~~
+
+# Roadmap
+
+Blue areas are planned but not implemented yet.
+
+![Roadmap](media/Roadmap.png)
+
