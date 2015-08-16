@@ -1056,6 +1056,24 @@ DrawObject.prototype.getBoundingRect = function(){
 };
 // ==================== DrawObject class definition end ================================= //
 
+// ==================== PointObject class definition ================================= //
+function PointObject(){
+	DrawObject.call(this);
+}
+inherit(PointObject, DrawObject);
+
+PointObject.prototype.isSizeable = function(){
+	return false;
+}
+
+PointObject.prototype.getBoundingRect = function(){
+	var height = 20;
+	var width = 20;
+	return {minx: this.points[0].x, miny: this.points[0].y,
+		maxx: this.points[0].x + width, maxy: this.points[0].y + height};
+}
+// ==================== PointOject class definition end ================================= //
+
 // ==================== TextObject class definition ================================= //
 function TextObject(){
 	DrawObject.call(this);
@@ -1127,7 +1145,14 @@ function deserialize(dat){
 			metaObj = obj;
 			continue;
 		}
-		var robj = obj.type === 'text' ? new TextObject() : new DrawObject();
+		var robj;
+		switch(obj.type){
+			case 'text': robj = new TextObject(); break;
+			case 'star':
+			case 'check':
+			case 'done': robj = new PointObject(); break;
+			default: robj = new DrawObject();
+		}
 		robj.tool = str2tool(obj.type);
 		robj.deserialize(obj);
 		ret.push(robj);
