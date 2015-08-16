@@ -91,7 +91,7 @@ function draw() {
 
   // menu
   drawMenu();
-  drawTBox(cur_tool);
+  drawTBox();
   drawCBox(cur_col);
   drawHBox(cur_thin);
 }
@@ -113,15 +113,15 @@ function drawMenu() {
 }
 
 // Tool Box
-function drawTBox(no) {
-	for(var i=0;i<17;i++) {
-		if (no == i+10)
+function drawTBox() {
+	for(var i=0;i<toolbar.length;i++) {
+		if (cur_tool === toolbar[i])
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
 			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
 		ctx.fillRect(mx0, my0+36*i, mw0, mh0);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
-		drawParts(i+10, mx0+10, my0+10+(mh0+8)*i);
+		drawParts(toolbar[i], mx0+10, my0+10+(mh0+8)*i);
 	}
 }
 
@@ -168,10 +168,10 @@ function drawHBox(no) {
 }
 
 // draw toolbox
-function drawParts(no, x, y) {
+function drawParts(tool, x, y) {
 	var a = new Array(3);
-	switch (no) {
-	case 10:		// cursor
+	switch (tool.name) {
+	case "select":
 		ctx.beginPath();
 		ctx.moveTo(x, y-5);
 		ctx.lineTo(x, y+10);
@@ -184,28 +184,28 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 11:		// line
+	case "line":
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		ctx.lineTo(x+40, y+10);
 		ctx.stroke();
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 12:		// arrow
+	case "arrow":
 		ctx.beginPath();
 		a[0] = {x:x, y:y+5};
 		a[1] = {x:x+40, y:y+5};
 		l_arrow(ctx, a);
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 13:		// twin arrow
+	case "barrow":
 		ctx.beginPath();
 		a[0] = {x:x, y:y+5};
 		a[1] = {x:x+40, y:y+5};
 		l_tarrow(ctx, a);
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 14:		// double arrow
+	case "darrow":
 		ctx.beginPath();
 		ctx.moveTo(x, y+3);
 		ctx.lineTo(x+39, y+3);
@@ -217,14 +217,14 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 15:		// arc
+	case "arc":
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		ctx.quadraticCurveTo(x+20, y+20, x+40, y);
 		ctx.stroke();
 		ctx.strokeText('3', x+45, y+10);
 		break;
-	case 16:		// arc arrow
+	case "arcarrow":
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		ctx.quadraticCurveTo(x+20, y+20, x+40, y);
@@ -233,7 +233,7 @@ function drawParts(no, x, y) {
 		l_hige(ctx, a);
 		ctx.strokeText('3', x+45, y+10);
 		break;
-	case 17:		// twin arc arrow
+	case "arcbarrow":
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		ctx.quadraticCurveTo(x+20, y+20, x+40, y);
@@ -245,13 +245,13 @@ function drawParts(no, x, y) {
 		l_hige(ctx, a);
 		ctx.strokeText('3', x+45, y+10);
 		break;
-	case 18:		// rect
+	case "rect":
 		ctx.beginPath();
 		ctx.rect(x, y, 40, 10);
 		ctx.stroke();
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 19:		// elipse
+	case "ellipse":
 		ctx.beginPath();
 		ctx.scale(1.0, 0.5);		// vertically half
 		ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
@@ -259,13 +259,13 @@ function drawParts(no, x, y) {
 		ctx.scale(1.0, 2.0);
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 20:		// rect fill
+	case "rectfill":
 		ctx.beginPath();
 		ctx.fillStyle = 'rgb(250, 250, 250)';
 		ctx.fillRect(x, y, 40, 10);
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 21:		// elipse fill
+	case "ellipsefill":
 		ctx.beginPath();
 		ctx.fillStyle = 'rgb(250, 250, 250)';
 		ctx.scale(1.0, 0.5);		// vertically half
@@ -274,7 +274,7 @@ function drawParts(no, x, y) {
 		ctx.scale(1.0, 2.0);
 		ctx.strokeText('2', x+45, y+10);
 		break;
-	case 22:		//star
+	case "star":
 		ctx.beginPath();
 		ctx.moveTo(x+8, y-3);
 		ctx.lineTo(x+14, y+13);
@@ -285,7 +285,7 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 23:		// check
+	case "check":
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		ctx.lineTo(x+5, y+7);
@@ -293,7 +293,7 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 24:		// complete
+	case "done":
 		ctx.beginPath();
 		ctx.strokeText(i18n.t('Done'), x+3, y+10);
 		ctx.beginPath();
@@ -301,12 +301,12 @@ function drawParts(no, x, y) {
 		ctx.stroke();
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 25:		// text
+	case "text":
 		ctx.beginPath();
 		ctx.strokeText(i18n.t('Text'), x+3, y+10);
 		ctx.strokeText('1', x+45, y+10);
 		break;
-	case 26:		// delete
+	case "delete":
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		ctx.lineTo(x+10, y+10);
@@ -357,7 +357,7 @@ function mouseLeftClick(e) {
 		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
-			if(cur_tool === 26){ // delete
+			if(cur_tool.name === "delete"){ // delete
 				for(var i = 0; i < dobjs.length; i++){
 					// For the time being, we use the bounding boxes of the objects
 					// to determine the clicked object.  It may be surprising
@@ -382,15 +382,16 @@ function mouseLeftClick(e) {
 				}
 				return;
 			}
-			draw_point(mx, my);
+			else if(cur_tool.name !== "select")
+				draw_point(mx, my);
 		}
 		else if (menuno < 10) {
 			drawMenu();
 			menus[menuno].onclick();
 		}
 		else if (menuno <= 30) {
-			drawTBox(menuno);
-			cur_tool = menuno;
+			cur_tool = toolbar[menuno - 10];
+			drawTBox();
 			idx = 0;
 		}
 		else if (menuno <= 40) {
@@ -431,7 +432,7 @@ var sizing = null; // Reference to object being resized. Null if no resizing is 
 var sizedir = 0;
 var boxselecting = false;
 function mouseDown(e){
-	if(cur_tool === 10){
+	if(cur_tool === toolmap.select){
 		var clrect = canvas.getBoundingClientRect();
 		var mx = e.clientX - clrect.left;
 		var my = e.clientY - clrect.top;
@@ -501,7 +502,7 @@ function mouseDown(e){
 }
 
 function mouseUp(e){
-	if(cur_tool === 10 && 0 < selectobj.length && (moving || sizing)){
+	if(cur_tool === toolmap.select && 0 < selectobj.length && (moving || sizing)){
 		updateDrawData();
 	}
 	moving = false;
@@ -513,7 +514,7 @@ function mouseUp(e){
 }
 
 function mouseMove(e){
-	if(cur_tool === 10 && 0 < selectobj.length){
+	if(cur_tool === toolmap.select && 0 < selectobj.length){
 		var clrect = canvas.getBoundingClientRect();
 		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
 		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
@@ -567,7 +568,7 @@ function mouseMove(e){
 
 	// We could use e.buttons to check if it's supported by all the browsers,
 	// but it seems not much trusty.
-	if(cur_tool === 10 && !moving && !sizing && boxselecting){
+	if(cur_tool === toolmap.select && !moving && !sizing && boxselecting){
 		var clrect = canvas.getBoundingClientRect();
 		var mx = e.clientX - clrect.left;
 		var my = e.clientY - clrect.top;
@@ -605,7 +606,7 @@ function draw_point(x, y) {
 		coord = { x:x, y:y };
 	arr[idx] = { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
 	idx++;
-	if (idx == points()){
+	if (idx == cur_tool.points){
 		ctx.save();
 		// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
 		ctx.translate(offset.x, offset.y);
@@ -613,13 +614,6 @@ function draw_point(x, y) {
 		drawCanvas(0, null);
 		ctx.restore();
 	}
-}
-
-// return tool points
-function points() {
-	if (cur_tool >=22 && cur_tool <=25) return 1;
-	else if (cur_tool >=15 && cur_tool <=17) return 3;
-	else return 2;
 }
 
 // A local function to set font size with the global scaling factor in mind.
@@ -632,42 +626,42 @@ function drawCanvas(mode, str) {
 	// DEBUG
 	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
 	var numPoints = 2;
-	switch(cur_tool){
+	switch(cur_tool.name){
 		// Set fillStyle only if the tool is filler.
-		case 20: case 21: case 25: ctx.fillStyle = coltable[cur_col]; break;
+		case "rectfill": case "ellipsefill": case "text": ctx.fillStyle = coltable[cur_col]; break;
 		default:  ctx.strokeStyle = coltable[cur_col]; break;
 	}
 
-	switch(cur_tool){
-		case 20: case 22: case 23: case 24: break;
-		case 25: ctx.lineWidth = cur_thin - 1; break;
+	switch(cur_tool.name){
+		case "rectfill": case "star": case "check": case "done": break;
+		case "text": ctx.lineWidth = cur_thin - 1; break;
 		default: ctx.lineWidth = cur_thin; break;
 	}
 
-	switch (cur_tool) {
-	case 11:	// line
+	switch (cur_tool.name) {
+	case "line":
 		ctx.beginPath();
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.lineTo(arr[1].x, arr[1].y);
 		ctx.stroke();
 		ctx.lineWidth = 1;
 		break;
-	case 12:	// arrow
+	case "arrow":
 		ctx.beginPath();
 		l_arrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
-	case 13:	// twin arrow
+	case "barrow":
 		ctx.beginPath();
 		l_tarrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
-	case 14:	// double arrow
+	case "darrow":
 		ctx.beginPath();
 		l_darrow(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
-	case 15:	// arc
+	case "arc":
 		ctx.beginPath();
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -675,7 +669,7 @@ function drawCanvas(mode, str) {
 		ctx.lineWidth = 1;
 		numPoints = 3;
 		break;
-	case 16:	// arc arrow
+	case "arcarrow":
 		ctx.beginPath();
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -686,7 +680,7 @@ function drawCanvas(mode, str) {
 		ctx.lineWidth = 1;
 		numPoints = 3;
 		break;
-	case 17:	// arc twin arrow
+	case "arcbarrow":
 		ctx.beginPath();
 		ctx.moveTo(arr[0].x, arr[0].y);
 		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -699,44 +693,44 @@ function drawCanvas(mode, str) {
 		ctx.lineWidth = 1;
 		numPoints = 3;
 		break;
-	case 18:	// rect
+	case "rect":
 		ctx.beginPath();
 		ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		ctx.stroke();
 		ctx.lineWidth = 1;
 		break;
-	case 19:	// elipse
+	case "ellipse":
 		ctx.beginPath();
 		l_elipse(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
-	case 20:	// rect fill
+	case "rectfill":
 		ctx.beginPath();
 		ctx.fillRect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		break;
-	case 21:	// elipse fill
+	case "ellipsefill":
 		ctx.beginPath();
 		l_elipsef(ctx, arr);
 		ctx.lineWidth = 1;
 		break;
-	case 22:	// star
+	case "star":
 		ctx.beginPath();
 		//ctx.lineWidth = cur_thin - 40;
 		l_star(ctx, arr);
 		ctx.lineWidth = 1;
 		numPoints = 1;
 		break;
-	case 23:	// check
+	case "check":
 		ctx.beginPath();
 		l_check(ctx, arr);
 		numPoints = 1;
 		break;
-	case 24:	// complete
+	case "done":
 		ctx.beginPath();
 		l_complete(ctx, arr);
 		numPoints = 1;
 		break;
-	case 25:	// string
+	case "text":
 		var setText = function(str, x, y){
 			if (null == str) {		// cancel
 				idx = 0;
@@ -832,15 +826,17 @@ function drawCanvas(mode, str) {
 		numPoints = 1;
 		break;
 	default:
-		debug("illegal tool no "+cur_tool);
+		debug("illegal tool type "+cur_tool.name);
 	}
 
 	if (0 == mode)
 		register(arr, numPoints, str);
 	function register(arr, numPoints, str){
-		// send parts to server
-		var dat = cur_tool === 25 ? new TextObject() : new DrawObject();
-		dat.tool = cur_tool;
+		// Ignore select tool events
+		if(cur_tool.name === "select")
+			return;
+		var dat = new cur_tool.objctor();
+		dat.tool = cur_tool.name;
 		dat.color = cur_col;
 		dat.width = cur_thin;
 		dat.points = Array(numPoints);
@@ -848,7 +844,7 @@ function drawCanvas(mode, str) {
 			dat.points[i] = {x: arr[i].x, y: arr[i].y};
 		// Values with defaults needs not assigned a value when saved.
 		// This will save space if the drawn element properties use many default values.
-		if (25 == cur_tool) dat.text = str;
+		if ("text" === cur_tool.name) dat.text = str;
 		ajaxparts(dat);
 	}
 	// clear
@@ -920,12 +916,12 @@ function redraw(pt) {
 	ctx.scale(scale, scale);
 	for (var i=0; i<pt.length; i++) {
 		var obj = pt[i];
-		cur_tool = obj.tool;
+		cur_tool = toolmap[obj.tool];
 		cur_col = obj.color;
 		cur_thin = obj.width;
 		arr = cloneObject(obj.points);
 		var rstr = null;
-		if (25 == cur_tool) rstr = obj.text;
+		if ("text" === cur_tool.name) rstr = obj.text;
 		drawCanvas(1, rstr);
 	}
 	ctx.restore();
@@ -970,7 +966,7 @@ function redraw(pt) {
 
 // ==================== DrawObject class definition ================================= //
 function DrawObject(){
-	this.tool = 11;
+	this.tool = "line";
 	this.color = "black";
 	this.width = 1;
 	this.points = [];
@@ -978,27 +974,6 @@ function DrawObject(){
 //inherit(DrawObject, Object);
 
 DrawObject.prototype.serialize = function(){
-	function tool2str(tool){
-		switch(tool){
-		case 11: return "line";
-		case 12: return "arrow";
-		case 13: return "barrow";
-		case 14: return "dallow";
-		case 15: return "arc";
-		case 16: return "arcarrow";
-		case 17: return "arcbarrow";
-		case 18: return "rect";
-		case 19: return "ellipse";
-		case 20: return "rectfill";
-		case 21: return "ellipsefill";
-		case 22: return "star";
-		case 23: return "check";
-		case 24: return "done";
-		case 25: return "text";
-		default: return tool;
-		}
-	}
-
 	function set_default(t,k,v,def){
 		if(v !== def) 
 			t[k] = v;
@@ -1011,7 +986,7 @@ DrawObject.prototype.serialize = function(){
 		dat += this.points[i].x+","+this.points[i].y;
 	}
 	var alldat = {
-		type: tool2str(this.tool),
+		type: this.tool,
 		points: dat
 	};
 	// Values with defaults needs not assigned a value when saved.
@@ -1116,26 +1091,6 @@ function serialize(dobjs){
 }
 
 function deserialize(dat){
-	function str2tool(str){
-		switch(str){
-		case "line": return 11;
-		case "arrow": return 12;
-		case "barrow": return 13;
-		case "dallow": return 14;
-		case "arc": return 15;
-		case "arcarrow": return 16;
-		case "arcbarrow": return 17;
-		case "rect": return 18;
-		case "ellipse": return 19;
-		case "rectfill": return 20;
-		case "ellipsefill": return 21;
-		case "star": return 22;
-		case "check": return 23;
-		case "done": return 24;
-		case "text": return 25;
-		default: return str;
-		}
-	}
 	// Reset the metaObj before deserialization
 	metaObj = cloneObject(defaultMetaObj);
 	var ret = [];
@@ -1145,15 +1100,10 @@ function deserialize(dat){
 			metaObj = obj;
 			continue;
 		}
-		var robj;
-		switch(obj.type){
-			case 'text': robj = new TextObject(); break;
-			case 'star':
-			case 'check':
-			case 'done': robj = new PointObject(); break;
-			default: robj = new DrawObject();
-		}
-		robj.tool = str2tool(obj.type);
+		if(!(obj.type in toolmap))
+			continue;
+		var robj = new toolmap[obj.type].objctor();
+		robj.tool = obj.type;
 		robj.deserialize(obj);
 		ret.push(robj);
 	}
@@ -1798,6 +1748,41 @@ var menus = [
 		document.getElementById('sizeinputy').value = metaObj.size[1];
 	}), // size
 ];
+
+// A mapping of tool names and tool objects. Automatically updated in the Tool class's constructor.
+var toolmap = {};
+
+/// @brief A class that represents a tool in the toolbar.
+/// @param name Name of the tool, used in serialized text
+/// @param points Number of points which are used to describe points
+/// @param objctor The constructor function that is used to create DrawObject, stands for OBJect ConsTructOR
+function Tool(name, points, objctor){
+	this.name = name;
+	this.points = points || 1;
+	this.objctor = objctor || DrawObject;
+	toolmap[name] = this;
+}
+
+// List of tools in the toolbar.
+var toolbar = [
+	new Tool("select"),
+	new Tool("line", 2),
+	new Tool("arrow", 2),
+	new Tool("barrow", 2),
+	new Tool("darrow", 2),
+	new Tool("arc", 3),
+	new Tool("arcarrow", 3),
+	new Tool("arcbarrow", 3),
+	new Tool("rect", 2),
+	new Tool("ellipse", 2),
+	new Tool("rectfill", 2),
+	new Tool("ellipsefill", 2),
+	new Tool("star", 1, PointObject),
+	new Tool("check", 1, PointObject),
+	new Tool("done", 1, PointObject),
+	new Tool("text", 1, TextObject),
+	new Tool("delete"),
+];
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
 var blue = "rgb(0, 100, 255)";
@@ -1811,7 +1796,7 @@ var x0 = 0, y0 = 0, w0 = 1024, h0 = 640;
 var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
-var cur_tool = 10, cur_col = "black", cur_thin = 1;
+var cur_tool = toolmap.select, cur_col = "black", cur_thin = 1;
 var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
 
 // The layer to show input controls for width and height sizes of the figure.
