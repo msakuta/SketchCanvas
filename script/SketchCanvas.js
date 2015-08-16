@@ -1113,6 +1113,7 @@ function deserialize(dat){
 this.loadData = function(value){
 	try{
 		dobjs = deserialize(jsyaml.safeLoad(value));
+		selectobj = []; // Clear the selection explicitly
 		resizeCanvas();
 		draw();
 		redraw(dobjs);
@@ -1146,6 +1147,7 @@ this.loadDataFromList = function(){
 			return;
 		var selData = jsyaml.safeLoad(origData);
 		dobjs = deserialize(jsyaml.safeLoad(selData[item]));
+		selectobj = []; // Clear the selection explicitly
 		updateDrawData();
 		redraw(dobjs);
 	} catch(e){
