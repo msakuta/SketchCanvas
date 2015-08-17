@@ -968,16 +968,16 @@ function redraw(pt) {
 }
 
 
-// ==================== DrawObject class definition ================================= //
-function DrawObject(){
+// ==================== Shape class definition ================================= //
+function Shape(){
 	this.tool = "line";
 	this.color = "black";
 	this.width = 1;
 	this.points = [];
 }
-//inherit(DrawObject, Object);
+//inherit(Shape, Object);
 
-DrawObject.prototype.serialize = function(){
+Shape.prototype.serialize = function(){
 	function set_default(t,k,v,def){
 		if(v !== def) 
 			t[k] = v;
@@ -1000,11 +1000,11 @@ DrawObject.prototype.serialize = function(){
 	return alldat;
 };
 
-DrawObject.prototype.isSizeable = function(){
+Shape.prototype.isSizeable = function(){
 	return true;
 }
 
-DrawObject.prototype.deserialize = function(obj){
+Shape.prototype.deserialize = function(obj){
 	this.color = obj.color || "black";
 	this.width = obj.width || 1;
 	var pt1 = obj.points.split(":");
@@ -1016,7 +1016,7 @@ DrawObject.prototype.deserialize = function(obj){
 	this.points = arr;
 };
 
-DrawObject.prototype.getBoundingRect = function(){
+Shape.prototype.getBoundingRect = function(){
 	// Get bounding box of the object
 	var maxx, maxy, minx, miny;
 	for(var j = 0; j < this.points.length; j++){
@@ -1033,19 +1033,19 @@ DrawObject.prototype.getBoundingRect = function(){
 	}
 	return {minx: minx, miny: miny, maxx: maxx, maxy: maxy};
 };
-// ==================== DrawObject class definition end ================================= //
+// ==================== Shape class definition end ================================= //
 
-// ==================== PointObject class definition ================================= //
-function PointObject(){
-	DrawObject.call(this);
+// ==================== PointShape class definition ================================= //
+function PointShape(){
+	Shape.call(this);
 }
-inherit(PointObject, DrawObject);
+inherit(PointShape, Shape);
 
-PointObject.prototype.isSizeable = function(){
+PointShape.prototype.isSizeable = function(){
 	return false;
 }
 
-PointObject.prototype.getBoundingRect = function(){
+PointShape.prototype.getBoundingRect = function(){
 	var height = 20;
 	var width = 20;
 	return {minx: this.points[0].x, miny: this.points[0].y,
@@ -1053,29 +1053,29 @@ PointObject.prototype.getBoundingRect = function(){
 }
 // ==================== PointOject class definition end ================================= //
 
-// ==================== TextObject class definition ================================= //
-function TextObject(){
-	DrawObject.call(this);
+// ==================== TextShape class definition ================================= //
+function TextShape(){
+	Shape.call(this);
 	this.text = "";
 }
-inherit(TextObject, DrawObject);
+inherit(TextShape, Shape);
 
-TextObject.prototype.serialize = function(){
-	var alldat = DrawObject.prototype.serialize.call(this);
+TextShape.prototype.serialize = function(){
+	var alldat = Shape.prototype.serialize.call(this);
 	alldat.text = this.text;
 	return alldat;
 }
 
-TextObject.prototype.deserialize = function(obj){
-	DrawObject.prototype.deserialize.call(this, obj);
+TextShape.prototype.deserialize = function(obj){
+	Shape.prototype.deserialize.call(this, obj);
 	if (undefined !== obj.text) this.text = obj.text;
 };
 
-TextObject.prototype.isSizeable = function(){
+TextShape.prototype.isSizeable = function(){
 	return false;
 }
 
-TextObject.prototype.getBoundingRect = function(){
+TextShape.prototype.getBoundingRect = function(){
 	var height = this.width === 1 ? 14 : this.width === 16 ? 2 : 20;
 	var oldfont = ctx.font;
 	ctx.font = setFont(height);
@@ -1084,7 +1084,7 @@ TextObject.prototype.getBoundingRect = function(){
 	return {minx: this.points[0].x, miny: this.points[0].y - height,
 		maxx: this.points[0].x + width, maxy: this.points[0].y};
 }
-// ==================== TextObject class definition end ================================= //
+// ==================== TextShape class definition end ================================= //
 
 
 function serialize(dobjs){
@@ -1761,17 +1761,17 @@ var toolmap = {};
 /// @brief A class that represents a tool in the toolbar.
 /// @param name Name of the tool, used in serialized text
 /// @param points Number of points which are used to describe points
-/// @param objctor The constructor function that is used to create DrawObject, stands for OBJect ConsTructOR
+/// @param objctor The constructor function that is used to create Shape, stands for OBJect ConsTructOR
 function Tool(name, points, objctor){
 	this.name = name;
 	this.points = points || 1;
-	this.objctor = objctor || DrawObject;
+	this.objctor = objctor || Shape;
 	toolmap[name] = this;
 }
 
 // List of tools in the toolbar.
 var toolbar = [
-	new Tool("select"),
+	new Tool("select", 1),
 	new Tool("line", 2),
 	new Tool("arrow", 2),
 	new Tool("barrow", 2),
@@ -1783,10 +1783,10 @@ var toolbar = [
 	new Tool("ellipse", 2),
 	new Tool("rectfill", 2),
 	new Tool("ellipsefill", 2),
-	new Tool("star", 1, PointObject),
-	new Tool("check", 1, PointObject),
-	new Tool("done", 1, PointObject),
-	new Tool("text", 1, TextObject),
+	new Tool("star", 1, PointShape),
+	new Tool("check", 1, PointShape),
+	new Tool("done", 1, PointShape),
+	new Tool("text", 1, TextShape),
 	new Tool("delete"),
 ];
 var white = "rgb(255, 255, 255)";
