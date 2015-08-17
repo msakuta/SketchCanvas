@@ -485,17 +485,9 @@ function drawCanvas(mode, str) {
 	// DEBUG
 	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
 	var numPoints = 2;
-	switch(cur_tool.name){
-		// Set fillStyle only if the tool is filler.
-		case "rectfill": case "ellipsefill": case "text": ctx.fillStyle = coltable[cur_col]; break;
-		default:  ctx.strokeStyle = coltable[cur_col]; break;
-	}
 
-	switch(cur_tool.name){
-		case "rectfill": case "star": case "check": case "done": break;
-		case "text": ctx.lineWidth = cur_thin - 1; break;
-		default: ctx.lineWidth = cur_thin; break;
-	}
+	cur_tool.setColor(coltable[cur_col]);
+	cur_tool.setWidth(cur_thin);
 
 	switch (cur_tool.name) {
 	case "line":
@@ -1610,6 +1602,9 @@ var menus = [
 	}), // size
 ];
 
+
+// ==================== Tool class definition ================================= //
+
 // A mapping of tool names and tool objects. Automatically updated in the Tool class's constructor.
 var toolmap = {};
 
@@ -1619,13 +1614,33 @@ var toolmap = {};
 /// @param params A table of initialization parameters:
 ///         objctor: The constructor function that is used to create Shape, stands for OBJect ConsTructOR
 ///         drawTool: A function(x, y) to draw icon on the toolbar.
+///         setColor: A function(color) that is called before drawing.
+///         setWidth: A function(width) that is called before drawing.
 function Tool(name, points, params){
 	this.name = name;
 	this.points = points || 1;
 	this.objctor = params && params.objctor || Shape;
 	this.drawTool = params && params.drawTool;
+	if(params && params.setColor) this.setColor = params.setColor;
+	if(params && params.setWidth) this.setWidth = params.setWidth;
 	toolmap[name] = this;
 }
+
+Tool.prototype.setColor = function(color){
+	ctx.strokeStyle = color;
+};
+
+function setColorFill(color){
+	ctx.fillStyle = color;
+}
+
+Tool.prototype.setWidth = function(width){
+	ctx.lineWidth = width;
+};
+
+function nop(){}
+// ==================== Tool class definition end ============================= //
+
 
 // List of tools in the toolbar.
 var toolbar = [
@@ -1715,7 +1730,10 @@ var toolbar = [
 			ctx.fillStyle = 'rgb(250, 250, 250)';
 			ctx.fillRect(x, y, 40, 10);
 			ctx.strokeText('2', x+45, y+10);
-		}}),
+		},
+		setColor: setColorFill,
+		setWidth: nop,
+	}),
 	new Tool("ellipsefill", 2, {drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.fillStyle = 'rgb(250, 250, 250)';
@@ -1724,7 +1742,10 @@ var toolbar = [
 			ctx.fill();
 			ctx.scale(1.0, 2.0);
 			ctx.strokeText('2', x+45, y+10);
-		}}),
+		},
+		setColor: setColorFill,
+		setWidth: nop,
+	}),
 	new Tool("star", 1, {objctor: PointShape,
 		drawTool: function(x, y){
 			ctx.beginPath();
@@ -1745,7 +1766,9 @@ var toolbar = [
 			ctx.lineTo(x+20, y);
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
-		}}),
+		},
+		setWidth: nop,
+	}),
 	new Tool("done", 1, {objctor: PointShape,
 		drawTool: function(x, y){
 			ctx.beginPath();
@@ -1754,13 +1777,17 @@ var toolbar = [
 			ctx.arc(x+9, y+5, 8, 0, 6.28, false);
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
-		}}),
+		},
+		setWidth: nop,
+	}),
 	new Tool("text", 1, {objctor: TextShape,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.strokeText(i18n.t('Text'), x+3, y+10);
 			ctx.strokeText('1', x+45, y+10);
-		}}),
+		},
+		setColor: setColorFill
+	}),
 	new Tool("delete", 1, {
 		drawTool: function(x, y){
 			ctx.beginPath();
