@@ -398,8 +398,10 @@ function mouseLeftClick(e) {
 			drawCBox(menuno);
 			cur_col = colnames[menuno-31];
 			if(0 < selectobj.length){
+				dhistory.push(cloneObject(dobjs));
 				for(var i = 0; i < selectobj.length; i++)
 					selectobj[i].color = cur_col;
+				updateDrawData();
 				redraw(dobjs);
 			}
 		}
@@ -407,8 +409,10 @@ function mouseLeftClick(e) {
 			drawHBox(menuno);
 			cur_thin = menuno - 40;
 			if(0 < selectobj.length){
+				dhistory.push(cloneObject(dobjs));
 				for(var i = 0; i < selectobj.length; i++)
 					selectobj[i].width = cur_thin;
+				updateDrawData();
 				redraw(dobjs);
 			}
 		}
