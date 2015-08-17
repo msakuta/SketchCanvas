@@ -480,224 +480,37 @@ function setFont(baseSize) {
 	ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
 }
 
+// Registers array as a Shape
+function register(arr, numPoints, str){
+	// Ignore select tool events
+	if(cur_tool.name === "select")
+		return;
+	var dat = new cur_tool.objctor();
+	dat.tool = cur_tool.name;
+	dat.color = cur_col;
+	dat.width = cur_thin;
+	dat.points = Array(numPoints);
+	for(var i = 0; i < numPoints; i++)
+		dat.points[i] = {x: arr[i].x, y: arr[i].y};
+	// Values with defaults needs not assigned a value when saved.
+	// This will save space if the drawn element properties use many default values.
+	if ("text" === cur_tool.name) dat.text = str;
+	ajaxparts(dat);
+}
+
 // draw parts
 function drawCanvas(mode, str) {
 	// DEBUG
 	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
-	var numPoints = 2;
+	var numPoints = cur_tool.points;
 
 	cur_tool.setColor(coltable[cur_col]);
 	cur_tool.setWidth(cur_thin);
-
-	switch (cur_tool.name) {
-	case "line":
-		ctx.beginPath();
-		ctx.moveTo(arr[0].x, arr[0].y);
-		ctx.lineTo(arr[1].x, arr[1].y);
-		ctx.stroke();
-		ctx.lineWidth = 1;
-		break;
-	case "arrow":
-		ctx.beginPath();
-		l_arrow(ctx, arr);
-		ctx.lineWidth = 1;
-		break;
-	case "barrow":
-		ctx.beginPath();
-		l_tarrow(ctx, arr);
-		ctx.lineWidth = 1;
-		break;
-	case "darrow":
-		ctx.beginPath();
-		l_darrow(ctx, arr);
-		ctx.lineWidth = 1;
-		break;
-	case "arc":
-		ctx.beginPath();
-		ctx.moveTo(arr[0].x, arr[0].y);
-		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
-		ctx.stroke();
-		ctx.lineWidth = 1;
-		numPoints = 3;
-		break;
-	case "arcarrow":
-		ctx.beginPath();
-		ctx.moveTo(arr[0].x, arr[0].y);
-		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
-		var a = new Array(2);
-		a[0] = arr[1];
-		a[1] = arr[2];
-		l_hige(ctx, a);
-		ctx.lineWidth = 1;
-		numPoints = 3;
-		break;
-	case "arcbarrow":
-		ctx.beginPath();
-		ctx.moveTo(arr[0].x, arr[0].y);
-		ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
-		var a = new Array(2);
-		a[0] = arr[1];
-		a[1] = arr[2];
-		l_hige(ctx, a);
-		a[1] = arr[0];
-		l_hige(ctx, a);
-		ctx.lineWidth = 1;
-		numPoints = 3;
-		break;
-	case "rect":
-		ctx.beginPath();
-		ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
-		ctx.stroke();
-		ctx.lineWidth = 1;
-		break;
-	case "ellipse":
-		ctx.beginPath();
-		l_elipse(ctx, arr);
-		ctx.lineWidth = 1;
-		break;
-	case "rectfill":
-		ctx.beginPath();
-		ctx.fillRect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
-		break;
-	case "ellipsefill":
-		ctx.beginPath();
-		l_elipsef(ctx, arr);
-		ctx.lineWidth = 1;
-		break;
-	case "star":
-		ctx.beginPath();
-		//ctx.lineWidth = cur_thin - 40;
-		l_star(ctx, arr);
-		ctx.lineWidth = 1;
-		numPoints = 1;
-		break;
-	case "check":
-		ctx.beginPath();
-		l_check(ctx, arr);
-		numPoints = 1;
-		break;
-	case "done":
-		ctx.beginPath();
-		l_complete(ctx, arr);
-		numPoints = 1;
-		break;
-	case "text":
-		var setText = function(str, x, y){
-			if (null == str) {		// cancel
-				idx = 0;
-				return;
-			}
-			ctx.beginPath();
-			if (1 == cur_thin) setFont(14);
-			else if (2 == cur_thin) setFont(16);
-			else setFont(20);
-			ctx.fillText(str, x, y);
-			ctx.font = setFont(14);
-		};
-
-		if (0 == mode) {
-			// Show size input layer on top of the canvas because the canvas cannot have
-			// a text input element.
-			if(!textLayer){
-				textLayer = document.createElement('div');
-				// Create field for remembering position of text being inserted.
-				// Free variables won't work well.
-				textLayer.canvasPos = {x:0, y:0};
-				var lay = textLayer;
-				lay.id = 'textLayer';
-				lay.style.position = 'absolute';
-				lay.style.padding = '5px 5px 5px 5px';
-				lay.style.borderStyle = 'solid';
-				lay.style.borderColor = '#cf0000';
-				lay.style.borderWidth = '2px';
-				// Drop shadow to make it distinguishable from the figure contents.
-				lay.style.boxShadow = '0px 0px 20px grey';
-				lay.style.background = '#cfffcf';
-
-				// Create and assign the input element to a field of the textLayer object
-				// to keep track of the input element after this function is exited.
-				lay.textInput = document.createElement('input');
-				lay.textInput.id = "textinput";
-				lay.textInput.type = "text";
-				lay.textInput.onkeyup = function(e){
-					// Convert enter key event to OK button click
-					if(e.keyCode === 13)
-						okbutton.onclick();
-				};
-				lay.appendChild(lay.textInput);
-
-				var okbutton = document.createElement('input');
-				okbutton.type = 'button';
-				okbutton.value = 'OK';
-				okbutton.onclick = function(e){
-					lay.style.display = 'none';
-					// Ignore blank text
-					if(lay.textInput.value == '')
-						return;
-					register([lay.canvasPos], 1, lay.textInput.value);
-					updateDrawData();
-					redraw(dobjs);
-				}
-				var cancelbutton = document.createElement('input');
-				cancelbutton.type = 'button';
-				cancelbutton.value = 'Cancel';
-				cancelbutton.onclick = function(s){
-					lay.style.display = 'none';
-				}
-				lay.appendChild(document.createElement('br'));
-				lay.appendChild(okbutton);
-				lay.appendChild(cancelbutton);
-				// Append as the body element's child because style.position = "absolute" would
-				// screw up in deeply nested DOM tree (which may have a positioned ancestor).
-				document.body.appendChild(lay);
-			}
-			else
-				textLayer.style.display = 'block';
-			textLayer.canvasPos.x = arr[0].x;
-			textLayer.canvasPos.y = arr[0].y;
-			textLayer.textInput.value = "";
-			var canvasRect = canvas.getBoundingClientRect();
-			// Cross-browser scroll position query
-			var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
-			var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
-			// getBoundingClientRect() returns coordinates relative to view, which means we have to
-			// add scroll position into them.
-			textLayer.style.left = (canvasRect.left + scrollX + offset.x + arr[0].x) + 'px';
-			textLayer.style.top = (canvasRect.top + scrollY + offset.y + arr[0].y) + 'px';
-			// focus() should be called after textLayer is positioned, otherwise the page may
-			// unexpectedly scroll to somewhere.
-			textLayer.textInput.focus();
-
-			// Reset the point buffer
-			idx = 0;
-			return; // Skip registration
-		}
-		else
-			setText(str, arr[0].x, arr[0].y);
-		numPoints = 1;
-		break;
-	default:
-		debug("illegal tool type "+cur_tool.name);
-	}
+	if(cur_tool.draw(mode, str))
+		return;
 
 	if (0 == mode)
 		register(arr, numPoints, str);
-	function register(arr, numPoints, str){
-		// Ignore select tool events
-		if(cur_tool.name === "select")
-			return;
-		var dat = new cur_tool.objctor();
-		dat.tool = cur_tool.name;
-		dat.color = cur_col;
-		dat.width = cur_thin;
-		dat.points = Array(numPoints);
-		for(var i = 0; i < numPoints; i++)
-			dat.points[i] = {x: arr[i].x, y: arr[i].y};
-		// Values with defaults needs not assigned a value when saved.
-		// This will save space if the drawn element properties use many default values.
-		if ("text" === cur_tool.name) dat.text = str;
-		ajaxparts(dat);
-	}
 	// clear
 	idx = 0;
 	
@@ -1616,6 +1429,7 @@ var toolmap = {};
 ///         drawTool: A function(x, y) to draw icon on the toolbar.
 ///         setColor: A function(color) that is called before drawing.
 ///         setWidth: A function(width) that is called before drawing.
+///         draw: A function(mode,str) to actually draw a shape.
 function Tool(name, points, params){
 	this.name = name;
 	this.points = points || 1;
@@ -1623,6 +1437,7 @@ function Tool(name, points, params){
 	this.drawTool = params && params.drawTool;
 	if(params && params.setColor) this.setColor = params.setColor;
 	if(params && params.setWidth) this.setWidth = params.setWidth;
+	if(params && params.draw) this.draw = params.draw;
 	toolmap[name] = this;
 }
 
@@ -1639,6 +1454,9 @@ Tool.prototype.setWidth = function(width){
 };
 
 function nop(){}
+
+Tool.prototype.draw = nop;
+
 // ==================== Tool class definition end ============================= //
 
 
@@ -1657,24 +1475,48 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
 		}}),
-	new Tool("line", 2, {drawTool: function(x, y){
+	new Tool("line", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
 			ctx.lineTo(x+40, y+10);
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
-		}}),
-	new Tool("arrow", 2, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			ctx.moveTo(arr[0].x, arr[0].y);
+			ctx.lineTo(arr[1].x, arr[1].y);
+			ctx.stroke();
+			ctx.lineWidth = 1;
+		},
+	}),
+	new Tool("arrow", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			l_arrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
 			ctx.strokeText('2', x+45, y+10);
-		}}),
-	new Tool("barrow", 2, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			l_arrow(ctx, arr);
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("barrow", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			l_tarrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
 			ctx.strokeText('2', x+45, y+10);
-		}}),
-	new Tool("darrow", 2, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			l_tarrow(ctx, arr);
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("darrow", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y+3);
 			ctx.lineTo(x+39, y+3);
@@ -1685,22 +1527,47 @@ var toolbar = [
 			ctx.lineTo(x+35, y+10);
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
-		}}),
-	new Tool("arc", 3, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			l_darrow(ctx, arr);
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("arc", 3, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
 			ctx.quadraticCurveTo(x+20, y+20, x+40, y);
 			ctx.stroke();
 			ctx.strokeText('3', x+45, y+10);
-		}}),
-	new Tool("arcarrow", 3, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			ctx.moveTo(arr[0].x, arr[0].y);
+			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
+			ctx.stroke();
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("arcarrow", 3, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
 			ctx.quadraticCurveTo(x+20, y+20, x+40, y);
 			l_hige(ctx, [{x:x+20, y:y+20}, {x:x+40, y:y}]);
 			ctx.strokeText('3', x+45, y+10);
-		}}),
-	new Tool("arcbarrow", 3, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			ctx.moveTo(arr[0].x, arr[0].y);
+			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
+			l_hige(ctx, [arr[1], arr[2]]);
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("arcbarrow", 3, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
 			ctx.quadraticCurveTo(x+20, y+20, x+40, y);
@@ -1710,22 +1577,51 @@ var toolbar = [
 			a[1] = {x:x, y:y};
 			l_hige(ctx, a);
 			ctx.strokeText('3', x+45, y+10);
-		}}),
-	new Tool("rect", 2, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			ctx.moveTo(arr[0].x, arr[0].y);
+			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
+			var a = new Array(2);
+			a[0] = arr[1];
+			a[1] = arr[2];
+			l_hige(ctx, a);
+			a[1] = arr[0];
+			l_hige(ctx, a);
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("rect", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.rect(x, y, 40, 10);
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
-		}}),
-	new Tool("ellipse", 2, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
+			ctx.stroke();
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("ellipse", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.scale(1.0, 0.5);		// vertically half
 			ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
 			ctx.stroke();
 			ctx.scale(1.0, 2.0);
 			ctx.strokeText('2', x+45, y+10);
-		}}),
-	new Tool("rectfill", 2, {drawTool: function(x, y){
+		},
+		draw: function(){
+			ctx.beginPath();
+			l_elipse(ctx, arr);
+			ctx.lineWidth = 1;
+		}
+	}),
+	new Tool("rectfill", 2, {
+		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.fillStyle = 'rgb(250, 250, 250)';
 			ctx.fillRect(x, y, 40, 10);
@@ -1733,6 +1629,10 @@ var toolbar = [
 		},
 		setColor: setColorFill,
 		setWidth: nop,
+		draw: function(){
+			ctx.beginPath();
+			ctx.fillRect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
+		}
 	}),
 	new Tool("ellipsefill", 2, {drawTool: function(x, y){
 			ctx.beginPath();
@@ -1745,6 +1645,11 @@ var toolbar = [
 		},
 		setColor: setColorFill,
 		setWidth: nop,
+		draw: function(){
+			ctx.beginPath();
+			l_elipsef(ctx, arr);
+			ctx.lineWidth = 1;
+		}
 	}),
 	new Tool("star", 1, {objctor: PointShape,
 		drawTool: function(x, y){
@@ -1757,7 +1662,14 @@ var toolbar = [
 			ctx.closePath();
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
-		}}),
+		},
+		draw: function(){
+			ctx.beginPath();
+			//ctx.lineWidth = cur_thin - 40;
+			l_star(ctx, arr);
+			ctx.lineWidth = 1;
+		}
+	}),
 	new Tool("check", 1, {objctor: PointShape,
 		drawTool: function(x, y){
 			ctx.beginPath();
@@ -1768,6 +1680,10 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setWidth: nop,
+		draw: function(){
+			ctx.beginPath();
+			l_check(ctx, arr);
+		}
 	}),
 	new Tool("done", 1, {objctor: PointShape,
 		drawTool: function(x, y){
@@ -1779,6 +1695,10 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setWidth: nop,
+		draw: function(){
+			ctx.beginPath();
+			l_complete(ctx, arr);
+		}
 	}),
 	new Tool("text", 1, {objctor: TextShape,
 		drawTool: function(x, y){
@@ -1786,7 +1706,101 @@ var toolbar = [
 			ctx.strokeText(i18n.t('Text'), x+3, y+10);
 			ctx.strokeText('1', x+45, y+10);
 		},
-		setColor: setColorFill
+		setColor: setColorFill,
+		draw: function(mode, str){
+			function setText(str, x, y){
+				if (null == str) {		// cancel
+					idx = 0;
+					return;
+				}
+				ctx.beginPath();
+				if (1 == cur_thin) setFont(14);
+				else if (2 == cur_thin) setFont(16);
+				else setFont(20);
+				ctx.fillText(str, x, y);
+				ctx.font = setFont(14);
+			};
+
+			if (0 == mode) {
+				// Show size input layer on top of the canvas because the canvas cannot have
+				// a text input element.
+				if(!textLayer){
+					textLayer = document.createElement('div');
+					// Create field for remembering position of text being inserted.
+					// Free variables won't work well.
+					textLayer.canvasPos = {x:0, y:0};
+					var lay = textLayer;
+					lay.id = 'textLayer';
+					lay.style.position = 'absolute';
+					lay.style.padding = '5px 5px 5px 5px';
+					lay.style.borderStyle = 'solid';
+					lay.style.borderColor = '#cf0000';
+					lay.style.borderWidth = '2px';
+					// Drop shadow to make it distinguishable from the figure contents.
+					lay.style.boxShadow = '0px 0px 20px grey';
+					lay.style.background = '#cfffcf';
+
+					// Create and assign the input element to a field of the textLayer object
+					// to keep track of the input element after this function is exited.
+					lay.textInput = document.createElement('input');
+					lay.textInput.id = "textinput";
+					lay.textInput.type = "text";
+					lay.textInput.onkeyup = function(e){
+						// Convert enter key event to OK button click
+						if(e.keyCode === 13)
+							okbutton.onclick();
+					};
+					lay.appendChild(lay.textInput);
+
+					var okbutton = document.createElement('input');
+					okbutton.type = 'button';
+					okbutton.value = 'OK';
+					okbutton.onclick = function(e){
+						lay.style.display = 'none';
+						// Ignore blank text
+						if(lay.textInput.value == '')
+							return;
+						register([lay.canvasPos], 1, lay.textInput.value);
+						updateDrawData();
+						redraw(dobjs);
+					}
+					var cancelbutton = document.createElement('input');
+					cancelbutton.type = 'button';
+					cancelbutton.value = 'Cancel';
+					cancelbutton.onclick = function(s){
+						lay.style.display = 'none';
+					}
+					lay.appendChild(document.createElement('br'));
+					lay.appendChild(okbutton);
+					lay.appendChild(cancelbutton);
+					// Append as the body element's child because style.position = "absolute" would
+					// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+					document.body.appendChild(lay);
+				}
+				else
+					textLayer.style.display = 'block';
+				textLayer.canvasPos.x = arr[0].x;
+				textLayer.canvasPos.y = arr[0].y;
+				textLayer.textInput.value = "";
+				var canvasRect = canvas.getBoundingClientRect();
+				// Cross-browser scroll position query
+				var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+				var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+				// getBoundingClientRect() returns coordinates relative to view, which means we have to
+				// add scroll position into them.
+				textLayer.style.left = (canvasRect.left + scrollX + offset.x + arr[0].x) + 'px';
+				textLayer.style.top = (canvasRect.top + scrollY + offset.y + arr[0].y) + 'px';
+				// focus() should be called after textLayer is positioned, otherwise the page may
+				// unexpectedly scroll to somewhere.
+				textLayer.textInput.focus();
+
+				// Reset the point buffer
+				idx = 0;
+				return true; // Skip registration
+			}
+			else
+				setText(str, arr[0].x, arr[0].y);
+		}
 	}),
 	new Tool("delete", 1, {
 		drawTool: function(x, y){
