@@ -116,3 +116,12 @@ Pressing the edit button brings you to the edit page.
 
 ![DokuWiki Edit button](media/EditButtonAfter.png)
 
+
+## New Sketch button
+
+When you want to add a new sketch into a document, press new sketch button
+in the toolbar in edit mode.
+You can also edit existing sketch in the edit page by selecting a whole
+&lt;skcanvas&gt; tag and pressing the button.
+
+![DokuWiki Sketch button](media/NewSketch.png)
