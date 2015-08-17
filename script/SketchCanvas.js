@@ -169,155 +169,10 @@ function drawHBox(no) {
 
 // draw toolbox
 function drawParts(tool, x, y) {
-	var a = new Array(3);
-	switch (tool.name) {
-	case "select":
-		ctx.beginPath();
-		ctx.moveTo(x, y-5);
-		ctx.lineTo(x, y+10);
-		ctx.lineTo(x+4, y+7);
-		ctx.lineTo(x+6, y+11);
-		ctx.lineTo(x+8, y+9);
-		ctx.lineTo(x+6, y+5);
-		ctx.lineTo(x+10, y+3);
-		ctx.closePath();
-		ctx.stroke();
-		ctx.strokeText('1', x+45, y+10);
-		break;
-	case "line":
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-		ctx.lineTo(x+40, y+10);
-		ctx.stroke();
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "arrow":
-		ctx.beginPath();
-		a[0] = {x:x, y:y+5};
-		a[1] = {x:x+40, y:y+5};
-		l_arrow(ctx, a);
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "barrow":
-		ctx.beginPath();
-		a[0] = {x:x, y:y+5};
-		a[1] = {x:x+40, y:y+5};
-		l_tarrow(ctx, a);
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "darrow":
-		ctx.beginPath();
-		ctx.moveTo(x, y+3);
-		ctx.lineTo(x+39, y+3);
-		ctx.moveTo(x, y+7);
-		ctx.lineTo(x+39, y+7);
-		ctx.moveTo(x+35, y);
-		ctx.lineTo(x+40, y+5);
-		ctx.lineTo(x+35, y+10);
-		ctx.stroke();
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "arc":
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-		ctx.quadraticCurveTo(x+20, y+20, x+40, y);
-		ctx.stroke();
-		ctx.strokeText('3', x+45, y+10);
-		break;
-	case "arcarrow":
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-		ctx.quadraticCurveTo(x+20, y+20, x+40, y);
-		a[0] = {x:x+20, y:y+20};
-		a[1] = {x:x+40, y:y};
-		l_hige(ctx, a);
-		ctx.strokeText('3', x+45, y+10);
-		break;
-	case "arcbarrow":
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-		ctx.quadraticCurveTo(x+20, y+20, x+40, y);
-		a[0] = {x:x+20, y:y+20};
-		a[1] = {x:x+40, y:y};
-		l_hige(ctx, a);
-		//a[0] = {x:x+10, y:y+10};
-		a[1] = {x:x, y:y};
-		l_hige(ctx, a);
-		ctx.strokeText('3', x+45, y+10);
-		break;
-	case "rect":
-		ctx.beginPath();
-		ctx.rect(x, y, 40, 10);
-		ctx.stroke();
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "ellipse":
-		ctx.beginPath();
-		ctx.scale(1.0, 0.5);		// vertically half
-		ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
-		ctx.stroke();
-		ctx.scale(1.0, 2.0);
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "rectfill":
-		ctx.beginPath();
-		ctx.fillStyle = 'rgb(250, 250, 250)';
-		ctx.fillRect(x, y, 40, 10);
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "ellipsefill":
-		ctx.beginPath();
-		ctx.fillStyle = 'rgb(250, 250, 250)';
-		ctx.scale(1.0, 0.5);		// vertically half
-		ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
-		ctx.fill();
-		ctx.scale(1.0, 2.0);
-		ctx.strokeText('2', x+45, y+10);
-		break;
-	case "star":
-		ctx.beginPath();
-		ctx.moveTo(x+8, y-3);
-		ctx.lineTo(x+14, y+13);
-		ctx.lineTo(x, y+2);
-		ctx.lineTo(x+16, y+2);
-		ctx.lineTo(x+2, y+13);
-		ctx.closePath();
-		ctx.stroke();
-		ctx.strokeText('1', x+45, y+10);
-		break;
-	case "check":
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-		ctx.lineTo(x+5, y+7);
-		ctx.lineTo(x+20, y);
-		ctx.stroke();
-		ctx.strokeText('1', x+45, y+10);
-		break;
-	case "done":
-		ctx.beginPath();
-		ctx.strokeText(i18n.t('Done'), x+3, y+10);
-		ctx.beginPath();
-		ctx.arc(x+9, y+5, 8, 0, 6.28, false);
-		ctx.stroke();
-		ctx.strokeText('1', x+45, y+10);
-		break;
-	case "text":
-		ctx.beginPath();
-		ctx.strokeText(i18n.t('Text'), x+3, y+10);
-		ctx.strokeText('1', x+45, y+10);
-		break;
-	case "delete":
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-		ctx.lineTo(x+10, y+10);
-		ctx.moveTo(x, y+10);
-		ctx.lineTo(x+10, y);
-		ctx.stroke();
-		ctx.strokeText('1', x+45, y+10);
-		break;
-	default:
+	if(tool.drawTool)
+		tool.drawTool(x, y);
+	else
 		ctx.strokeText(i18n.t('Unimplemented'), x, y);
-	}
 }
 
 // Returns bounding box for a drawing object.
@@ -1761,33 +1616,162 @@ var toolmap = {};
 /// @brief A class that represents a tool in the toolbar.
 /// @param name Name of the tool, used in serialized text
 /// @param points Number of points which are used to describe points
-/// @param objctor The constructor function that is used to create Shape, stands for OBJect ConsTructOR
-function Tool(name, points, objctor){
+/// @param params A table of initialization parameters:
+///         objctor: The constructor function that is used to create Shape, stands for OBJect ConsTructOR
+///         drawTool: A function(x, y) to draw icon on the toolbar.
+function Tool(name, points, params){
 	this.name = name;
 	this.points = points || 1;
-	this.objctor = objctor || Shape;
+	this.objctor = params && params.objctor || Shape;
+	this.drawTool = params && params.drawTool;
 	toolmap[name] = this;
 }
 
 // List of tools in the toolbar.
 var toolbar = [
-	new Tool("select", 1),
-	new Tool("line", 2),
-	new Tool("arrow", 2),
-	new Tool("barrow", 2),
-	new Tool("darrow", 2),
-	new Tool("arc", 3),
-	new Tool("arcarrow", 3),
-	new Tool("arcbarrow", 3),
-	new Tool("rect", 2),
-	new Tool("ellipse", 2),
-	new Tool("rectfill", 2),
-	new Tool("ellipsefill", 2),
-	new Tool("star", 1, PointShape),
-	new Tool("check", 1, PointShape),
-	new Tool("done", 1, PointShape),
-	new Tool("text", 1, TextShape),
-	new Tool("delete"),
+	new Tool("select", 1, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y-5);
+			ctx.lineTo(x, y+10);
+			ctx.lineTo(x+4, y+7);
+			ctx.lineTo(x+6, y+11);
+			ctx.lineTo(x+8, y+9);
+			ctx.lineTo(x+6, y+5);
+			ctx.lineTo(x+10, y+3);
+			ctx.closePath();
+			ctx.stroke();
+			ctx.strokeText('1', x+45, y+10);
+		}}),
+	new Tool("line", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.lineTo(x+40, y+10);
+			ctx.stroke();
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("arrow", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			l_arrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("barrow", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			l_tarrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("darrow", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y+3);
+			ctx.lineTo(x+39, y+3);
+			ctx.moveTo(x, y+7);
+			ctx.lineTo(x+39, y+7);
+			ctx.moveTo(x+35, y);
+			ctx.lineTo(x+40, y+5);
+			ctx.lineTo(x+35, y+10);
+			ctx.stroke();
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("arc", 3, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.quadraticCurveTo(x+20, y+20, x+40, y);
+			ctx.stroke();
+			ctx.strokeText('3', x+45, y+10);
+		}}),
+	new Tool("arcarrow", 3, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.quadraticCurveTo(x+20, y+20, x+40, y);
+			l_hige(ctx, [{x:x+20, y:y+20}, {x:x+40, y:y}]);
+			ctx.strokeText('3', x+45, y+10);
+		}}),
+	new Tool("arcbarrow", 3, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.quadraticCurveTo(x+20, y+20, x+40, y);
+			var a = [{x:x+20, y:y+20}, {x:x+40, y:y}];
+			l_hige(ctx, a);
+			//a[0] = {x:x+10, y:y+10};
+			a[1] = {x:x, y:y};
+			l_hige(ctx, a);
+			ctx.strokeText('3', x+45, y+10);
+		}}),
+	new Tool("rect", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.rect(x, y, 40, 10);
+			ctx.stroke();
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("ellipse", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.scale(1.0, 0.5);		// vertically half
+			ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
+			ctx.stroke();
+			ctx.scale(1.0, 2.0);
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("rectfill", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.fillStyle = 'rgb(250, 250, 250)';
+			ctx.fillRect(x, y, 40, 10);
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("ellipsefill", 2, {drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.fillStyle = 'rgb(250, 250, 250)';
+			ctx.scale(1.0, 0.5);		// vertically half
+			ctx.arc(x+20, (y+5)*2, 20, 0, 2 * Math.PI, false);
+			ctx.fill();
+			ctx.scale(1.0, 2.0);
+			ctx.strokeText('2', x+45, y+10);
+		}}),
+	new Tool("star", 1, {objctor: PointShape,
+		drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x+8, y-3);
+			ctx.lineTo(x+14, y+13);
+			ctx.lineTo(x, y+2);
+			ctx.lineTo(x+16, y+2);
+			ctx.lineTo(x+2, y+13);
+			ctx.closePath();
+			ctx.stroke();
+			ctx.strokeText('1', x+45, y+10);
+		}}),
+	new Tool("check", 1, {objctor: PointShape,
+		drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.lineTo(x+5, y+7);
+			ctx.lineTo(x+20, y);
+			ctx.stroke();
+			ctx.strokeText('1', x+45, y+10);
+		}}),
+	new Tool("done", 1, {objctor: PointShape,
+		drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.strokeText(i18n.t('Done'), x+3, y+10);
+			ctx.beginPath();
+			ctx.arc(x+9, y+5, 8, 0, 6.28, false);
+			ctx.stroke();
+			ctx.strokeText('1', x+45, y+10);
+		}}),
+	new Tool("text", 1, {objctor: TextShape,
+		drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.strokeText(i18n.t('Text'), x+3, y+10);
+			ctx.strokeText('1', x+45, y+10);
+		}}),
+	new Tool("delete", 1, {
+		drawTool: function(x, y){
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.lineTo(x+10, y+10);
+			ctx.moveTo(x, y+10);
+			ctx.lineTo(x+10, y);
+			ctx.stroke();
+			ctx.strokeText('1', x+45, y+10);
+		}
+	}),
 ];
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
