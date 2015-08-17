@@ -53,6 +53,8 @@ function onload(){
 		canvas.onmouseup = mouseUp;
 		canvas.onmousemove = mouseMove;
 		canvas.onmouseout = mouseleave;
+		canvas.setAttribute("tabindex", 0); // Make sure the canvas can have a key focus
+		canvas.onkeydown = keyDown;
 	}
 
   // 2D context
@@ -453,6 +455,27 @@ function mouseleave(e){
 	moving = false;
 	sizing = null;
 	boxselecting = false;
+}
+
+function keyDown(e){
+	e = e || window.event;
+	var code = e.keyCode || e.which;
+	if(code === 46){ // Delete key
+		dhistory.push(cloneObject(dobjs)); // Push undo buffer
+		// Delete all selected objects
+		for (var i = 0; i < selectobj.length; i++) {
+			var s = selectobj[i];
+			for (var j = 0; j < dobjs.length; j++) {
+				if(dobjs[j] === s){
+					dobjs.splice(j, 1);
+					break;
+				}
+			}
+		}
+		selectobj = []; // And don't forget to clear the selection
+		updateDrawData();
+		redraw(dobjs);
+	}
 }
 
 // draw one click
