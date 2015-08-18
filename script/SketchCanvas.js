@@ -1783,7 +1783,13 @@ var toolbar = [
 						// Ignore blank text
 						if(lay.textInput.value == '')
 							return;
-						register([lay.canvasPos], 1, lay.textInput.value);
+						// If a shape is clicked, alter its value instead of adding a new one.
+						if(lay.dobj){
+							dhistory.push(cloneObject(dobjs));
+							lay.dobj.text = lay.textInput.value;
+						}
+						else
+							register([lay.canvasPos], 1, lay.textInput.value);
 						updateDrawData();
 						redraw(dobjs);
 					}
@@ -1802,9 +1808,21 @@ var toolbar = [
 				}
 				else
 					textLayer.style.display = 'block';
+
 				textLayer.canvasPos.x = arr[0].x;
 				textLayer.canvasPos.y = arr[0].y;
+
+				// Find if any TextShape is under the mouse cursor.
+				textLayer.dobj = null;
 				textLayer.textInput.value = "";
+				for (var i = 0; i < dobjs.length; i++) {
+					if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), arr[0].x, arr[0].y)){
+						textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
+						textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
+						break;
+					}
+				}
+
 				var canvasRect = canvas.getBoundingClientRect();
 				// Cross-browser scroll position query
 				var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
