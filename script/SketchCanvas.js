@@ -825,20 +825,20 @@ this.saveAsImage = function(img){
 	}
 }
 
-this.loadDataFromList = function(){
-	var sel = document.forms[0].canvasselect;
-	var item = sel.options[sel.selectedIndex].text;
+/// @brief Loads a data from local storage of the browser
+/// @param name The name of the sketch in the local storage to load.
+this.loadLocal = function(name){
 	try{
 		var origData = localStorage.getItem("canvasDrawData");
 		if(origData === null)
 			return;
 		var selData = jsyaml.safeLoad(origData);
-		dobjs = deserialize(jsyaml.safeLoad(selData[item]));
+		dobjs = deserialize(jsyaml.safeLoad(selData[name]));
 		selectobj = []; // Clear the selection explicitly
 		updateDrawData();
 		redraw(dobjs);
 	} catch(e){
-		console.log(e);
+		debug(e);
 	}
 }
 
@@ -912,20 +912,7 @@ this.requestServerFile = function(item, hash){
 	}
 }
 
-this.loadDataFromServerList = function(){
-	var sel = document.forms[0].serverselect;
-	var item = sel.options[sel.selectedIndex].text;
-
-	this.requestServerFile(item);
-
-	// If history list box is not present, the server is configured to disable Git support.
-	if(!document.getElementById("historyselect"))
-		return;
-
-	this.requestServerFileHistory(item);
-}
-
-this.requestServerFileHistory = function(item){
+this.requestServerFileHistory = function(item, responseCallback){
 	var historyQuery = createXMLHttpRequest();
 	if(historyQuery){
 		historyQuery.onreadystatechange = function(){
@@ -939,11 +926,7 @@ this.requestServerFileHistory = function(item){
 				if(historyData[0] !== "succeeded")
 					return;
 				historyData = historyData.splice(1);
-				var sel = document.getElementById("historyselect");
-				if(sel){
-					self.setSelect(historyData, sel);
-					sel.size = historyData.length;
-				}
+				responseCallback(historyData);
 			}
 			catch(e){
 				console.log(e);
@@ -952,14 +935,6 @@ this.requestServerFileHistory = function(item){
 		historyQuery.open("GET", "history.php?fname=" + encodeURI(item), true);
 		historyQuery.send();
 	}
-}
-
-this.loadDataFromServerHistory = function(){
-	var sel = document.forms[0].serverselect;
-	var item = sel.options[sel.selectedIndex].text;
-	var histsel = document.getElementById("historyselect");
-
-	this.requestServerFile(item, histsel.options[histsel.selectedIndex].text.split(" ")[0]);
 }
 
 // clear canvas
@@ -973,56 +948,6 @@ function clearCanvas() {
 	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
 	idx = 0;
 	zorder = 0;
-}
-
-/// @brief Set strings in array to select element
-///
-/// @param ca An array that contains strings to added as select options.
-///           Empty strings in the array are skipped.
-/// @param sel The select element object to set options subelements to.
-/// @returns Number of actually set options. This can differ from ca.length.
-this.setSelect = function(ca, sel) {
-	var name = null;
-	var option = null;
-	var text = null;
-
-	// Remember previously selected item string to try to preserve the selection
-	// after the options are refreshed.  Note that remembering selectedIndex won't
-	// help much because items can not only be appended but also inserted before
-	// current selection.
-	var oldname = 0 < sel.selectedIndex ? sel.childNodes[sel.selectedIndex].text : "";
-
-	// clear
-	var n = sel.childNodes.length;
-	for (var i=n-1; i>=0; i--) sel.removeChild(sel.childNodes.item(i));
-
-	// Counter for actually created items, empty strings in ca are ignored.
-	var ii = 0;
-	for(var i = 0; i < ca.length; i++){
-		var name = ca[i];
-		if(!name) // Skip blank lines
-			continue;
-		// create node
-		option = document.createElement("OPTION");
-		option.setAttribute("value", name);
-		text = document.createTextNode(name);
-		option.appendChild(text);
-		sel.appendChild(option);
-		if(name === oldname)
-			sel.selectedIndex = ii;
-		ii++;
-	}
-	return ii;
-}
-
-// obtain an id from selection
-function selectedID() {
-	var name = null;
-	var option = null;
-	var text = null;
-	var sel = document.forms[0].canvasselect;
-	var idx = sel.selectedIndex;
-	return sel.options[idx].value;
 }
 
 // Sets the size of the canvas
@@ -1088,51 +1013,26 @@ function choiceHBox(x, y) {
 	return -1;
 }
 
-//------------------- ajax -----------------------------------
-
-function saveData(title){
+/// @brief Save a sketch data to a local storage entry with name
+/// @param name Name of the sketch which can be used in loadLocal() to restore
+this.saveLocal = function(name){
 	if(typeof(Storage) !== "undefined"){
 		var str = localStorage.getItem("canvasDrawData");
 		var origData = str === null ? {} : jsyaml.safeLoad(str);
-		origData[title] = jsyaml.safeDump(serialize(dobjs));
+		var newEntry = !(name in origData);
+		origData[name] = jsyaml.safeDump(serialize(dobjs));
 		localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
+		// If the named sketch didn't exist, fire up the event of local storage change.
+		if(newEntry && ('onLocalChange' in this) && this.onLocalChange)
+			this.onLocalChange();
+		return true;
 	}
-}
+	return false;
+};
 
-// save data
-this.saveDataNew = function(fname){
-	if(!fname) return;
-	saveData(fname);
-	if(('onLocalChange' in this) && this.onLocalChange)
-		this.onLocalChange();
-}
-
-this.saveDataFromList = function(){
-	var sel = document.forms[0].canvasselect;
-	saveData(sel.options[sel.selectedIndex].text);
-}
-
-// append save
-function ajaxappend() {
-	var sel = document.forms[0].canvasselect;
-	var idx = sel.selectedIndex;
-	if (0 == idx) {
-		alert("Select a figure to overwrite");
-		return false;
-	}
-	var title =  sel.options[idx].innerHTML;
-	if (!confirm("TITLE:"+title + i18n.t("<- OK to overwrite?"))) return false;
-
-	var str = localStorage.getItem("canvasDrawData");
-	var origData = str === null ? {} : jsyaml.safeLoad(str);
-	origData[title] = jsyaml.safeDump(serialize(dobjs));
-	localStorage.setItem("canvasDrawData", jsyaml.safeDump(origData));
-
-	return true;
-}
-
-// search
-this.listLocal = function(selectElement) {
+/// @brief Returns list of sketches saved in local storage
+/// @returns An array with sketch names in each element
+this.listLocal = function() {
 
 	if(typeof(Storage) !== "undefined"){
 		var str = localStorage.getItem("canvasDrawData");
@@ -1146,7 +1046,7 @@ this.listLocal = function(selectElement) {
 		for(var name in origData)
 			keys.push(name);
 
-		this.setSelect(keys, selectElement);
+		return keys;
 	}
 
 }
@@ -1247,9 +1147,12 @@ function createXMLHttpRequest(){
 	return xmlHttp;
 }
 
-function uploadData(fname){
-	var drawdata = document.getElementById("drawdata");
-
+/// @brief Posts a sketch data to the server
+/// @param fname The file name of the added sketch.
+/// @param target The target URL for posting.
+/// @param requestDelete If true, it will post delete request instead of new data.
+this.postData = function(fname, target, requestDelete){
+	var data = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
 	// Asynchronous request for getting figure data in the server.
 	var xmlHttp = createXMLHttpRequest();
 	if(xmlHttp){
@@ -1262,14 +1165,20 @@ function uploadData(fname){
 			debug(xmlHttp.responseText);
 			downloadList();
 		};
-		xmlHttp.open("POST", "upload.php", true);
+		xmlHttp.open("POST", target, true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xmlHttp.send("fname=" + encodeURI(fname) + "&drawdata=" + encodeURI(drawdata.value));
+		var request = "fname=" + encodeURI(fname);
+		if(requestDelete)
+			request += "&action=delete";
+		else
+			request += "&drawdata=" + encodeURI(data);
+		xmlHttp.send(request);
 	}
-}
+};
 
-this.pull = function(){
-	var text = document.getElementById("remote").value;
+/// @brief Posts a request to server to pull from remote (respective to the server)
+/// @param remoteName The remote name (defined in the server)
+this.pull = function(remoteName){
 	// Asynchronous request for pulling.
 	var xmlHttp = createXMLHttpRequest();
 	if(xmlHttp){
@@ -1282,13 +1191,15 @@ this.pull = function(){
 			debug(xmlHttp.responseText);
 			downloadList();
 		};
-		xmlHttp.open("GET", "pull.php?remote=" + encodeURI(text), true);
+		xmlHttp.open("GET", "pull.php?remote=" + encodeURI(remoteName), true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xmlHttp.send();
 	}
 }
 
-this.push = function(){
+/// @brief Posts a request to server to push to remote (respective to the server)
+/// @param remoteName The remote name (defined in the server)
+this.push = function(remoteName){
 	// Asynchronous request for pulling.
 	var xmlHttp = createXMLHttpRequest();
 	if(xmlHttp){
@@ -1301,43 +1212,9 @@ this.push = function(){
 			debug(xmlHttp.responseText);
 			downloadList();
 		};
-		xmlHttp.open("GET", "push.php", true);
+		xmlHttp.open("GET", "push.php?remote=" + encodeURI(remoteName), true);
 		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xmlHttp.send();
-	}
-}
-
-this.uploadDataNew = function(){
-	uploadData(document.getElementById("fname").value);
-}
-
-this.uploadDataFromServerList = function(){
-	var sel = document.forms[0].serverselect;
-	if(0 <= sel.selectedIndex)
-		uploadData(sel.options[sel.selectedIndex].text);
-}
-
-this.deleteFromServerList = function(){
-	var sel = document.forms[0].serverselect;
-	if(sel.selectedIndex < 0)
-		return;
-	var fname = sel.options[sel.selectedIndex].text;
-
-	// Asynchronous request for deleting file in the server.
-	var xmlHttp = createXMLHttpRequest();
-	if(xmlHttp){
-		// The event handler is assigned here because xmlHttp is a free variable
-		// implicitly passed to the anonymous function without polluting the
-		// global namespace.
-		xmlHttp.onreadystatechange = function(){
-			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
-				return;
-			debug(xmlHttp.responseText);
-			downloadList();
-		};
-		xmlHttp.open("POST", "upload.php", true);
-		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		xmlHttp.send("fname=" + encodeURI(fname) + "&action=delete");
 	}
 }
 
@@ -1783,7 +1660,13 @@ var toolbar = [
 						// Ignore blank text
 						if(lay.textInput.value == '')
 							return;
-						register([lay.canvasPos], 1, lay.textInput.value);
+						// If a shape is clicked, alter its value instead of adding a new one.
+						if(lay.dobj){
+							dhistory.push(cloneObject(dobjs));
+							lay.dobj.text = lay.textInput.value;
+						}
+						else
+							register([lay.canvasPos], 1, lay.textInput.value);
 						updateDrawData();
 						redraw(dobjs);
 					}
@@ -1802,9 +1685,21 @@ var toolbar = [
 				}
 				else
 					textLayer.style.display = 'block';
+
 				textLayer.canvasPos.x = arr[0].x;
 				textLayer.canvasPos.y = arr[0].y;
+
+				// Find if any TextShape is under the mouse cursor.
+				textLayer.dobj = null;
 				textLayer.textInput.value = "";
+				for (var i = 0; i < dobjs.length; i++) {
+					if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), arr[0].x, arr[0].y)){
+						textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
+						textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
+						break;
+					}
+				}
+
 				var canvasRect = canvas.getBoundingClientRect();
 				// Cross-browser scroll position query
 				var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
