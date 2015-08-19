@@ -51,19 +51,19 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           <th>Saved figures</th>
           <td>
             <select name="canvasselect"><option value="0">no select</option></select>
-            <input type="button" value="Show" onclick="skcanvas.loadDataFromList()">
-            <input type="button" value="Save (overwrite)" onclick="skcanvas.saveDataFromList()">
+            <input type="button" value="Show" onclick="loadDataFromList()">
+            <input type="button" value="Save (overwrite)" onclick="saveDataFromList()">
           </td>
           <td>
             Name: <select name="serverselect"><option value="0">no select</option></select>
-            <input type="button" value="Show" onclick="skcanvas.loadDataFromServerList()">
-            <input type="button" value="Upload (overwrite)" onclick="skcanvas.uploadDataFromServerList()">
-            <input type="button" value="Delete" onclick="skcanvas.deleteFromServerList()"><br>
+            <input type="button" value="Show" onclick="loadDataFromServerList()">
+            <input type="button" value="Upload (overwrite)" onclick="uploadDataFromServerList()">
+            <input type="button" value="Delete" onclick="deleteFromServerList()"><br>
 <?php if($conf['git']){ ?>
             History: <select id="historyselect"></select>
-            <input type="button" value="Show Revision" onclick="skcanvas.loadDataFromServerHistory()"><br>
-            <input type="button" value="Pull" onclick="skcanvas.pull()"> from or
-            <input type="button" value="Push" onclick="skcanvas.push()"> to:
+            <input type="button" value="Show Revision" onclick="loadDataFromServerHistory()"><br>
+            <input type="button" value="Pull" onclick="pullServer()"> from or
+            <input type="button" value="Push" onclick="pushServer()"> to:
             <input type="text" id="remote" value="">
 <?php } ?>
             <br><a href="gallery.php">Gallery of server figures</a>
@@ -73,11 +73,11 @@ td, th{padding: 10px; border: 2px solid #7f7f7f}
           <th>New figure</th>
           <td>
             <input type="text" id="clientfname" name="clientfname" value="default">
-            <input type="button" value="Save (new)" onclick="skcanvas.saveDataNew(document.getElementById('clientfname').value)">
+            <input type="button" value="Save (new)" onclick="saveLocalNew()">
           </td>
           <td>
             <input type="text" id="fname" name="fname" value="default">
-            <input type="button" value="Upload (new)" onclick="skcanvas.uploadDataNew()">
+            <input type="button" value="Upload (new)" onclick="uploadDataNew()">
           </td>
         </tr>
       </table>
