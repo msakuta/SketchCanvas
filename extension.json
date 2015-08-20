@@ -1,0 +1,17 @@
+{
+	"name": "SketchCanvas",
+	"version": "0.1.0",
+	"author": "Masahiro Sakuta",
+	"url": "https://www.mediawiki.org/wiki/Extension:SketchCanvas",
+	"description": "SketchCanvas extension",
+	"type": "other",
+	"Hooks": {
+		"ParserFirstCallInit": [
+			"SketchCanvasHooks::init"
+		]
+	},
+	"AutoloadClasses": {
+		"SketchCanvasHooks": "SketchCanvas.hooks.php"
+	},
+	"manifest_version": 1
+}
