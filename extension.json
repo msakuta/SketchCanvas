@@ -8,6 +8,9 @@
 	"Hooks": {
 		"ParserFirstCallInit": [
 			"SketchCanvasHooks::init"
+		],
+		"ParserBeforeTidy": [
+			"SketchCanvasHooks::addHeader"
 		]
 	},
 	"AutoloadClasses": {
