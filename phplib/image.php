@@ -7,17 +7,19 @@
 
 define('FONTFACE', "NotoSansCJKjp-Regular.otf");
 
+require_once "spyc.php";
+
 $size = Array(640, 480);
 $drawdata = null;
 
 try{
 	if(isset($_GET['fname']) || isset($_POST['drawdata']) || isset($_GET['drawdata'])){
 		if(isset($_GET['fname']))
-			$drawdata = yaml_parse_file('data/' . $_GET['fname']);
+			$drawdata = Spyc::YAMLLoad('data/' . $_GET['fname']);
 		else if(isset($_POST['drawdata']))
-			$drawdata = yaml_parse($_POST['drawdata']);
+			$drawdata = Spyc::YAMLLoadString($_POST['drawdata']);
 		else
-			$drawdata = yaml_parse($_GET['drawdata']);
+			$drawdata = Spyc::YAMLLoadString($_GET['drawdata']);
 		foreach ($drawdata as $key => $value) {
 			switch($value["type"]){
 				case "meta":
