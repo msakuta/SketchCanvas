@@ -105,6 +105,32 @@ function l_tarrow($im, $arr, $color) {
 	imageline($im, $arr[0][0], $arr[0][1], $arr[0][0]-$c[1][0], $arr[0][1]-$c[1][1], $color);
 }
 
+// draw star
+function l_star($im, $arr, $color) {
+	$x = $arr[0][0];
+	$y = $arr[0][1];
+	imagepolygon($im, array(
+		$x+8, $y-3,
+		$x+14, $y+13,
+		$x, $y+2,
+		$x+16, $y+2,
+		$x+2, $y+13),
+		5, $color);
+}
+
+// draw check
+function l_check($im, $arr, $color) {
+	$x = $arr[0][0];
+	$y = $arr[0][1];
+	imageline($im, $x, $y, $x+5, $y+7, $color);
+	imageline($im, $x+5, $y+7, $x+20, $y, $color);
+}
+
+// draw complete
+function l_complete($im, $arr, $color) {
+	imagettftext($im, 20 / 2, 0, $arr[0][0]+3, $arr[0][1]+10, $c, "/usr/share/fonts/vlgothic/VL-Gothic-Regular.ttf", '済');
+	imageellipse($im, $arr[0][0]+9, $arr[0][1]+5, 16, 16, $color);
+}
 
 function colorSelect($im, $value){
 	$c = null;
@@ -170,6 +196,15 @@ try{
 						l_arrow($im, $pts, $c);
 					else if($value["type"] === "barrow")
 						l_tarrow($im, $pts, $c);
+					break;
+				case 'star':
+					l_star($im, parsePointList($value["points"]), $c);
+					break;
+				case 'check':
+					l_check($im, parsePointList($value["points"]), $c);
+					break;
+				case 'done':
+					l_complete($im, parsePointList($value["points"]), $c);
 					break;
 				case 'text':
 					$pts = parsePointList($value["points"]);
