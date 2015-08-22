@@ -1,6 +1,6 @@
 <?php
 /**
- * DokuWiki Plugin skcanvas (Action Component)
+ * DokuWiki Plugin SketchCanvas (Action Component)
  *
  * @license ???
  * @author  Masahiro Sakuta
@@ -12,7 +12,7 @@ if (!defined('DOKU_INC')) die();
 /**
  * Add scripts via an event handler
  */
-class action_plugin_skcanvas extends DokuWiki_Action_Plugin {
+class action_plugin_sketchcanvas extends DokuWiki_Action_Plugin {
 
     /**
      * Register handler for the TPL_METAHEADER_OUTPUT event
@@ -78,7 +78,7 @@ EOT
     }
 
     public function editButton(Doku_Event $event, $param){
-        if($event->data['target'] !== 'plugin_skcanvas')
+        if($event->data['target'] !== 'plugin_sketchcanvas')
             return;
 
         $event->data['name'] = /*$this->getLang*/('Edit Figure');
@@ -86,7 +86,7 @@ EOT
 
     public function editForm(Doku_Event $event, $param){
         global $TEXT;
-        if($event->data['target'] !== 'plugin_skcanvas')
+        if($event->data['target'] !== 'plugin_sketchcanvas')
             return;
         $event->preventDefault();
 
@@ -165,11 +165,11 @@ EOT;
         switch($ACT){
             case 'preview':
                 // preview view of a table edit
-                $INPUT->post->set('target', 'plugin_skcanvas');
+                $INPUT->post->set('target', 'plugin_sketchcanvas');
                 break;
             case 'edit':
                 // edit view of a table (first edit)
-                $INPUT->post->set('target', 'plugin_skcanvas');
+                $INPUT->post->set('target', 'plugin_sketchcanvas');
                 $TEXT = "";
                 $lines = explode("\n", $fields['text']);
 

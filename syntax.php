@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin SKCanvas: SketchCanvas Document Embedding.
+ * Plugin SketchCanvas: SketchCanvas Document Embedding.
  * 
  * @license    ??? 
 //GPL 2 (http://www.gnu.org/licenses/gpl.html)
@@ -17,13 +17,13 @@ require_once(DOKU_PLUGIN.'syntax.php');
  * All DokuWiki plugins to extend the parser/rendering mechanism
  * need to inherit from this class
  */
-class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_sketchcanvas extends DokuWiki_Syntax_Plugin {
  
     function getType(){ return 'formatting'; }
     function getAllowedTypes() { return array('formatting', 'substition', 'disabled'); }   
     function getSort(){ return 159; }
-    function connectTo($mode) { $this->Lexer->addEntryPattern('<skcanvas.*?>(?=.*?</skcanvas>)',$mode,'plugin_skcanvas'); }
-    function postConnect() { $this->Lexer->addExitPattern('</skcanvas>','plugin_skcanvas'); }
+    function connectTo($mode) { $this->Lexer->addEntryPattern('<skcanvas.*?>(?=.*?</skcanvas>)',$mode,'plugin_sketchcanvas'); }
+    function postConnect() { $this->Lexer->addExitPattern('</skcanvas>','plugin_sketchcanvas'); }
  
     /// Generator for canvas ids
     var $generator = 1;
@@ -53,7 +53,7 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
                 list($active, $num) = $match;
                 $class = '';
                 if(method_exists($renderer, 'startSectionEdit'))
-                  $class = $renderer->startSectionEdit($match['bytepos_start'], 'plugin_skcanvas');
+                  $class = $renderer->startSectionEdit($match['bytepos_start'], 'plugin_sketchcanvas');
                 $canvasId = '__sketchcanvas' . $num;
               // To make dw2pdf work with SketchCanvas, we need to convert the canvas content
               // to some image.  Now that the server is capable of rendering one, we can
