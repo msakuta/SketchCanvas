@@ -11,11 +11,13 @@ $size = Array(640, 480);
 $drawdata = null;
 
 try{
-	if(isset($_GET['fname']) || isset($_POST['drawdata'])){
+	if(isset($_GET['fname']) || isset($_POST['drawdata']) || isset($_GET['drawdata'])){
 		if(isset($_GET['fname']))
 			$drawdata = yaml_parse_file('data/' . $_GET['fname']);
-		else
+		else if(isset($_POST['drawdata']))
 			$drawdata = yaml_parse($_POST['drawdata']);
+		else
+			$drawdata = yaml_parse($_GET['drawdata']);
 		foreach ($drawdata as $key => $value) {
 			switch($value["type"]){
 				case "meta":
