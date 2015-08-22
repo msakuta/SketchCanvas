@@ -189,7 +189,18 @@ catch(Exception $e){
 	return;
 }
 
-header('Content-Type: image/png');
+$useBase64 = false;
+if(isset($_GET['base64']) || isset($_POST['base64']))
+	$useBase64 = true;
+else
+	header('Content-Type: image/png');
 
+if($useBase64)
+	ob_start();
 imagepng($im);
 imagedestroy($im);
+if($useBase64){
+	$imagedata = ob_get_contents();
+	ob_end_clean();
+	print base64_encode($imagedata);
+}
