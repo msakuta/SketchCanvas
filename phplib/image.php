@@ -5,6 +5,8 @@
  * It requires GD and Yaml extensions set up for PHP in order to work.
  */
 
+define('FONTFACE', "NotoSansCJKjp-Regular.otf");
+
 $size = Array(640, 480);
 $drawdata = null;
 
@@ -34,7 +36,11 @@ $im = imagecreatetruecolor($size[0], $size[1]);
 $white = imagecolorallocate($im, 255, 255, 255);
 $c = imagecolorallocate($im, 255, 0, 0);
 
-imagefill($im, 0, 0, $white);
+imagefilledrectangle($im, 0, 0, $size[0], $size[1], $white);
+
+function pixelToPoint($px){
+	return $px * 0.525;
+}
 
 /// @brief Dot product 45 degrees
 /// @param a vector
@@ -128,7 +134,7 @@ function l_check($im, $arr, $color) {
 
 // draw complete
 function l_complete($im, $arr, $color) {
-	imagettftext($im, 20 / 2, 0, $arr[0][0]+3, $arr[0][1]+10, $c, "/usr/share/fonts/vlgothic/VL-Gothic-Regular.ttf", '済');
+	imagettftext($im, pixelToPoint(20), 0, $arr[0][0]+3, $arr[0][1]+10, $c, "/usr/share/fonts/vlgothic/VL-Gothic-Regular.ttf", '済');
 	imageellipse($im, $arr[0][0]+9, $arr[0][1]+5, 16, 16, $color);
 }
 
@@ -180,6 +186,9 @@ try{
 					$pts = parsePointList($value["points"]);
 					$p1 = $pts[0];
 					$p2 = $pts[1];
+					$wid = isset($value["width"]) ? $value["width"] : 1;
+					imagesetthickness($im, $wid);
+					imageantialias($im, $wid === 1);
 					if($value["type"] === "rect")
 						imagerectangle($im, $p1[0], $p1[1], $p2[0], $p2[1], $c);
 					else if($value["type"] === "rectfill")
@@ -212,7 +221,7 @@ try{
 					if (1 == $value["width"]) $fontsize = 14;
 					else if (2 == $value["width"]) $fontsize = 16;
 					else $fontsize = 20;
-					imagettftext($im, $fontsize / 2, 0, $pts[0][0], $pts[0][1], $c, "/usr/share/fonts/vlgothic/VL-Gothic-Regular.ttf", $value["text"]);
+					imagettftext($im, pixelToPoint($fontsize), 0, $pts[0][0], $pts[0][1], $c, FONTFACE, $value["text"]);
 					break;
 			}
 		}
