@@ -1123,31 +1123,7 @@ function ajaxundo() {
 	redraw(dobjs);
 }
 
-// Create and return a XMLHttpRequest object or ActiveXObject for IE6-
-function createXMLHttpRequest(){
-	var xmlHttp = null;
-	try{
-		// for IE7+, Fireforx, Chrome, Opera, Safari
-		xmlHttp = new XMLHttpRequest();
-	}
-	catch(e){
-		try{
-			// for IE6, IE5 (canvas element wouldn't work from the start, though)
-			xmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
-		}
-		catch(e){
-			try{
-				xmlHttp = new ActiveXObject("Microsoft.XMLHttp");
-			}
-			catch(e){
-				return null;
-			}
-		}
-	}
-	return xmlHttp;
-}
-
-this.createXMLHttpRequest = createXMLHttpRequest;
+var createXMLHttpRequest = this.createXMLHttpRequest;
 
 /// @brief Posts a sketch data to the server
 /// @param fname The file name of the added sketch.
@@ -1773,5 +1749,29 @@ var metaObj = cloneObject(defaultMetaObj);
 var self = this;
 
 onload();
+}
+
+// Create and return a XMLHttpRequest object or ActiveXObject for IE6-
+SketchCanvas.prototype.createXMLHttpRequest = function(){
+	var xmlHttp = null;
+	try{
+		// for IE7+, Fireforx, Chrome, Opera, Safari
+		xmlHttp = new XMLHttpRequest();
+	}
+	catch(e){
+		try{
+			// for IE6, IE5 (canvas element wouldn't work from the start, though)
+			xmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
+		}
+		catch(e){
+			try{
+				xmlHttp = new ActiveXObject("Microsoft.XMLHttp");
+			}
+			catch(e){
+				return null;
+			}
+		}
+	}
+	return xmlHttp;
 }
 
