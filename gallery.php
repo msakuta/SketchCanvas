@@ -47,6 +47,7 @@ onload = function(){
 --> </script>
     <style type="text/css">
 <!--
+@import url(http://fonts.googleapis.com/earlyaccess/notosansjapanese.css);
 body{background-color: #fff0e7}
 canvas{background-color: #fff}
 table{background-color: #f7c0a0; border: 3px solid #7f7f7f; border-collapse: collapse}
