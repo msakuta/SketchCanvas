@@ -500,7 +500,7 @@ function draw_point(x, y) {
 
 // A local function to set font size with the global scaling factor in mind.
 function setFont(baseSize) {
-	ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+	ctx.font = baseSize + "px 'Noto Sans Japanese', sans-serif";
 }
 
 // Registers array as a Shape
