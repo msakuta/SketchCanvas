@@ -55,23 +55,44 @@ class syntax_plugin_skcanvas extends DokuWiki_Syntax_Plugin {
                 if(method_exists($renderer, 'startSectionEdit'))
                   $class = $renderer->startSectionEdit($match['bytepos_start'], 'plugin_skcanvas');
                 $canvasId = '__sketchcanvas' . $num;
+              // To make dw2pdf work with SketchCanvas, we need to convert the canvas content
+              // to some image.  Now that the server is capable of rendering one, we can
+              // generate an image link with SketchCanvas source as parameter to the renderer.
+              if(is_a($renderer, 'renderer_plugin_dw2pdf')){
+                $renderer->doc .= '<img src="dokuwiki/lib/plugins/' . $this->getPluginName()
+                  . '/phplib/image.php?drawdata=';
+              }
+              else{
+                // Otherwise, just embed the source into the HTML so that JavaScript can process
+                // them later to load them into the canvases.
                 $renderer->doc .= <<<EOT
 <div class="$class">
 <canvas id="$canvasId" width="1024" height="640"></canvas>
 <div id="__sketchcanvas_text$num" style="display: none">
 EOT;
-                break;
+              }
+              break;
  
               case DOKU_LEXER_UNMATCHED :
                    list($active) = $match;
-                   if($active)
-                       $renderer->doc .= /*str_replace(array("\r", "\n"), array('\r', '\n'), addslashes*/($renderer->_xmlEntities($match));
+                   if($active){
+                      // When rendering for dw2pdf, the data must be encoded in the URL.
+                      // Otherwise, it will be just ordinaly HTML text.
+                      if(is_a($renderer, 'renderer_plugin_dw2pdf'))
+                        $renderer->doc .= urlencode($match);
+                      else
+                        $renderer->doc .= $renderer->_xmlEntities($match);
+                   }
                    else
                        $renderer->doc .= $renderer->_xmlEntities($match);
                    break;
               case DOKU_LEXER_EXIT :
                   list($active, $num) = $match;
-                   $renderer->doc .= <<<EOT
+
+                  if(is_a($renderer, 'renderer_plugin_dw2pdf'))
+                    $renderer->doc .= '">'; // Closing img tag
+                  else
+                    $renderer->doc .= <<<EOT
 </div>
 </div>
 EOT;
