@@ -1147,6 +1147,8 @@ function createXMLHttpRequest(){
 	return xmlHttp;
 }
 
+this.createXMLHttpRequest = createXMLHttpRequest;
+
 /// @brief Posts a sketch data to the server
 /// @param fname The file name of the added sketch.
 /// @param target The target URL for posting.
