@@ -149,3 +149,22 @@ function saveLocalNew(){
 function uploadDataNew(){
 	skcanvas.postData(document.getElementById("fname").value, "upload.php");
 }
+
+function convertPNG(){
+	var xmlHttp = SketchCanvas.prototype.createXMLHttpRequest();
+	if(xmlHttp){
+		// The event handler is assigned here because xmlHttp is a free variable
+		// implicitly passed to the anonymous function without polluting the
+		// global namespace.
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState !== 4 || xmlHttp.status !== 200)
+				return;
+			var image = document.getElementById('imageForSave');
+			image.src = "data:image/png;base64," + xmlHttp.responseText;
+		};
+		xmlHttp.open("POST", "phplib/image.php?base64=1", true);
+		xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		var request = "&drawdata=" + encodeURI(document.getElementById("drawdata").value);
+		xmlHttp.send(request);
+	}
+}
