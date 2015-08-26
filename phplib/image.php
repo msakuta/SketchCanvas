@@ -115,6 +115,12 @@ function l_tarrow($im, $arr, $color) {
 	imageline($im, $arr[0][0], $arr[0][1], $arr[0][0]-$c[1][0], $arr[0][1]-$c[1][1], $color);
 }
 
+function l_hige($im, $arr, $color) {
+	$c = l_vec($arr, 6);
+	imageline($im, $arr[1][0]-$c[0][0], $arr[1][1]-$c[0][1], $arr[1][0], $arr[1][1], $color);
+	imageline($im, $arr[1][0]-$c[1][0], $arr[1][1]-$c[1][1], $arr[1][0], $arr[1][1], $color);
+}
+
 // draw star
 function l_star($im, $arr, $color) {
 	$x = $arr[0][0];
@@ -166,11 +172,33 @@ function colorSelect($im, $value){
 	return $c;
 }
 
-class Shape{
+/// Length of 2-D vector
+function veclen($a){
+	return sqrt($a[0] * $a[0] + $a[1] * $a[1]);
+}
 
-	public function draw(){
+/// Subtraction of 2-D vectors
+function vecsub($a, $b){
+	return array($a[0] - $b[0], $a[1] - $b[1]);
+}
 
-	}
+/// Distance of 2-D vectors
+function vecdist($a, $b){
+	return veclen(vecsub($a, $b));
+}
+
+/// Returns dividing point of line between $a and $b that divide
+/// the line by $t and 1 - $t.
+function midPoint($a, $b, $t){
+	return array($a[0] * (1. - $t) + $b[0] * $t,
+		$a[1] * (1. - $t) + $b[1] * $t);
+}
+
+/// Obtain coordinates of a point on a quadratic bezier curve.
+function quadraticBezierPoint($a, $b, $c, $t){
+	$ab = midPoint($a, $b, $t);
+	$bc = midPoint($b, $c, $t);
+	return midPoint($ab, $bc, $t);
 }
 
 try{
@@ -209,6 +237,36 @@ try{
 						l_arrow($im, $pts, $c);
 					else if($value["type"] === "barrow")
 						l_tarrow($im, $pts, $c);
+					break;
+				case 'arc':
+				case 'arcarrow':
+				case 'arcbarrow':
+					// We emulate HTML5 Canvas's Context2D.quadraticCurveTo(),
+					// which is really an implementation of quadratic Bezier curve.
+					// Bezier curves are very easy to implement. See:
+					// https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+					$pts = parsePointList($value["points"]);
+
+					// The curve is actually made of line segments.
+					// We determine the number of segments here by first measuring
+					// the rough length of the whole shape.
+					$length = vecdist($pts[0], $pts[1])
+							+ vecdist($pts[1], $pts[2]);
+					$divs = ceil($length / 20.);
+					$prev = $pts[0];
+
+					$wid = isset($value["width"]) ? $value["width"] : 1;
+					imagesetthickness($im, $wid);
+					imageantialias($im, $wid === 1);
+					for($t = 0; $t <= $divs; $t++){
+						$p1 = quadraticBezierPoint($pts[0], $pts[1], $pts[2], $t / $divs);
+						imageline($im, $prev[0], $prev[1], $p1[0], $p1[1], $c);
+						$prev = $p1;
+					}
+					if($value["type"] === "arcarrow" || $value["type"] === "arcbarrow")
+						l_hige($im, array($pts[1], $pts[2]), $c);
+					if($value["type"] === "arcbarrow")
+						l_hige($im, array($pts[1], $pts[0]), $c);
 					break;
 				case 'star':
 					l_star($im, parsePointList($value["points"]), $c);
