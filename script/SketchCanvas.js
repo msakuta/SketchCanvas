@@ -214,6 +214,8 @@ function mouseLeftClick(e) {
 		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
+			if(mx < offset.x || my < offset.y)
+				return;
 			if(cur_tool.name === "delete"){ // delete
 				for(var i = 0; i < dobjs.length; i++){
 					// For the time being, we use the bounding boxes of the objects
@@ -612,6 +614,15 @@ function redraw(pt) {
 
 	clearCanvas();
 
+	// Clip the drawing region when in edit mode in order to prevent shapes from
+	// contaminate the menu bar and the toolbar.
+	if(editmode){
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(x1,y1, w1, h1);
+		ctx.clip();
+	}
+
 	if(gridEnable){
 		ctx.fillStyle = "#000";
 		for(var ix = Math.ceil(x1 / gridSize); ix < (x1 + w1) / gridSize; ix++){
@@ -696,6 +707,9 @@ function redraw(pt) {
 			ctx.stroke();
 		}
 	}
+
+	if(editmode)
+		ctx.restore();
 }
 
 
