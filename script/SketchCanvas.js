@@ -37,6 +37,7 @@ var selectobj = [];
 var handleSize = 4;
 var gridEnable = false;
 var gridSize = 8;
+var toolButtonInterval = 36;
 
 // Called at the end of the constructor
 function onload(){
@@ -66,6 +67,41 @@ function onload(){
 		ctx.setLineDash = function(){};
 	}
 
+	var aw = 20; // Arrow width
+
+	// Previous toolbar page button
+	buttons.push(new Button(mx0, my0, mx0 + aw, my0 + mh0, function(){
+		ctx.fillStyle = 'rgb(127,127,127)';
+		ctx.beginPath();
+		ctx.moveTo(mx0, my0 + mh0 / 2);
+		ctx.lineTo(mx0 + aw, my0);
+		ctx.lineTo(mx0 + aw, my0 + mh0);
+		ctx.closePath();
+		ctx.fill();
+	}, function(){
+		debug("clicked left");
+		toolbarPage = Math.max(toolbarPage - 1, 0);
+		toolbar = toolbars[toolbarPage];
+		cur_tool = toolbar[0];
+		draw();
+	}));
+
+	// Next toolbar page button
+	buttons.push(new Button(mx0 + mw0 - aw, my0, mx0 + mw0, my0 + mh0, function(){
+		ctx.beginPath();
+		ctx.moveTo(mx0 + mw0, my0 + mh0 / 2);
+		ctx.lineTo(mx0 + mw0 - aw, my0);
+		ctx.lineTo(mx0 + mw0 - aw, my0 + mh0);
+		ctx.closePath();
+		ctx.fill();
+	}, function(){
+		debug("clicked right");
+		toolbarPage = Math.min(toolbarPage + 1, toolbars.length-1);
+		toolbar = toolbars[toolbarPage];
+		cur_tool = toolbar[0];
+		draw();
+	}));
+
   resizeCanvas();
   draw();
 
@@ -81,21 +117,32 @@ var datadir = "data";
 function draw() {
 	if(!editmode)
 		return;
-  // Draw a rectangle
-  ctx.beginPath();
-  ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
+	// Draw a rectangle
+	ctx.beginPath();
+	ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
 		ctx.font = i18n.t("14px 'Courier'");
-  ctx.strokeText('SketchCanvas Editor v0.1.2', 420, 10);
-  ctx.rect(x0, y0, w0, h0);
-  ctx.rect(x1, y1, w1, h1);
-  ctx.closePath();
-  ctx.stroke();
+	ctx.strokeText('SketchCanvas Editor v0.1.2', 420, 10);
+	ctx.rect(x0, y0, w0, h0);
+	ctx.rect(x1, y1, w1, h1);
+	ctx.closePath();
+	ctx.stroke();
 
-  // menu
-  drawMenu();
-  drawTBox();
-  drawCBox(cur_col);
-  drawHBox(cur_thin);
+	// Background for the page text
+	ctx.fillStyle = 'rgb(255,255,255)';
+	ctx.fillRect(x0 + 1, y0 + 1, x1 - 2, y0 + h0 - 2);
+
+	// Text indicating current toolbar page
+	ctx.fillStyle = 'rgb(0,0,0)';
+	var text = (toolbarPage + 1) + "/" + (toolbars.length);
+	var width = ctx.measureText(text).width;
+	ctx.fillText(text, mx0 + mw0 / 2 - width / 2, my0 + mh0 / 2);
+
+	// menu
+	drawMenu();
+	drawTBox();
+	drawButtons();
+	drawCBox(cur_col);
+	drawHBox(cur_thin);
 }
 
 // draw coord(for Debug)
@@ -116,14 +163,24 @@ function drawMenu() {
 
 // Tool Box
 function drawTBox() {
+	ctx.fillStyle = 'rgb(255,255,255)';
+	ctx.fillRect(x0 + 1, my0 + mh0 + 1, x1 - 2, my0 + h0 - 2);
+
 	for(var i=0;i<toolbar.length;i++) {
 		if (cur_tool === toolbar[i])
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
 			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
-		ctx.fillRect(mx0, my0+36*i, mw0, mh0);
+		ctx.fillRect(mx0, my0 + toolButtonInterval + toolButtonInterval*i, mw0, mh0);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
-		drawParts(toolbar[i], mx0+10, my0+10+(mh0+8)*i);
+		drawParts(toolbar[i], mx0+10, my0 + toolButtonInterval + 10 + (mh0+8)*i);
+	}
+}
+
+function drawButtons(){
+	for(var i = 0; i < buttons.length; i++){
+		if("ondraw" in buttons[i])
+			buttons[i].ondraw();
 	}
 }
 
@@ -211,6 +268,14 @@ function mouseLeftClick(e) {
 		var clrect = canvas.getBoundingClientRect();
 		var mx = e.clientX - clrect.left;
 		var my = e.clientY - clrect.top;
+
+		for(var i = 0; i < buttons.length; i++){
+			if(hitRect(buttons[i], mx, my)){
+				buttons[i].onclick();
+				return;
+			}
+		}
+
 		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
@@ -1048,7 +1113,7 @@ function choiceTBox(x, y) {
 	// ToolBox
 	if (x < mx0 || x > mx0+mw0) return -1;
 	for(var i=0;i<17;i++) {
-		if (y >= my0+(mh0+8)*i && y <= my0+mh0+(mh0+8)*i) return i+10;
+		if (y >= my0+mh0+(mh0+8)*i && y <= my0+mh0*2+(mh0+8)*i) return i+10;
 	}
 	
 	return -1;
@@ -1255,6 +1320,20 @@ function debug(msg) {
 		options.debug(msg);
 }
 
+// ==================== Button class definition ================================= //
+/// An abstract button class.
+/// SVG or canvas graphics libraries like EaselJS would do this sort of thing
+/// much better, but I don't feel like to port to it at once.
+function Button(minx, miny, maxx, maxy, ondraw, onclick){
+	this.minx = minx;
+	this.miny = miny;
+	this.maxx = maxx;
+	this.maxy = maxy;
+	this.ondraw = ondraw;
+	this.onclick = onclick;
+}
+
+// ==================== Menu class definition ================================= //
 function MenuItem(text, onclick){
 	this.text = i18n.t(text);
 	this.onclick = onclick;
@@ -1343,6 +1422,8 @@ var menus = [
 		document.getElementById('sizeinputy').value = metaObj.size[1];
 	}), // size
 ];
+
+var buttons = [];
 
 
 // ==================== Tool class definition ================================= //
@@ -1680,22 +1761,6 @@ var toolbar = [
 			l_check(ctx, arr);
 		}
 	}),
-	new Tool("done", 1, {objctor: PointShape,
-		drawTool: function(x, y){
-			ctx.beginPath();
-			ctx.strokeText(i18n.t('Done'), x+3, y+10);
-			ctx.beginPath();
-			ctx.arc(x+9, y+5, 8, 0, 6.28, false);
-			ctx.stroke();
-			ctx.strokeText('1', x+45, y+10);
-		},
-		setWidth: nop,
-		draw: function(obj){
-			var arr = obj.points;
-			ctx.beginPath();
-			l_complete(ctx, arr);
-		}
-	}),
 	new Tool("text", 1, {objctor: TextShape,
 		drawTool: function(x, y){
 			ctx.beginPath();
@@ -1819,19 +1884,42 @@ var toolbar = [
 //				idx = 0;
 			return true; // Skip registration
 		}
-	}),
-	new Tool("delete", 1, {
-		drawTool: function(x, y){
-			ctx.beginPath();
-			ctx.moveTo(x, y);
-			ctx.lineTo(x+10, y+10);
-			ctx.moveTo(x, y+10);
-			ctx.lineTo(x+10, y);
-			ctx.stroke();
-			ctx.strokeText('1', x+45, y+10);
-		}
-	}),
+	})
 ];
+
+var toolbars = [toolbar,
+	[
+		new Tool("delete", 1, {
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.lineTo(x+10, y+10);
+				ctx.moveTo(x, y+10);
+				ctx.lineTo(x+10, y);
+				ctx.stroke();
+				ctx.strokeText('1', x+45, y+10);
+			}
+		}),
+		new Tool("done", 1, {objctor: PointShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.strokeText(i18n.t('Done'), x+3, y+10);
+				ctx.beginPath();
+				ctx.arc(x+9, y+5, 8, 0, 6.28, false);
+				ctx.stroke();
+				ctx.strokeText('1', x+45, y+10);
+			},
+			setWidth: nop,
+			draw: function(obj){
+				var arr = obj.points;
+				ctx.beginPath();
+				l_complete(ctx, arr);
+			}
+		}),
+	]
+];
+var toolbarPage = 0;
+
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
 var blue = "rgb(0, 100, 255)";
