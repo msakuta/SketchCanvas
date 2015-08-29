@@ -85,7 +85,7 @@ function draw() {
   ctx.beginPath();
   ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
 		ctx.font = i18n.t("14px 'Courier'");
-  ctx.strokeText('SketchCanvas Editor v0.1.1', 420, 10);
+  ctx.strokeText('SketchCanvas Editor v0.1.2', 420, 10);
   ctx.rect(x0, y0, w0, h0);
   ctx.rect(x1, y1, w1, h1);
   ctx.closePath();
@@ -500,7 +500,7 @@ function draw_point(x, y) {
 
 // A local function to set font size with the global scaling factor in mind.
 function setFont(baseSize) {
-	ctx.font = baseSize + 'px ' + i18n.t("'Helvetica'");
+	ctx.font = baseSize + "px 'Noto Sans Japanese', sans-serif";
 }
 
 // Registers array as a Shape
@@ -1123,29 +1123,7 @@ function ajaxundo() {
 	redraw(dobjs);
 }
 
-// Create and return a XMLHttpRequest object or ActiveXObject for IE6-
-function createXMLHttpRequest(){
-	var xmlHttp = null;
-	try{
-		// for IE7+, Fireforx, Chrome, Opera, Safari
-		xmlHttp = new XMLHttpRequest();
-	}
-	catch(e){
-		try{
-			// for IE6, IE5 (canvas element wouldn't work from the start, though)
-			xmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
-		}
-		catch(e){
-			try{
-				xmlHttp = new ActiveXObject("Microsoft.XMLHttp");
-			}
-			catch(e){
-				return null;
-			}
-		}
-	}
-	return xmlHttp;
-}
+var createXMLHttpRequest = this.createXMLHttpRequest;
 
 /// @brief Posts a sketch data to the server
 /// @param fname The file name of the added sketch.
@@ -1771,5 +1749,29 @@ var metaObj = cloneObject(defaultMetaObj);
 var self = this;
 
 onload();
+}
+
+// Create and return a XMLHttpRequest object or ActiveXObject for IE6-
+SketchCanvas.prototype.createXMLHttpRequest = function(){
+	var xmlHttp = null;
+	try{
+		// for IE7+, Fireforx, Chrome, Opera, Safari
+		xmlHttp = new XMLHttpRequest();
+	}
+	catch(e){
+		try{
+			// for IE6, IE5 (canvas element wouldn't work from the start, though)
+			xmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
+		}
+		catch(e){
+			try{
+				xmlHttp = new ActiveXObject("Microsoft.XMLHttp");
+			}
+			catch(e){
+				return null;
+			}
+		}
+	}
+	return xmlHttp;
 }
 
