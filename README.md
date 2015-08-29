@@ -85,3 +85,16 @@ The source looks like this:
   width: 2
 
 ~~~
+
+## Server-side SketchCanvas renderer
+
+SketchCanvas documents can be rendered in the server if the server
+has a PHP running with GD extension.
+You have to download a file named "NotoSansCJKjp-Regular.otf" from
+the URL below and place it under "phplib" directory in the server
+in order to enable this feature.
+
+https://noto-website.storage.googleapis.com/pkgs/NotoSansCJKJP-hinted.zip
+
+This feature can be used to embed sketches into a PDF in conjunction with
+DokuWiki's dw2pdf plugin.
