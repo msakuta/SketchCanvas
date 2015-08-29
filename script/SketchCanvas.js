@@ -240,7 +240,7 @@ function mouseLeftClick(e) {
 				return;
 			}
 			else if(cur_tool.name !== "select")
-				draw_point(mx, my);
+				cur_tool.appendPoint(mx, my);
 		}
 		else if (menuno < 10) {
 			drawMenu();
@@ -249,7 +249,7 @@ function mouseLeftClick(e) {
 		else if (menuno <= 30) {
 			cur_tool = toolbar[menuno - 10];
 			drawTBox();
-			idx = 0;
+			cur_shape = null;
 		}
 		else if (menuno <= 40) {
 			drawCBox(menuno);
@@ -375,10 +375,15 @@ function mouseUp(e){
 }
 
 function mouseMove(e){
-	if(cur_tool === toolmap.select && 0 < selectobj.length){
+	var mx, my;
+	function getMouse(){
 		var clrect = canvas.getBoundingClientRect();
-		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
-		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+		mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+		my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+	}
+
+	if(cur_tool === toolmap.select && 0 < selectobj.length){
+		getMouse();
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
@@ -430,9 +435,7 @@ function mouseMove(e){
 	// We could use e.buttons to check if it's supported by all the browsers,
 	// but it seems not much trusty.
 	if(cur_tool === toolmap.select && !moving && !sizing && boxselecting){
-		var clrect = canvas.getBoundingClientRect();
-		var mx = e.clientX - clrect.left;
-		var my = e.clientY - clrect.top;
+		getMouse();
 		dragend = [mx, my];
 		var box = {
 			minx: Math.min(dragstart[0], mx),
@@ -447,6 +450,13 @@ function mouseMove(e){
 			if(intersectRect(bounds, box))
 				selectobj.push(dobjs[i]);
 		}
+		redraw(dobjs);
+	}
+	else if(cur_shape && 0 < cur_shape.points.length){
+		// Live preview of the shape being added.
+		getMouse();
+		var coord = {x: mx, y: my};
+		cur_shape.points[cur_shape.points.length-1] = canvasToSrc(constrainCoord(coord));
 		redraw(dobjs);
 	}
 }
@@ -478,24 +488,18 @@ function keyDown(e){
 	}
 }
 
-// draw one click
-function draw_point(x, y) {
-	debug('idx='+idx+',x='+x+',y='+y);
-	var coord;
+/// Constrain coordinate values if the grid is enabled.
+function constrainCoord(coord){
 	if(gridEnable)
-		coord = { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
+		return { x: Math.round(coord.x / gridSize) * gridSize, y: Math.round(coord.y / gridSize) * gridSize };
 	else
-		coord = { x:x, y:y };
-	arr[idx] = { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
-	idx++;
-	if (idx == cur_tool.points){
-		ctx.save();
-		// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
-		ctx.translate(offset.x, offset.y);
-		ctx.scale(scale, scale);
-		drawCanvas(0, null);
-		ctx.restore();
-	}
+		return { x: coord.x, y: coord.y };
+}
+
+/// Convert canvas coordinates to the source coordinates.
+/// These coordinates can differ when offset is not zero.
+function canvasToSrc(coord){
+	return { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
 }
 
 // A local function to set font size with the global scaling factor in mind.
@@ -503,40 +507,16 @@ function setFont(baseSize) {
 	ctx.font = baseSize + "px 'Noto Sans Japanese', sans-serif";
 }
 
-// Registers array as a Shape
-function register(arr, numPoints, str){
-	// Ignore select tool events
-	if(cur_tool.name === "select")
-		return;
-	var dat = new cur_tool.objctor();
-	dat.tool = cur_tool.name;
-	dat.color = cur_col;
-	dat.width = cur_thin;
-	dat.points = Array(numPoints);
-	for(var i = 0; i < numPoints; i++)
-		dat.points[i] = {x: arr[i].x, y: arr[i].y};
-	// Values with defaults needs not assigned a value when saved.
-	// This will save space if the drawn element properties use many default values.
-	if ("text" === cur_tool.name) dat.text = str;
-	ajaxparts(dat);
-}
+/// Draw a shape on the canvas.
+function drawCanvas(obj) {
+	var tool = toolmap[obj.tool];
+	var numPoints = tool.points;
 
-// draw parts
-function drawCanvas(mode, str) {
-	// DEBUG
-	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
-	var numPoints = cur_tool.points;
-
-	cur_tool.setColor(coltable[cur_col]);
-	cur_tool.setWidth(cur_thin);
-	if(cur_tool.draw(mode, str))
-		return;
-
-	if (0 == mode)
-		register(arr, numPoints, str);
-	// clear
-	idx = 0;
-	
+	tool.setColor(coltable[obj.color]);
+	tool.setWidth(obj.width);
+	if(numPoints <= obj.points.length)
+		if(tool.draw(obj))
+			return;
 }
 
 function getHandleRect(bounds, i){
@@ -591,26 +571,16 @@ function redraw(pt) {
 		}
 	}
 
-	// backup
-	var org_tool = cur_tool;
-	var org_col = cur_col;
-	var org_thin = cur_thin;
-//	var pt = str.split(",");
-
 	// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
 	ctx.save();
 	ctx.translate(offset.x, offset.y);
 	ctx.scale(scale, scale);
-	for (var i=0; i<pt.length; i++) {
-		var obj = pt[i];
-		cur_tool = toolmap[obj.tool];
-		cur_col = obj.color;
-		cur_thin = obj.width;
-		arr = cloneObject(obj.points);
-		var rstr = null;
-		if ("text" === cur_tool.name) rstr = obj.text;
-		drawCanvas(1, rstr);
-	}
+	for (var i=0; i<pt.length; i++)
+		drawCanvas(pt[i]);
+
+	if(cur_shape)
+		drawCanvas(cur_shape);
+
 	ctx.restore();
 
 	if(boxselecting){
@@ -643,11 +613,6 @@ function redraw(pt) {
 		}
 		ctx.stroke();
 	}
-
-	// restore tools
-	cur_tool = org_tool;
-	cur_col = org_col;
-	cur_thin = org_thin;
 }
 
 
@@ -759,7 +724,7 @@ TextShape.prototype.isSizeable = function(){
 }
 
 TextShape.prototype.getBoundingRect = function(){
-	var height = this.width === 1 ? 14 : this.width === 16 ? 2 : 20;
+	var height = this.width === 1 ? 14 : this.width === 2 ? 16 : 20;
 	var oldfont = ctx.font;
 	ctx.font = setFont(height);
 	var width = ctx.measureText(this.text).width;
@@ -946,8 +911,6 @@ function clearCanvas() {
 	}
 	ctx.fillStyle = white;
 	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
-	idx = 0;
-	zorder = 0;
 }
 
 // Sets the size of the canvas
@@ -1087,13 +1050,6 @@ function cloneObject(obj) {
 	return temp;
 }
 
-// Update dobjs
-function ajaxparts(str) {
-	dhistory.push(cloneObject(dobjs));
-	dobjs.push(str);
-	updateDrawData();
-}
-
 function updateDrawData(){
 	try{
 		var text = jsyaml.safeDump(serialize(dobjs), {flowLevel: 2});
@@ -1210,8 +1166,6 @@ function MenuItem(text, onclick){
 // init --------------------------------------------------
 //window.captureEvents(Event.click);
 //onclick=mouseLeftClick;
-var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
-var idx = 0, zorder = 0;
 var ctx;
 var menus = [
 	new MenuItem("Grid", function(){
@@ -1316,6 +1270,7 @@ function Tool(name, points, params){
 	if(params && params.setColor) this.setColor = params.setColor;
 	if(params && params.setWidth) this.setWidth = params.setWidth;
 	if(params && params.draw) this.draw = params.draw;
+	if(params && params.appendPoint) this.appendPoint = params.appendPoint;
 	toolmap[name] = this;
 }
 
@@ -1334,6 +1289,39 @@ Tool.prototype.setWidth = function(width){
 function nop(){}
 
 Tool.prototype.draw = nop;
+
+/// Append a point to the shape by mouse click
+Tool.prototype.appendPoint = function(x, y) {
+	function addPoint(x, y){
+		if (cur_shape.points.length === cur_tool.points){
+			dhistory.push(cloneObject(dobjs));
+			dobjs.push(cur_shape);
+			updateDrawData();
+			cur_shape = null;
+			redraw(dobjs);
+			return true;
+		}
+		else{
+			cur_shape.points.push(canvasToSrc(constrainCoord({x:x, y:y})));
+			return false;
+		}
+	}
+
+	if(!cur_shape){
+		var obj = new cur_tool.objctor();
+		obj.tool = cur_tool.name;
+		obj.color = cur_col;
+		obj.width = cur_thin;
+		cur_shape = obj;
+		// Add two points for previewing shapes that consist of multiple points,
+		// but single-point shapes will finish with just single click.
+		if(!addPoint(x, y))
+			addPoint(x, y);
+	}
+	else{
+		addPoint(x, y);
+	}
+}
 
 // ==================== Tool class definition end ============================= //
 
@@ -1361,7 +1349,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.lineTo(arr[1].x, arr[1].y);
@@ -1375,7 +1364,8 @@ var toolbar = [
 			l_arrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_arrow(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1387,7 +1377,8 @@ var toolbar = [
 			l_tarrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_tarrow(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1406,7 +1397,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_darrow(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1420,7 +1412,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('3', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -1436,7 +1429,8 @@ var toolbar = [
 			l_hige(ctx, [{x:x+20, y:y+20}, {x:x+40, y:y}]);
 			ctx.strokeText('3', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -1456,7 +1450,8 @@ var toolbar = [
 			l_hige(ctx, a);
 			ctx.strokeText('3', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -1476,7 +1471,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 			ctx.stroke();
@@ -1492,7 +1488,8 @@ var toolbar = [
 			ctx.scale(1.0, 2.0);
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_elipse(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1507,7 +1504,8 @@ var toolbar = [
 		},
 		setColor: setColorFill,
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.fillRect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		}
@@ -1523,7 +1521,8 @@ var toolbar = [
 		},
 		setColor: setColorFill,
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_elipsef(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1541,7 +1540,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			//ctx.lineWidth = cur_thin - 40;
 			l_star(ctx, arr);
@@ -1558,7 +1558,8 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_check(ctx, arr);
 		}
@@ -1573,7 +1574,8 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_complete(ctx, arr);
 		}
@@ -1585,117 +1587,121 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setColor: setColorFill,
-		draw: function(mode, str){
-			function setText(str, x, y){
-				if (null == str) {		// cancel
-					idx = 0;
-					return;
-				}
-				ctx.beginPath();
-				if (1 == cur_thin) setFont(14);
-				else if (2 == cur_thin) setFont(16);
-				else setFont(20);
-				ctx.fillText(str, x, y);
-				ctx.font = setFont(14);
-			};
+		draw: function(obj){
+			var str = obj.text;
+			if (null == str) {		// cancel
+//					idx = 0;
+				return;
+			}
+			ctx.beginPath();
+			if (1 == obj.width) setFont(14);
+			else if (2 == obj.width) setFont(16);
+			else setFont(20);
+			ctx.fillText(str, obj.points[0].x, obj.points[0].y);
+			ctx.font = setFont(14);
+		},
+		appendPoint: function(x, y){
+			var textTool = this;
+			// Show size input layer on top of the canvas because the canvas cannot have
+			// a text input element.
+			if(!textLayer){
+				textLayer = document.createElement('div');
+				// Create field for remembering position of text being inserted.
+				// Free variables won't work well.
+				textLayer.canvasPos = {x:0, y:0};
+				var lay = textLayer;
+				lay.id = 'textLayer';
+				lay.style.position = 'absolute';
+				lay.style.padding = '5px 5px 5px 5px';
+				lay.style.borderStyle = 'solid';
+				lay.style.borderColor = '#cf0000';
+				lay.style.borderWidth = '2px';
+				// Drop shadow to make it distinguishable from the figure contents.
+				lay.style.boxShadow = '0px 0px 20px grey';
+				lay.style.background = '#cfffcf';
 
-			if (0 == mode) {
-				// Show size input layer on top of the canvas because the canvas cannot have
-				// a text input element.
-				if(!textLayer){
-					textLayer = document.createElement('div');
-					// Create field for remembering position of text being inserted.
-					// Free variables won't work well.
-					textLayer.canvasPos = {x:0, y:0};
-					var lay = textLayer;
-					lay.id = 'textLayer';
-					lay.style.position = 'absolute';
-					lay.style.padding = '5px 5px 5px 5px';
-					lay.style.borderStyle = 'solid';
-					lay.style.borderColor = '#cf0000';
-					lay.style.borderWidth = '2px';
-					// Drop shadow to make it distinguishable from the figure contents.
-					lay.style.boxShadow = '0px 0px 20px grey';
-					lay.style.background = '#cfffcf';
+				// Create and assign the input element to a field of the textLayer object
+				// to keep track of the input element after this function is exited.
+				lay.textInput = document.createElement('input');
+				lay.textInput.id = "textinput";
+				lay.textInput.type = "text";
+				lay.textInput.onkeyup = function(e){
+					// Convert enter key event to OK button click
+					if(e.keyCode === 13)
+						okbutton.onclick();
+				};
+				lay.appendChild(lay.textInput);
 
-					// Create and assign the input element to a field of the textLayer object
-					// to keep track of the input element after this function is exited.
-					lay.textInput = document.createElement('input');
-					lay.textInput.id = "textinput";
-					lay.textInput.type = "text";
-					lay.textInput.onkeyup = function(e){
-						// Convert enter key event to OK button click
-						if(e.keyCode === 13)
-							okbutton.onclick();
-					};
-					lay.appendChild(lay.textInput);
-
-					var okbutton = document.createElement('input');
-					okbutton.type = 'button';
-					okbutton.value = 'OK';
-					okbutton.onclick = function(e){
-						lay.style.display = 'none';
-						// Ignore blank text
-						if(lay.textInput.value == '')
-							return;
-						// If a shape is clicked, alter its value instead of adding a new one.
-						if(lay.dobj){
-							dhistory.push(cloneObject(dobjs));
-							lay.dobj.text = lay.textInput.value;
-						}
-						else
-							register([lay.canvasPos], 1, lay.textInput.value);
-						updateDrawData();
-						redraw(dobjs);
+				var okbutton = document.createElement('input');
+				okbutton.type = 'button';
+				okbutton.value = 'OK';
+				okbutton.onclick = function(e){
+					lay.style.display = 'none';
+					// Ignore blank text
+					if(lay.textInput.value == '')
+						return;
+					dhistory.push(cloneObject(dobjs));
+					// If a shape is clicked, alter its value instead of adding a new one.
+					if(lay.dobj){
+						lay.dobj.text = lay.textInput.value;
 					}
-					var cancelbutton = document.createElement('input');
-					cancelbutton.type = 'button';
-					cancelbutton.value = 'Cancel';
-					cancelbutton.onclick = function(s){
-						lay.style.display = 'none';
+					else{
+						var obj = new textTool.objctor();
+						obj.tool = cur_tool.name;
+						obj.color = cur_col;
+						obj.width = cur_thin;
+						obj.points.push({x: lay.canvasPos.x, y: lay.canvasPos.y});
+						obj.text = lay.textInput.value;
+						dobjs.push(obj);
 					}
-					lay.appendChild(document.createElement('br'));
-					lay.appendChild(okbutton);
-					lay.appendChild(cancelbutton);
-					// Append as the body element's child because style.position = "absolute" would
-					// screw up in deeply nested DOM tree (which may have a positioned ancestor).
-					document.body.appendChild(lay);
+					updateDrawData();
+					redraw(dobjs);
 				}
-				else
-					textLayer.style.display = 'block';
-
-				textLayer.canvasPos.x = arr[0].x;
-				textLayer.canvasPos.y = arr[0].y;
-
-				// Find if any TextShape is under the mouse cursor.
-				textLayer.dobj = null;
-				textLayer.textInput.value = "";
-				for (var i = 0; i < dobjs.length; i++) {
-					if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), arr[0].x, arr[0].y)){
-						textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
-						textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
-						break;
-					}
+				var cancelbutton = document.createElement('input');
+				cancelbutton.type = 'button';
+				cancelbutton.value = 'Cancel';
+				cancelbutton.onclick = function(s){
+					lay.style.display = 'none';
 				}
-
-				var canvasRect = canvas.getBoundingClientRect();
-				// Cross-browser scroll position query
-				var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
-				var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
-				// getBoundingClientRect() returns coordinates relative to view, which means we have to
-				// add scroll position into them.
-				textLayer.style.left = (canvasRect.left + scrollX + offset.x + arr[0].x) + 'px';
-				textLayer.style.top = (canvasRect.top + scrollY + offset.y + arr[0].y) + 'px';
-				// focus() should be called after textLayer is positioned, otherwise the page may
-				// unexpectedly scroll to somewhere.
-				textLayer.textInput.focus();
-
-				// Reset the point buffer
-				idx = 0;
-				return true; // Skip registration
+				lay.appendChild(document.createElement('br'));
+				lay.appendChild(okbutton);
+				lay.appendChild(cancelbutton);
+				// Append as the body element's child because style.position = "absolute" would
+				// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+				document.body.appendChild(lay);
 			}
 			else
-				setText(str, arr[0].x, arr[0].y);
+				textLayer.style.display = 'block';
+			var coord = canvasToSrc(constrainCoord({x:x, y:y}));
+			textLayer.canvasPos.x = coord.x;
+			textLayer.canvasPos.y = coord.y;
+
+			// Find if any TextShape is under the mouse cursor.
+			textLayer.dobj = null;
+			textLayer.textInput.value = "";
+			for (var i = 0; i < dobjs.length; i++) {
+				if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), coord.x, coord.y)){
+					textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
+					textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
+					break;
+				}
+			}
+
+			var canvasRect = canvas.getBoundingClientRect();
+			// Cross-browser scroll position query
+			var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+			var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+			// getBoundingClientRect() returns coordinates relative to view, which means we have to
+			// add scroll position into them.
+			textLayer.style.left = (canvasRect.left + scrollX + offset.x + coord.x) + 'px';
+			textLayer.style.top = (canvasRect.top + scrollY + offset.y + coord.y) + 'px';
+			// focus() should be called after textLayer is positioned, otherwise the page may
+			// unexpectedly scroll to somewhere.
+			textLayer.textInput.focus();
+
+			// Reset the point buffer
+//				idx = 0;
+			return true; // Skip registration
 		}
 	}),
 	new Tool("delete", 1, {
@@ -1724,6 +1730,7 @@ var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
 var cur_tool = toolmap.select, cur_col = "black", cur_thin = 1;
+var cur_shape = null;
 var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
 
 // The layer to show input controls for width and height sizes of the figure.
