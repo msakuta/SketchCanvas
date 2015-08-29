@@ -239,7 +239,7 @@ function mouseLeftClick(e) {
 				}
 				return;
 			}
-			else if(cur_tool.name !== "select")
+			else if(cur_tool.name !== "select" && cur_tool.name !== "pathedit")
 				cur_tool.appendPoint(mx, my);
 		}
 		else if (menuno < 10) {
@@ -250,6 +250,7 @@ function mouseLeftClick(e) {
 			cur_tool = toolbar[menuno - 10];
 			drawTBox();
 			cur_shape = null;
+			redraw(dobjs);
 		}
 		else if (menuno <= 40) {
 			drawCBox(menuno);
@@ -291,12 +292,41 @@ var dragend = [0,0];
 var moving = false;
 var sizing = null; // Reference to object being resized. Null if no resizing is in progress.
 var sizedir = 0;
+var pointMoving = null;
+var pointMovingIdx = 0;
 var boxselecting = false;
 function mouseDown(e){
-	if(cur_tool === toolmap.select){
+	var mx, my;
+	function getMouse(){
 		var clrect = canvas.getBoundingClientRect();
-		var mx = e.clientX - clrect.left;
-		var my = e.clientY - clrect.top;
+		mx = e.clientX - clrect.left;
+		my = e.clientY - clrect.top;
+	}
+
+	// Prioritize path editing over shape selection.
+	if(cur_tool === toolmap.pathedit){
+		getMouse();
+		// Check to see if we are dragging any of control points.
+		for(var n = 0; n < selectobj.length; n++){
+			// Do not try to change shape of non-sizeable object.
+			if(!selectobj[n].isSizeable())
+				continue;
+			// Grab a control point uder the mouse cursor to move it.
+			for(var i = 0; i < selectobj[n].points.length; i++){
+				var p = selectobj[n].points[i];
+				if(hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y)){
+					pointMoving = selectobj[n];
+					pointMovingIdx = i;
+					dhistory.push(cloneObject(dobjs));
+					return;
+				}
+			}
+		}
+	}
+
+	// The pathedit tool can select objects, not to mention the select tool.
+	if(cur_tool === toolmap.select || cur_tool === toolmap.pathedit){
+		getMouse();
 		var menuno = checkMenu(mx, my);
 		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
 			return;
@@ -325,7 +355,11 @@ function mouseDown(e){
 			}
 		}
 		redraw(dobjs);
+	}
 
+	// Enter sizing, moving or box-selecting mode only with select tool.
+	// The pathedit tool should not bother interfering with these modes.
+	if(cur_tool === toolmap.select){
 		// Check to see if we are dragging any of scaling handles.
 		for(var n = 0; n < selectobj.length; n++){
 			// Do not try to change size of non-sizeable object.
@@ -363,11 +397,12 @@ function mouseDown(e){
 }
 
 function mouseUp(e){
-	if(cur_tool === toolmap.select && 0 < selectobj.length && (moving || sizing)){
+	if(cur_tool === toolmap.select && 0 < selectobj.length && (moving || sizing || pointMoving)){
 		updateDrawData();
 	}
 	moving = false;
 	sizing = null;
+	pointMoving = null;
 	var needsRedraw = boxselecting;
 	boxselecting = false;
 	if(needsRedraw) // Redraw to clear selection box
@@ -428,6 +463,16 @@ function mouseMove(e){
 				sizedir = [2,1,0,7,6,5,4,3][sizedir];
 			if(uy !== 0 && yscale < 0)
 				sizedir = [6,5,4,3,2,1,0,7][sizedir];
+			redraw(dobjs);
+		}
+	}
+	if(cur_tool === toolmap.pathedit && 0 < selectobj.length){
+		getMouse();
+		if(pointMoving){
+			mx -= offset.x;
+			my -= offset.y;
+			pointMoving.points[pointMovingIdx].x = mx;
+			pointMoving.points[pointMovingIdx].y = my;
 			redraw(dobjs);
 		}
 	}
@@ -532,6 +577,11 @@ function getHandleRect(bounds, i){
 	case 7: x = bounds.minx, y = (bounds.miny+bounds.maxy)/2; break;
 	default: return;
 	}
+	return pointHandle(x, y);
+}
+
+/// Returns a small rectangle surrounding the given point which is suitable for mouse-picking.
+function pointHandle(x, y){
 	return {minx: x - handleSize, miny: y - handleSize, maxx: x + handleSize, maxy: y + handleSize};
 }
 
@@ -595,23 +645,56 @@ function redraw(pt) {
 
 	for(var n = 0; n < selectobj.length; n++){
 		var bounds = objBounds(selectobj[n]);
-		ctx.beginPath();
-		ctx.lineWidth = 1;
-		ctx.strokeStyle = '#000';
-		ctx.setLineDash([5]);
-		ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
-		ctx.stroke();
-		ctx.setLineDash([]);
+		if(cur_tool === toolmap.pathedit){
+			// When pathedit tool is selected, draw handles on the shape's control points
+			// and the path that connecting control points, but not the
+			// bounding boxes and scaling handles, which could be annoying
+			// because they're nothing to do with path editing.
+			var pts = selectobj[n].points;
+			ctx.beginPath();
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000';
+			ctx.setLineDash([5]);
+			ctx.moveTo(pts[0].x + offset.x, pts[0].y + offset.y);
+			for(var i = 1; i < pts.length; i++)
+				ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
+			ctx.stroke();
+			ctx.setLineDash([]);
 
-		ctx.beginPath();
-		ctx.strokeStyle = '#000';
-		for(var i = 0; i < 8; i++){
-			var r = getHandleRect(bounds, i);
-			ctx.fillStyle = sizing === selectobj[n] && i === sizedir ? '#7fff7f' : '#ffff7f';
-			ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-			ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+			ctx.beginPath();
+			ctx.strokeStyle = '#000';
+			for(var i = 0; i < pts.length; i++){
+				var pt = pts[i];
+				var r = pointHandle(pt.x + offset.x, pt.y + offset.y);
+				ctx.fillStyle = '#7f7fff';
+				ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+			}
+			ctx.stroke();
 		}
-		ctx.stroke();
+		else{
+			// All other tools than the pathedit, draw scaling handles and
+			// bounding boxes around selected objects.
+			// Aside from the select tool, the user cannot grab the scaling handles,
+			// but they're useful to visually appeal that the object is selected.
+			ctx.beginPath();
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = '#000';
+			ctx.setLineDash([5]);
+			ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
+			ctx.stroke();
+			ctx.setLineDash([]);
+
+			ctx.beginPath();
+			ctx.strokeStyle = '#000';
+			for(var i = 0; i < 8; i++){
+				var r = getHandleRect(bounds, i);
+				ctx.fillStyle = sizing === selectobj[n] && i === sizedir ? '#7fff7f' : '#ffff7f';
+				ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+			}
+			ctx.stroke();
+		}
 	}
 }
 
@@ -1341,6 +1424,25 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
 		}}),
+	new Tool("pathedit", 1, {
+		// The path editing tool. This is especially useful when editing
+		// existing curves.  The icon is identical to that of select tool,
+		// except that the mouse cursor graphic is filled.
+		drawTool: function(x, y){
+			ctx.fillStyle = 'rgb(250, 250, 250)';
+			ctx.beginPath();
+			ctx.moveTo(x, y-5);
+			ctx.lineTo(x, y+10);
+			ctx.lineTo(x+4, y+7);
+			ctx.lineTo(x+6, y+11);
+			ctx.lineTo(x+8, y+9);
+			ctx.lineTo(x+6, y+5);
+			ctx.lineTo(x+10, y+3);
+			ctx.closePath();
+			ctx.fill();
+			ctx.strokeText('1', x+45, y+10);
+		}
+	}),
 	new Tool("line", 2, {
 		drawTool: function(x, y){
 			ctx.beginPath();
