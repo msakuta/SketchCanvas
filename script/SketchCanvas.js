@@ -361,29 +361,71 @@ var sizing = null; // Reference to object being resized. Null if no resizing is 
 var sizedir = 0;
 var pointMoving = null;
 var pointMovingIdx = 0;
+var pointMovingCP = ""; ///< Control point for moving, "": vertex, "c": first control point, "d": second control point
 var boxselecting = false;
 function mouseDown(e){
 	var mx, my;
-	function getMouse(){
-		var clrect = canvas.getBoundingClientRect();
-		mx = e.clientX - clrect.left;
-		my = e.clientY - clrect.top;
-	}
+	var clrect = canvas.getBoundingClientRect();
+	var mx = e.clientX - clrect.left;
+	var my = e.clientY - clrect.top;
 
 	// Prioritize path editing over shape selection.
 	if(cur_tool === toolmap.pathedit){
-		getMouse();
 		// Check to see if we are dragging any of control points.
 		for(var n = 0; n < selectobj.length; n++){
 			// Do not try to change shape of non-sizeable object.
 			if(!selectobj[n].isSizeable())
 				continue;
+			var pts = selectobj[n].points;
 			// Grab a control point uder the mouse cursor to move it.
-			for(var i = 0; i < selectobj[n].points.length; i++){
-				var p = selectobj[n].points[i];
-				if(hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y)){
+			for(var i = 0; i < pts.length; i++){
+				var p = pts[i];
+
+				// Function to check if we should start dragging one of vertices or
+				// control points.  Written as a local function to clarify logic.
+				function checkVertexHandle(){
+					if(!hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y))
+						return false;
+					// Check control points for only the "path" shapes.
+					// Pressing Ctrl key before dragging the handle pulls out the
+					// control point, even if the vertex didn't have one.
+					if(selectobj[n].tool === "path" && e.ctrlKey){
+						if(0 < i && !("dx" in p))
+							pointMovingCP = "d";
+						else if(i+1 < pts.length && !("cx" in pts[i+1])){
+							pointMovingCP = "c";
+							pointMoving = selectobj[n];
+							pointMovingIdx = i+1;
+							return true;
+						}
+						else
+							return false;
+					}
+					else
+						pointMovingCP = "";
 					pointMoving = selectobj[n];
 					pointMovingIdx = i;
+					dhistory.push(cloneObject(dobjs));
+					return true;
+				}
+
+				// do{ ... }while(false) statement could do a similar trick, but we prefer
+				// local functions for the ease of debugging and more concise expression.
+				if(checkVertexHandle())
+					return;
+
+				// Check for existing control points
+				if("cx" in p && "cy" in p && hitRect(pointHandle(p.cx, p.cy), mx - offset.x, my - offset.y)){
+					pointMoving = selectobj[n];
+					pointMovingIdx = i;
+					pointMovingCP = "c";
+					dhistory.push(cloneObject(dobjs));
+					return;
+				}
+				if("dx" in p && "dy" in p && hitRect(pointHandle(p.dx, p.dy), mx - offset.x, my - offset.y)){
+					pointMoving = selectobj[n];
+					pointMovingIdx = i;
+					pointMovingCP = "d";
 					dhistory.push(cloneObject(dobjs));
 					return;
 				}
@@ -393,7 +435,6 @@ function mouseDown(e){
 
 	// The pathedit tool can select objects, not to mention the select tool.
 	if(cur_tool === toolmap.select || cur_tool === toolmap.pathedit){
-		getMouse();
 		var menuno = checkMenu(mx, my);
 		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
 			return;
@@ -478,14 +519,11 @@ function mouseUp(e){
 
 function mouseMove(e){
 	var mx, my;
-	function getMouse(){
-		var clrect = canvas.getBoundingClientRect();
-		mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
-		my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
-	}
+	var clrect = canvas.getBoundingClientRect();
+	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
 
 	if(cur_tool === toolmap.select && 0 < selectobj.length){
-		getMouse();
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
@@ -534,12 +572,36 @@ function mouseMove(e){
 		}
 	}
 	if(cur_tool === toolmap.pathedit && 0 < selectobj.length){
-		getMouse();
 		if(pointMoving){
 			mx -= offset.x;
 			my -= offset.y;
-			pointMoving.points[pointMovingIdx].x = mx;
-			pointMoving.points[pointMovingIdx].y = my;
+
+			// Relatively move a control point if it exists
+			function relmove(name, idx, dx, dy){
+				if(pointMovingIdx + idx < 0 || pointMoving.points.length <= pointMovingIdx + idx)
+					return;
+				var p1 = pointMoving.points[pointMovingIdx + idx];
+				if((name + "x") in p1) p1[name + "x"] += dx;
+				if((name + "y") in p1) p1[name + "y"] += dy;
+			}
+
+			if(pointMovingCP === ""){
+				// When moving a vertex, Bezier control points associated with that vertex
+				// should move as well.  We remember delta of position change and apply it
+				// to the control points later.
+				var dx = mx - pointMoving.points[pointMovingIdx].x;
+				var dy = my - pointMoving.points[pointMovingIdx].y;
+				pointMoving.points[pointMovingIdx].x = mx;
+				pointMoving.points[pointMovingIdx].y = my;
+				// If it's the last vertex, there's no control point toward the next vertex.
+				if(pointMovingIdx + 1 < pointMoving.points.length)
+					relmove("c", 1, dx, dy);
+				relmove("d", 0, dx, dy);
+			}
+			else{
+				pointMoving.points[pointMovingIdx][pointMovingCP + "x"] = mx;
+				pointMoving.points[pointMovingIdx][pointMovingCP + "y"] = my;
+			}
 			redraw(dobjs);
 		}
 	}
@@ -547,7 +609,6 @@ function mouseMove(e){
 	// We could use e.buttons to check if it's supported by all the browsers,
 	// but it seems not much trusty.
 	if(cur_tool === toolmap.select && !moving && !sizing && boxselecting){
-		getMouse();
 		dragend = [mx, my];
 		var box = {
 			minx: Math.min(dragstart[0], mx),
@@ -737,16 +798,41 @@ function redraw(pt) {
 			ctx.stroke();
 			ctx.setLineDash([]);
 
-			ctx.beginPath();
-			ctx.strokeStyle = '#000';
+			// Draw a handle rectangle around a vertex or a control point
+			function drawHandle(x, y, color){
+				var r = pointHandle(x, y);
+				ctx.fillStyle = color;
+				ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				ctx.beginPath();
+				ctx.strokeStyle = '#000';
+				ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				ctx.stroke();
+			}
+
+			// Draws dashed line that connects a control point and its associated vertex
+			function drawGuidingLine(pt0, name){
+				ctx.setLineDash([5]);
+				ctx.beginPath();
+				ctx.moveTo(pt0.x + offset.x, pt0.y + offset.y);
+				ctx.lineTo(pt[name + "x"] + offset.x, pt[name + "y"] + offset.y);
+				ctx.stroke();
+				ctx.setLineDash([]);
+			}
+
 			for(var i = 0; i < pts.length; i++){
 				var pt = pts[i];
-				var r = pointHandle(pt.x + offset.x, pt.y + offset.y);
-				ctx.fillStyle = '#7f7fff';
-				ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-				ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				drawHandle(pt.x + offset.x, pt.y + offset.y, '#7f7fff');
+
+				// Handles and guiding lines for the control points
+				if(0 < i && "cx" in pt && "cy" in pt){
+					drawHandle(pt.cx + offset.x, pt.cy + offset.y, '#ff7f7f');
+					drawGuidingLine(pts[i-1], "c");
+				}
+				if("dx" in pt && "dy" in pt){
+					drawHandle(pt.dx + offset.x, pt.dy + offset.y, '#ff7f7f');
+					drawGuidingLine(pt, "d");
+				}
 			}
-			ctx.stroke();
 		}
 		else{
 			// All other tools than the pathedit, draw scaling handles and
@@ -1889,6 +1975,8 @@ var toolbar = [
 
 var toolbars = [toolbar,
 	[
+		toolmap.select,
+		toolmap.pathedit,
 		new Tool("delete", 1, {
 			drawTool: function(x, y){
 				ctx.beginPath();
@@ -1916,6 +2004,69 @@ var toolbars = [toolbar,
 				l_complete(ctx, arr);
 			}
 		}),
+		new Tool("path", 2, {
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.bezierCurveTo(x+10, y+20, x+20, y-10, x+30, y+10);
+				ctx.stroke();
+				ctx.strokeText('n', x+45, y+10);
+			},
+			draw: function(obj){
+				var arr = obj.points;
+				if(arr.length < 2)
+					return;
+				ctx.beginPath();
+				ctx.moveTo(arr[0].x, arr[0].y);
+				for(var i = 1; i < arr.length; i++){
+					if("cx" in arr[i] && "cy" in arr[i]){
+						if("dx" in arr[i] && "dy" in arr[i])
+							ctx.bezierCurveTo(arr[i].cx, arr[i].cy, arr[i].dx, arr[i].dy, arr[i].x, arr[i].y);
+						else
+							ctx.bezierCurveTo(arr[i].cx, arr[i].cy, arr[i].x, arr[i].y, arr[i].x, arr[i].y);
+					}
+					else if("dx" in arr[i] && "dy" in arr[i])
+						ctx.bezierCurveTo(arr[i-1].x, arr[i-1].y, arr[i].dx, arr[i].dy, arr[i].x, arr[i].y);
+					else
+						ctx.lineTo(arr[i].x, arr[i].y);
+				}
+				ctx.stroke();
+				ctx.lineWidth = 1;
+			},
+			appendPoint: function(x, y){
+				function addPoint(){
+					var pts = cur_shape.points;
+					pts.push(d);
+				}
+
+				var d = canvasToSrc(constrainCoord({x:x, y:y}));
+				if(!cur_shape){
+					var obj = new cur_tool.objctor();
+					obj.tool = cur_tool.name;
+					obj.color = cur_col;
+					obj.width = cur_thin;
+					cur_shape = obj;
+					addPoint();
+					addPoint();
+				}
+				else{
+					var pts = cur_shape.points;
+					if(pts.length !== 1){
+						var prev = pts[pts.length-2];
+						if(d.x === prev.x && d.y === prev.y){
+							cur_shape.points.pop();
+							dhistory.push(cloneObject(dobjs));
+							dobjs.push(cur_shape);
+							updateDrawData();
+							cur_shape = null;
+							redraw(dobjs);
+							return true;
+						}
+					}
+					addPoint();
+				}
+			},
+		})
 	]
 ];
 var toolbarPage = 0;
