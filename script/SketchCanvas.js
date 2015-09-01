@@ -625,13 +625,8 @@ function mouseMove(e){
 		}
 		redraw(dobjs);
 	}
-	else if(cur_shape && 0 < cur_shape.points.length){
-		// Live preview of the shape being added.
-		getMouse();
-		var coord = {x: mx, y: my};
-		cur_shape.points[cur_shape.points.length-1] = canvasToSrc(constrainCoord(coord));
-		redraw(dobjs);
-	}
+	else
+		cur_tool.mouseMove(mx, my);
 }
 
 function mouseleave(e){
@@ -1535,6 +1530,7 @@ function Tool(name, points, params){
 	if(params && params.setWidth) this.setWidth = params.setWidth;
 	if(params && params.draw) this.draw = params.draw;
 	if(params && params.appendPoint) this.appendPoint = params.appendPoint;
+	if(params && params.mouseMove) this.mouseMove = params.mouseMove;
 	toolmap[name] = this;
 }
 
@@ -1584,6 +1580,15 @@ Tool.prototype.appendPoint = function(x, y) {
 	}
 	else{
 		addPoint(x, y);
+	}
+}
+
+Tool.prototype.mouseMove = function(mx, my){
+	if(cur_shape && 0 < cur_shape.points.length){
+		// Live preview of the shape being added.
+		var coord = {x: mx, y: my};
+		cur_shape.points[cur_shape.points.length-1] = canvasToSrc(constrainCoord(coord));
+		redraw(dobjs);
 	}
 }
 
