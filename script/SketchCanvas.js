@@ -878,6 +878,11 @@ Shape.prototype.serialize = function(){
 	var dat = "";
 	for (var i=0; i<this.points.length; i++){
 		if(i !== 0) dat += ":";
+		// Prepend control points if this vertex has them.
+		if("cx" in this.points[i] && "cy" in this.points[i])
+			dat += this.points[i].cx+","+this.points[i].cy+",";
+		if("dx" in this.points[i] && "dy" in this.points[i])
+			dat += this.points[i].dx+","+this.points[i].dy+",";
 		dat += this.points[i].x+","+this.points[i].y;
 	}
 	var alldat = {
@@ -898,13 +903,26 @@ Shape.prototype.isSizeable = function(){
 Shape.prototype.deserialize = function(obj){
 	this.color = obj.color || "black";
 	this.width = obj.width || 1;
-	var pt1 = obj.points.split(":");
-	var arr = [];
-	for(var j = 0; j < pt1.length; j++){
-		var pt2 = pt1[j].split(",");
-		arr.push({x:pt2[0]-0, y:pt2[1]-0});
+	if("points" in obj){
+		var pt1 = obj.points.split(":");
+		var arr = [];
+		for(var j = 0; j < pt1.length; j++){
+			var pt2 = pt1[j].split(",");
+			var pt = {};
+			if(6 <= pt2.length){
+				pt.cx = parseFloat(pt2[0]);
+				pt.cy = parseFloat(pt2[1]);
+			}
+			if(4 <= pt2.length){
+				pt.dx = parseFloat(pt2[pt2.length-4]);
+				pt.dy = parseFloat(pt2[pt2.length-3]);
+			}
+			pt.x = parseFloat(pt2[pt2.length-2]);
+			pt.y = parseFloat(pt2[pt2.length-1]);
+			arr.push(pt);
+		}
+		this.points = arr;
 	}
-	this.points = arr;
 };
 
 Shape.prototype.getBoundingRect = function(){
@@ -976,6 +994,82 @@ TextShape.prototype.getBoundingRect = function(){
 		maxx: this.points[0].x + width, maxy: this.points[0].y};
 }
 // ==================== TextShape class definition end ================================= //
+
+// ==================== PathShape class definition ================================= //
+function PathShape(){
+	Shape.call(this);
+}
+inherit(PathShape, Shape);
+
+/// Custom serializer for SVG-compatible path data
+PathShape.prototype.serialize = function(){
+	var alldat = Shape.prototype.serialize.call(this);
+	var src = "";
+	for (var i=0; i<this.points.length; i++){
+		var pt = this.points[i];
+		if(i !== 0 && ("cx" in pt && "cy" in pt || "dx" in pt && "dy" in pt)){
+			src += "C"; // Bezier curve command. 'S' command is not yet supported.
+			// Prepend control points if this vertex has them.
+			if("cx" in pt && "cy" in pt)
+				src += pt.cx+","+pt.cy+" ";
+			else
+				src += this.points[i-1].x+","+this.points[i-1].y+" ";
+			if("dx" in pt && "dy" in pt)
+				src += pt.dx+","+pt.dy+" ";
+			else
+				src += pt.x+","+pt.y+" ";
+		}
+		else if(i === 0)
+			src += "M"; // Moveto command
+		else
+			src += "L"; // Lineto command
+		src += pt.x+","+pt.y;
+	}
+	alldat.d = src;
+	// Set point data source to src and forget about old field
+	delete alldat.points;
+	return alldat;
+}
+
+/// Custom deserializer for SVG-compatible path data
+PathShape.prototype.deserialize = function(obj){
+	Shape.prototype.deserialize.call(this, obj);
+	if(!("d" in obj))
+		return;
+	var arr = [];
+	var src = obj.d;
+	var pt2 = [];
+	var last = 0;
+
+	function process(){
+		if(k <= last)
+			return;
+		var ssrc = src.slice(last+1, k);
+		pt2 = ssrc.split(/[, \t]/);
+		var pt = {};
+		if(6 <= pt2.length){
+			pt.cx = parseFloat(pt2[0]);
+			pt.cy = parseFloat(pt2[1]);
+		}
+		if(4 <= pt2.length){
+			pt.dx = parseFloat(pt2[pt2.length-4]);
+			pt.dy = parseFloat(pt2[pt2.length-3]);
+		}
+		pt.x = parseFloat(pt2[pt2.length-2]);
+		pt.y = parseFloat(pt2[pt2.length-1]);
+		arr.push(pt);
+		last = k;
+	}
+
+	for(var k = 0; k < src.length; k++){
+		if("MCLS".indexOf(src.charAt(k)) >= 0)
+			process();
+	}
+	process();
+
+	this.points = arr;
+};
+// ==================== PathShape class definition end ================================= //
 
 
 function serialize(dobjs){
@@ -2010,6 +2104,7 @@ var toolbars = [toolbar,
 			}
 		}),
 		new Tool("path", 2, {
+			objctor: PathShape,
 			drawTool: function(x, y){
 				ctx.beginPath();
 				ctx.moveTo(x, y);
