@@ -509,16 +509,8 @@ function mouseDown(e){
 }
 
 function mouseUp(e){
-	if(cur_tool === toolmap.select && 0 < selectobj.length && (moving || sizing || pointMoving)){
-		updateDrawData();
-	}
-	moving = false;
-	sizing = null;
-	pointMoving = null;
-	var needsRedraw = boxselecting;
-	boxselecting = false;
-	if(needsRedraw) // Redraw to clear selection box
-		redraw(dobjs);
+	if(cur_tool)
+		cur_tool.mouseUp(e);
 }
 
 function mouseMove(e){
@@ -1401,6 +1393,14 @@ function inherit(subclass,base){
 	subclass.prototype.constructor = subclass;
 }
 
+/// Copy all properties in src to target, retaining target's existing properties
+/// that have different names from src's.
+function mixin(target, src){
+	for(var k in src){
+		target[k] = src[k];
+	}
+}
+
 // Create a deep clone of objects
 function cloneObject(obj) {
 	if (obj === null || typeof obj !== 'object') {
@@ -1652,11 +1652,7 @@ function Tool(name, points, params){
 	this.points = points || 1;
 	this.objctor = params && params.objctor || Shape;
 	this.drawTool = params && params.drawTool;
-	if(params && params.setColor) this.setColor = params.setColor;
-	if(params && params.setWidth) this.setWidth = params.setWidth;
-	if(params && params.draw) this.draw = params.draw;
-	if(params && params.appendPoint) this.appendPoint = params.appendPoint;
-	if(params && params.mouseMove) this.mouseMove = params.mouseMove;
+	mixin(this, params);
 	toolmap[name] = this;
 }
 
@@ -1718,6 +1714,16 @@ Tool.prototype.mouseMove = function(mx, my){
 	}
 }
 
+Tool.prototype.mouseUp = function(mx, my){
+	moving = false;
+	sizing = null;
+	pointMoving = null;
+	var needsRedraw = boxselecting;
+	boxselecting = false;
+	if(needsRedraw) // Redraw to clear selection box
+		redraw(dobjs);
+}
+
 // ==================== Tool class definition end ============================= //
 
 
@@ -1735,7 +1741,13 @@ var toolbar = [
 			ctx.closePath();
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
-		}}),
+		},
+		mouseUp: function(e){
+			if(0 < selectobj.length && (moving || sizing))
+				updateDrawData();
+			Tool.prototype.mouseUp.call(this, e);
+		}
+	}),
 	new Tool("pathedit", 1, {
 		// The path editing tool. This is especially useful when editing
 		// existing curves.  The icon is identical to that of select tool,
@@ -1753,6 +1765,11 @@ var toolbar = [
 			ctx.closePath();
 			ctx.fill();
 			ctx.strokeText('1', x+45, y+10);
+		},
+		mouseUp: function(e){
+			if(0 < selectobj.length && pointMoving)
+				updateDrawData();
+			Tool.prototype.mouseUp.call(this, e);
 		}
 	}),
 	new Tool("line", 2, {
