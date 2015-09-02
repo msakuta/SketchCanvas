@@ -367,145 +367,161 @@ var pointMoving = null;
 var pointMovingIdx = 0;
 var pointMovingCP = ""; ///< Control point for moving, "": vertex, "c": first control point, "d": second control point
 var boxselecting = false;
-function mouseDown(e){
-	var mx, my;
+function pathEditMouseDown(e){
 	var clrect = canvas.getBoundingClientRect();
 	var mx = e.clientX - clrect.left;
 	var my = e.clientY - clrect.top;
 
 	// Prioritize path editing over shape selection.
-	if(cur_tool === toolmap.pathedit){
-		// Check to see if we are dragging any of control points.
-		for(var n = 0; n < selectobj.length; n++){
-			// Do not try to change shape of non-sizeable object.
-			if(!selectobj[n].isSizeable())
-				continue;
-			var pts = selectobj[n].points;
-			// Grab a control point uder the mouse cursor to move it.
-			for(var i = 0; i < pts.length; i++){
-				var p = pts[i];
 
-				// Function to check if we should start dragging one of vertices or
-				// control points.  Written as a local function to clarify logic.
-				function checkVertexHandle(){
-					if(!hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y))
-						return false;
-					// Check control points for only the "path" shapes.
-					// Pressing Ctrl key before dragging the handle pulls out the
-					// control point, even if the vertex didn't have one.
-					if(selectobj[n].tool === "path" && e.ctrlKey){
-						if(0 < i && !("dx" in p))
-							pointMovingCP = "d";
-						else if(i+1 < pts.length && !("cx" in pts[i+1])){
-							pointMovingCP = "c";
-							pointMoving = selectobj[n];
-							pointMovingIdx = i+1;
-							return true;
-						}
-						else
-							return false;
+	// Check to see if we are dragging any of control points.
+	for(var n = 0; n < selectobj.length; n++){
+		// Do not try to change shape of non-sizeable object.
+		if(!selectobj[n].isSizeable())
+			continue;
+		var pts = selectobj[n].points;
+		// Grab a control point uder the mouse cursor to move it.
+		for(var i = 0; i < pts.length; i++){
+			var p = pts[i];
+
+			// Function to check if we should start dragging one of vertices or
+			// control points.  Written as a local function to clarify logic.
+			function checkVertexHandle(){
+				if(!hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y))
+					return false;
+				// Check control points for only the "path" shapes.
+				// Pressing Ctrl key before dragging the handle pulls out the
+				// control point, even if the vertex didn't have one.
+				if(selectobj[n].tool === "path" && e.ctrlKey){
+					if(0 < i && !("dx" in p))
+						pointMovingCP = "d";
+					else if(i+1 < pts.length && !("cx" in pts[i+1])){
+						pointMovingCP = "c";
+						pointMoving = selectobj[n];
+						pointMovingIdx = i+1;
+						return true;
 					}
 					else
-						pointMovingCP = "";
-					pointMoving = selectobj[n];
-					pointMovingIdx = i;
-					dhistory.push(cloneObject(dobjs));
-					return true;
+						return false;
 				}
+				else
+					pointMovingCP = "";
+				pointMoving = selectobj[n];
+				pointMovingIdx = i;
+				dhistory.push(cloneObject(dobjs));
+				return true;
+			}
 
-				// do{ ... }while(false) statement could do a similar trick, but we prefer
-				// local functions for the ease of debugging and more concise expression.
-				if(checkVertexHandle())
-					return;
+			// do{ ... }while(false) statement could do a similar trick, but we prefer
+			// local functions for the ease of debugging and more concise expression.
+			if(checkVertexHandle())
+				return;
 
-				// Check for existing control points
-				if("cx" in p && "cy" in p && hitRect(pointHandle(p.cx, p.cy), mx - offset.x, my - offset.y)){
-					pointMoving = selectobj[n];
-					pointMovingIdx = i;
-					pointMovingCP = "c";
-					dhistory.push(cloneObject(dobjs));
-					return;
-				}
-				if("dx" in p && "dy" in p && hitRect(pointHandle(p.dx, p.dy), mx - offset.x, my - offset.y)){
-					pointMoving = selectobj[n];
-					pointMovingIdx = i;
-					pointMovingCP = "d";
-					dhistory.push(cloneObject(dobjs));
-					return;
-				}
+			// Check for existing control points
+			if("cx" in p && "cy" in p && hitRect(pointHandle(p.cx, p.cy), mx - offset.x, my - offset.y)){
+				pointMoving = selectobj[n];
+				pointMovingIdx = i;
+				pointMovingCP = "c";
+				dhistory.push(cloneObject(dobjs));
+				return;
+			}
+			if("dx" in p && "dy" in p && hitRect(pointHandle(p.dx, p.dy), mx - offset.x, my - offset.y)){
+				pointMoving = selectobj[n];
+				pointMovingIdx = i;
+				pointMovingCP = "d";
+				dhistory.push(cloneObject(dobjs));
+				return;
 			}
 		}
 	}
 
-	// The pathedit tool can select objects, not to mention the select tool.
-	if(cur_tool === toolmap.select || cur_tool === toolmap.pathedit){
-		var menuno = checkMenu(mx, my);
-		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
-			return;
-		for(var i = 0; i < dobjs.length; i++){
-			// For the time being, we use the bounding boxes of the objects
-			// to determine the clicked object.  It may be surprising
-			// when a diagonal line gets deleted by clicking on seemingly
-			// empty space, but we could fix it in the future.
-			var bounds = expandRect(objBounds(dobjs[i]), 10);
-			if(hitRect(bounds, mx, my)){
-				var pointOnSelection = false;
-				// If we click on one of already selected objects, do not clear the selection
-				// and check if we should enter moving or scaling mode later.
-				for(var j = 0; j < selectobj.length; j++){
-					if(selectobj[j] === dobjs[i]){
-						pointOnSelection = true;
-						break;
-					}
-				}
-				// If we haven't selected an object but clicked on an object, select it.
-				if(!pointOnSelection){
-					selectobj = [dobjs[i]];
+	selectCommonMouseDown(mx, my);
+}
+
+/// A common method to select and pathedit tools.
+/// The pathedit tool can select objects, not to mention the select tool.
+function selectCommonMouseDown(mx, my){
+
+	var menuno = checkMenu(mx, my);
+	if(0 <= menuno) // If we are clicking on a menu button, ignore this event
+		return null;
+	for(var i = 0; i < dobjs.length; i++){
+		// For the time being, we use the bounding boxes of the objects
+		// to determine the clicked object.  It may be surprising
+		// when a diagonal line gets deleted by clicking on seemingly
+		// empty space, but we could fix it in the future.
+		var bounds = expandRect(objBounds(dobjs[i]), 10);
+		if(hitRect(bounds, mx, my)){
+			var pointOnSelection = false;
+			// If we click on one of already selected objects, do not clear the selection
+			// and check if we should enter moving or scaling mode later.
+			for(var j = 0; j < selectobj.length; j++){
+				if(selectobj[j] === dobjs[i]){
 					pointOnSelection = true;
+					break;
 				}
-				break;
 			}
+			// If we haven't selected an object but clicked on an object, select it.
+			if(!pointOnSelection){
+				selectobj = [dobjs[i]];
+				pointOnSelection = true;
+			}
+			break;
 		}
-		redraw(dobjs);
 	}
+	redraw(dobjs);
+
+	return pointOnSelection;
+}
+
+function selectMouseDown(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = e.clientX - clrect.left;
+	var my = e.clientY - clrect.top;
+
+	var pointOnSelection = selectCommonMouseDown(mx, my);
 
 	// Enter sizing, moving or box-selecting mode only with select tool.
 	// The pathedit tool should not bother interfering with these modes.
-	if(cur_tool === toolmap.select){
-		// Check to see if we are dragging any of scaling handles.
-		for(var n = 0; n < selectobj.length; n++){
-			// Do not try to change size of non-sizeable object.
-			if(!selectobj[n].isSizeable())
-				continue;
-			var bounds = objBounds(selectobj[n]);
-			// Do not enter sizing mode if the object is point sized.
-			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
-				for(var i = 0; i < 8; i++){
-					if(hitRect(getHandleRect(bounds, i), mx, my)){
-						sizedir = i;
-						sizing = selectobj[n];
-						dhistory.push(cloneObject(dobjs));
-						return;
-					}
+
+	// Check to see if we are dragging any of scaling handles.
+	for(var n = 0; n < selectobj.length; n++){
+		// Do not try to change size of non-sizeable object.
+		if(!selectobj[n].isSizeable())
+			continue;
+		var bounds = objBounds(selectobj[n]);
+		// Do not enter sizing mode if the object is point sized.
+		if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
+			for(var i = 0; i < 8; i++){
+				if(hitRect(getHandleRect(bounds, i), mx, my)){
+					sizedir = i;
+					sizing = selectobj[n];
+					dhistory.push(cloneObject(dobjs));
+					return;
 				}
 			}
 		}
-
-		// If we're starting dragging on a selected object, enter moving mode.
-		if(pointOnSelection){
-			var mx = gridEnable ? Math.round(mx / gridSize) * gridSize : mx;
-			var my = gridEnable ? Math.round(my / gridSize) * gridSize : my;
-			movebase = [mx, my];
-			moving = true;
-			dhistory.push(cloneObject(dobjs));
-		}
-		else{
-			// If no object is selected and dragging is started, it's box selection mode.
-			boxselecting = true;
-			selectobj = [];
-			dragstart = [mx, my];
-		}
 	}
+
+	// If we're starting dragging on a selected object, enter moving mode.
+	if(pointOnSelection){
+		var mx = gridEnable ? Math.round(mx / gridSize) * gridSize : mx;
+		var my = gridEnable ? Math.round(my / gridSize) * gridSize : my;
+		movebase = [mx, my];
+		moving = true;
+		dhistory.push(cloneObject(dobjs));
+	}
+	else{
+		// If no object is selected and dragging is started, it's box selection mode.
+		boxselecting = true;
+		selectobj = [];
+		dragstart = [mx, my];
+	}
+}
+
+function mouseDown(e){
+	if(cur_tool)
+		cur_tool.mouseDown(e);
 }
 
 function mouseUp(e){
@@ -1705,6 +1721,10 @@ Tool.prototype.appendPoint = function(x, y) {
 	}
 }
 
+Tool.prototype.mouseDown = function(e){
+	// Do nothing by default
+}
+
 Tool.prototype.mouseMove = function(mx, my){
 	if(cur_shape && 0 < cur_shape.points.length){
 		// Live preview of the shape being added.
@@ -1714,7 +1734,7 @@ Tool.prototype.mouseMove = function(mx, my){
 	}
 }
 
-Tool.prototype.mouseUp = function(mx, my){
+Tool.prototype.mouseUp = function(e){
 	moving = false;
 	sizing = null;
 	pointMoving = null;
@@ -1742,6 +1762,7 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
 		},
+		mouseDown: selectMouseDown,
 		mouseUp: function(e){
 			if(0 < selectobj.length && (moving || sizing))
 				updateDrawData();
@@ -1766,6 +1787,7 @@ var toolbar = [
 			ctx.fill();
 			ctx.strokeText('1', x+45, y+10);
 		},
+		mouseDown: pathEditMouseDown,
 		mouseUp: function(e){
 			if(0 < selectobj.length && pointMoving)
 				updateDrawData();
