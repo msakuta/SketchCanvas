@@ -2207,7 +2207,7 @@ var toolbars = [toolbar,
 			appendPoint: function(x, y){
 				function addPoint(){
 					var pts = cur_shape.points;
-					pts.push(d);
+					pts.push(cloneObject(d));
 				}
 
 				var d = canvasToSrc(constrainCoord({x:x, y:y}));
@@ -2234,8 +2234,60 @@ var toolbars = [toolbar,
 							return true;
 						}
 					}
+					if(0 < pts.length){
+						var prev = pts[pts.length-1];
+						// Mirror position of control point for smooth curve
+						if("dx" in prev && "dy" in prev){
+							d.cx = 2 * prev.x - prev.dx;
+							d.cy = 2 * prev.y - prev.dy;
+						}
+					}
 					addPoint();
 				}
+			},
+			mouseDown: function(e){
+				if(cur_shape){
+					var clrect = canvas.getBoundingClientRect();
+					var mx = e.clientX - clrect.left;
+					var my = e.clientY - clrect.top;
+					// Remember mouse stat to this (Path tool) object for later use
+					// in mouseMove().
+					this.lastx = mx;
+					this.lasty = my;
+					this.lastPoint = cur_shape.points[cur_shape.points.length-1];
+				}
+			},
+			mouseMove: function(mx, my){
+				if(!cur_shape)
+					return;
+				if(this.lastPoint){
+					var pt = this.lastPoint;
+					var d = canvasToSrc(constrainCoord({x:mx, y:my}));
+					if(0 < cur_shape.points.length){
+						var prev = cur_shape.points[cur_shape.points.length-2];
+						// Extend control point by mouse dragging.
+						pt.dx = 2 * pt.x - d.x;
+						pt.dy = 2 * pt.y - d.y;
+					}
+					redraw(dobjs);
+				}
+				else if(0 < cur_shape.points.length){
+					// Live preview of the shape being added.
+					var coord = canvasToSrc(constrainCoord({x: mx, y: my}));
+					var pt = cur_shape.points[cur_shape.points.length-1];
+					var dx = coord.x - pt.x;
+					var dy = coord.y - pt.y;
+					pt.x = coord.x;
+					pt.y = coord.y;
+					// Only move dx and dy along with x, y.
+					// cx and cy should be moved with the previous vertex.
+					if("dx" in pt && "dy" in pt)
+						pt.dx += dx, pt.dy += dy;
+					redraw(dobjs);
+				}
+			},
+			mouseUp: function(e){
+				this.lastPoint = null;
 			},
 		})
 	]
