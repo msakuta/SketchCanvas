@@ -161,6 +161,12 @@ function drawMenu() {
 	}
 }
 
+/// Returns bounding box of a toolbar button.
+function getTBox(i){
+	return {minx: mx0, miny: my0 + toolButtonInterval + toolButtonInterval*i,
+		maxx: mx0 + mw0, maxy: my0 + toolButtonInterval + toolButtonInterval*i+mh0};
+}
+
 // Tool Box
 function drawTBox() {
 	ctx.fillStyle = 'rgb(255,255,255)';
@@ -171,7 +177,8 @@ function drawTBox() {
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
 			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
-		ctx.fillRect(mx0, my0 + toolButtonInterval + toolButtonInterval*i, mw0, mh0);
+		var r = getTBox(i);
+		ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy - r.miny);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
 		drawParts(toolbar[i], mx0+10, my0 + toolButtonInterval + 10 + (mh0+8)*i);
 	}
@@ -276,6 +283,9 @@ function mouseLeftClick(e) {
 			}
 		}
 
+		if(choiceTBox(mx, my))
+			return;
+
 		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
@@ -312,12 +322,6 @@ function mouseLeftClick(e) {
 		else if (menuno < 10) {
 			drawMenu();
 			menus[menuno].onclick();
-		}
-		else if (menuno <= 30) {
-			cur_tool = toolbar[menuno - 10];
-			drawTBox();
-			cur_shape = null;
-			redraw(dobjs);
 		}
 		else if (menuno <= 40) {
 			drawCBox(menuno);
@@ -1262,8 +1266,6 @@ function setSize(sx, sy){
 function checkMenu(x, y) {
 	var no = choiceMenu(x, y);
 	if (no >= 0) return no;
-	no = choiceTBox(x, y);
-	if (no > 0) return no;
 	no = choiceCBox(x, y);
 	if (no > 0) return no;
 	no = choiceHBox(x, y);
@@ -1283,15 +1285,22 @@ function choiceMenu(x, y) {
 	return -1;
 }
 
-//
+/// Selects a toolbar button. Returns true if the coordinates hit a button.
 function choiceTBox(x, y) {
 	// ToolBox
-	if (x < mx0 || x > mx0+mw0) return -1;
-	for(var i=0;i<17;i++) {
-		if (y >= my0+mh0+(mh0+8)*i && y <= my0+mh0*2+(mh0+8)*i) return i+10;
+	if (x < mx0 || x > mx0+mw0) return false;
+	for(var i=0;i<toolbar.length;i++) {
+		var r = getTBox(i);
+		if(hitRect(r, x, y)){
+			cur_tool = toolbar[i];
+			drawTBox();
+			cur_shape = null;
+			redraw(dobjs);
+			return true;
+		}
 	}
 	
-	return -1;
+	return false;
 }
 
 	// Color Parett
