@@ -534,8 +534,14 @@ function mouseMove(e){
 			for(var n = 0; n < selectobj.length; n++){
 				var obj = selectobj[n];
 				for(var i = 0; i < obj.points.length; i++){
-					obj.points[i].x += dx;
-					obj.points[i].y += dy;
+					var pt = obj.points[i];
+					pt.x += dx;
+					pt.y += dy;
+					// Move control points, too
+					if("cx" in pt && "cy" in pt)
+						pt.cx += dx, pt.cy += dy;
+					if("dx" in pt && "dy" in pt)
+						pt.dx += dx, pt.dy += dy;
 				}
 			}
 			movebase = [mx, my];
@@ -558,14 +564,31 @@ function mouseMove(e){
 			var yscale = uy === 0 ? 1 : (uy === 1 ? my - bounds.miny : bounds.maxy - my) / (bounds.maxy - bounds.miny);
 			var obj = sizing;
 			for(var i = 0; i < obj.points.length; i++){
-				if(ux !== 0 && xscale !== 0)
-					obj.points[i].x = ux === 1 ?
-						(obj.points[i].x - bounds.minx) * xscale + bounds.minx :
-						(obj.points[i].x - bounds.maxx) * xscale + bounds.maxx;
-				if(uy !== 0 && yscale !== 0)
-					obj.points[i].y = uy === 1 ?
-						(obj.points[i].y - bounds.miny) * yscale + bounds.miny :
-						(obj.points[i].y - bounds.maxy) * yscale + bounds.maxy;
+				var pt = obj.points[i];
+				if(ux !== 0 && xscale !== 0){
+					// Scale control points, too
+					var props = ["x", "cx", "dx"];
+					for(var j = 0; j < props.length; j++){
+						var prop = props[j];
+						if(!(prop in pt))
+							continue;
+						pt[prop] = ux === 1 ?
+							(pt[prop] - bounds.minx) * xscale + bounds.minx :
+							(pt[prop] - bounds.maxx) * xscale + bounds.maxx;
+					}
+				}
+				if(uy !== 0 && yscale !== 0){
+					// Scale control points, too
+					var props = ["y", "cy", "dy"];
+					for(var j = 0; j < props.length; j++){
+						var prop = props[j];
+						if(!(prop in pt))
+							continue;
+						pt[prop] = uy === 1 ?
+							(pt[prop] - bounds.miny) * yscale + bounds.miny :
+							(pt[prop] - bounds.maxy) * yscale + bounds.maxy;
+					}
+				}
 			}
 			// Invert handle selection when the handle is dragged to the other side to enable mirror scaling.
 			if(ux !== 0 && xscale < 0)
