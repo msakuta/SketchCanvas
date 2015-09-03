@@ -829,13 +829,19 @@ function redraw(pt) {
 			ctx.setLineDash([]);
 
 			// Draw a handle rectangle around a vertex or a control point
-			function drawHandle(x, y, color){
+			function drawHandle(x, y, color, circle){
 				var r = pointHandle(x, y);
 				ctx.fillStyle = color;
-				ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				if(!circle)
+					ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
 				ctx.beginPath();
 				ctx.strokeStyle = '#000';
-				ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+				if(circle){
+					ctx.arc((r.minx + r.maxx) / 2., (r.miny + r.maxy) / 2, handleSize, 0, 2 * Math.PI, false);
+					ctx.fill();
+				}
+				else
+					ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
 				ctx.stroke();
 			}
 
@@ -855,11 +861,11 @@ function redraw(pt) {
 
 				// Handles and guiding lines for the control points
 				if(0 < i && "cx" in pt && "cy" in pt){
-					drawHandle(pt.cx + offset.x, pt.cy + offset.y, '#ff7f7f');
+					drawHandle(pt.cx + offset.x, pt.cy + offset.y, '#ff7f7f', true);
 					drawGuidingLine(pts[i-1], "c");
 				}
 				if("dx" in pt && "dy" in pt){
-					drawHandle(pt.dx + offset.x, pt.dy + offset.y, '#ff7f7f');
+					drawHandle(pt.dx + offset.x, pt.dy + offset.y, '#ff7f7f', true);
 					drawGuidingLine(pt, "d");
 				}
 			}
