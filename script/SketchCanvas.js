@@ -765,6 +765,23 @@ function resizeCanvas(){
 	}
 }
 
+/// Draw a handle rectangle or a circle around a vertex or a control point
+function drawHandle(x, y, color, circle){
+	var r = pointHandle(x, y);
+	ctx.fillStyle = color;
+	if(!circle)
+		ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+	ctx.beginPath();
+	ctx.strokeStyle = '#000';
+	if(circle){
+		ctx.arc((r.minx + r.maxx) / 2., (r.miny + r.maxy) / 2, handleSize, 0, 2 * Math.PI, false);
+		ctx.fill();
+	}
+	else
+		ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+	ctx.stroke();
+}
+
 // redraw
 function redraw(pt) {
 
@@ -827,23 +844,6 @@ function redraw(pt) {
 				ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
 			ctx.stroke();
 			ctx.setLineDash([]);
-
-			// Draw a handle rectangle around a vertex or a control point
-			function drawHandle(x, y, color, circle){
-				var r = pointHandle(x, y);
-				ctx.fillStyle = color;
-				if(!circle)
-					ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-				ctx.beginPath();
-				ctx.strokeStyle = '#000';
-				if(circle){
-					ctx.arc((r.minx + r.maxx) / 2., (r.miny + r.maxy) / 2, handleSize, 0, 2 * Math.PI, false);
-					ctx.fill();
-				}
-				else
-					ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-				ctx.stroke();
-			}
 
 			// Draws dashed line that connects a control point and its associated vertex
 			function drawGuidingLine(pt0, name){
@@ -2209,6 +2209,25 @@ var toolbars = [toolbar,
 				}
 				ctx.stroke();
 				ctx.lineWidth = 1;
+
+				// Draws dashed line that connects a control point and its associated vertex
+				// This one does not take offset into account since the transformation is done
+				// before this function.
+				function drawGuidingLineNoOffset(pt0, pt, name){
+					ctx.setLineDash([5]);
+					ctx.beginPath();
+					ctx.moveTo(pt0.x, pt0.y);
+					ctx.lineTo(pt[name + "x"], pt[name + "y"]);
+					ctx.stroke();
+					ctx.setLineDash([]);
+				}
+
+				var last = arr[arr.length-1];
+				drawGuidingLineNoOffset(last ,last, "d");
+				drawHandle(last.dx, last.dy, "#ff7f7f", true);
+				var next = {x: 2 * last.x - last.dx, y: 2 * last.y - last.dy};
+				drawGuidingLineNoOffset(last, next, "");
+				drawHandle(next.x, next.y, "#ff7f7f", true);
 			},
 			appendPoint: function(x, y){
 				function addPoint(){
