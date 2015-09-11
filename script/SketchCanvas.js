@@ -445,6 +445,17 @@ function selectCommonMouseDown(mx, my){
 	var menuno = checkMenu(mx, my);
 	if(0 <= menuno) // If we are clicking on a menu button, ignore this event
 		return null;
+
+	// First, check if we clicked on one of already selected shapes.
+	// if so, do not clear the selection and get ready to manipulate already selected shapes.
+	for(var i = 0; i < selectobj.length; i++){
+		var bounds = expandRect(objBounds(selectobj[i]), 10);
+		if(hitRect(bounds, mx, my))
+			return true;
+	}
+
+	// Second, check if we clicked other shapes.
+	// If so, clear the selection and select the new shape.
 	for(var i = 0; i < dobjs.length; i++){
 		// For the time being, we use the bounding boxes of the objects
 		// to determine the clicked object.  It may be surprising
@@ -452,34 +463,21 @@ function selectCommonMouseDown(mx, my){
 		// empty space, but we could fix it in the future.
 		var bounds = expandRect(objBounds(dobjs[i]), 10);
 		if(hitRect(bounds, mx, my)){
-			var pointOnSelection = false;
-			// If we click on one of already selected objects, do not clear the selection
-			// and check if we should enter moving or scaling mode later.
-			for(var j = 0; j < selectobj.length; j++){
-				if(selectobj[j] === dobjs[i]){
-					pointOnSelection = true;
-					break;
-				}
-			}
 			// If we haven't selected an object but clicked on an object, select it.
-			if(!pointOnSelection){
-				selectobj = [dobjs[i]];
-				pointOnSelection = true;
-			}
-			break;
+			// Single click always selects a single shape.
+			selectobj = [dobjs[i]];
+			redraw(dobjs);
+			return true;
 		}
 	}
-	redraw(dobjs);
 
-	return pointOnSelection;
+	return false;
 }
 
 function selectMouseDown(e){
 	var clrect = canvas.getBoundingClientRect();
 	var mx = e.clientX - clrect.left;
 	var my = e.clientY - clrect.top;
-
-	var pointOnSelection = selectCommonMouseDown(mx, my);
 
 	// Enter sizing, moving or box-selecting mode only with select tool.
 	// The pathedit tool should not bother interfering with these modes.
@@ -502,6 +500,8 @@ function selectMouseDown(e){
 			}
 		}
 	}
+
+	var pointOnSelection = selectCommonMouseDown(mx, my);
 
 	// If we're starting dragging on a selected object, enter moving mode.
 	if(pointOnSelection){
