@@ -20,7 +20,7 @@ require_once(DOKU_PLUGIN.'syntax.php');
 class syntax_plugin_sketchcanvas extends DokuWiki_Syntax_Plugin {
  
     function getType(){ return 'formatting'; }
-    function getAllowedTypes() { return array('formatting', 'substition', 'disabled'); }   
+    function getAllowedTypes() { return array(); }   
     function getSort(){ return 159; }
     function connectTo($mode) { $this->Lexer->addEntryPattern('<skcanvas.*?>(?=.*?</skcanvas>)',$mode,'plugin_sketchcanvas'); }
     function postConnect() { $this->Lexer->addExitPattern('</skcanvas>','plugin_sketchcanvas'); }
