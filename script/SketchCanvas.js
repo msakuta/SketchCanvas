@@ -2297,12 +2297,14 @@ var toolbars = [toolbar,
 					ctx.setLineDash([]);
 				}
 
-				var last = arr[arr.length-1];
-				drawGuidingLineNoOffset(last ,last, "d");
-				drawHandle(last.dx, last.dy, "#ff7f7f", true);
-				var next = {x: 2 * last.x - last.dx, y: 2 * last.y - last.dy};
-				drawGuidingLineNoOffset(last, next, "");
-				drawHandle(next.x, next.y, "#ff7f7f", true);
+				if(obj === cur_shape){
+					var last = arr[arr.length-1];
+					drawGuidingLineNoOffset(last ,last, "d");
+					drawHandle(last.dx, last.dy, "#ff7f7f", true);
+					var next = {x: 2 * last.x - last.dx, y: 2 * last.y - last.dy};
+					drawGuidingLineNoOffset(last, next, "");
+					drawHandle(next.x, next.y, "#ff7f7f", true);
+				}
 			},
 			onNewShape: function(shape){}, /// Virtual event handler on creation of a new shape
 			appendPoint: function(x, y){
