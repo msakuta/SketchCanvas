@@ -42,3 +42,32 @@ function parsePathCommands($str){
 	}
 	return $ret;
 }
+
+/// @brief Converts a sequence (array) to a set (object)
+///
+/// Due to a limitation in js-yaml JavaScript library, a set is represented
+/// as a sequence in the YAML document.  PHP neither supports set type,
+/// so let's port the function from JavaScript to PHP.
+///
+/// @sa set2seq
+function seq2set($seq){
+	$ret = array();
+	for($i = 0; $i < count($seq); $i++){
+		if($seq[$i] === "")
+			continue;
+		$ret[$seq[$i]] = TRUE;
+	}
+	return $ret;
+}
+
+/// @brief Converts a set (object) to a sequence (array)
+/// @sa seq2set
+function set2seq($set){
+	$ret = array();
+	foreach ($set as $i) {
+		if(i === "")
+			continue;
+		$ret[] = $i;
+	}
+	return $ret;
+}

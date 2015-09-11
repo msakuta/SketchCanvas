@@ -337,6 +337,35 @@ try{
 							cubicBezierCurve($im, $prev, $p, $c);
 						$prev = $p;
 					}
+					if(isset($value["arrow"]) && 1 < count($pts)){
+						$set = seq2set($value["arrow"]);
+						if(isset($set["head"])){
+							$first = $pts[0];
+							$first2 = $pts[1];
+							$a = array();
+							if(isset($first2["cx"]) && isset($first2["cy"]) && ($first2["cx"] !== $first["x"] || $first2["cy"] !== $first["y"]))
+								$a[] = array($first2["cx"], $first2["cy"]);
+							else if(isset($first2["dx"]) && isset($first2["dy"]) && ($first2["dx"] !== $first["x"] || $first2["dy"] !== $first["y"]))
+								$a[] = array($first2["dx"], $first2["dy"]);
+							else
+								$a[] = array($first2["x"], $first2["y"]);
+							$a[] = array($first["x"], $first["y"]);
+							l_hige($im, $a, $c);
+						}
+						if(isset($set["tail"])){
+							$last = $pts[count($pts)-1];
+							$last2 = $pts[count($pts)-2];
+							$a = array();
+							if(isset($last["dx"]) && isset($last["dy"]) && ($last["dx"] !== $last["x"] || $last["dy"] !== $last["y"]))
+								$a[0] = array($last["dx"], $last["dy"]);
+							else if(isset($last["cx"]) && isset($last["cy"]) && ($last["cx"] !== $last["x"] || $last["cy"] !== $last["y"]))
+								$a[0] = array($last["cx"], $last["cy"]);
+							else
+								$a[0] = array($last2["x"], $last2["y"]);
+							$a[1] = array($last["x"], $last["y"]);
+							l_hige($im, $a, $c);
+						}
+					}
 					break;
 			}
 		}
