@@ -57,6 +57,8 @@ function onload(){
 		canvas.setAttribute("tabindex", 0); // Make sure the canvas can have a key focus
 		canvas.onkeydown = keyDown;
 	}
+	else
+		canvas.onclick = viewModeClick;
 
   // 2D context
   ctx = canvas.getContext('2d');
@@ -670,6 +672,27 @@ function mouseleave(e){
 	boxselecting = false;
 }
 
+/// Mouse click event handler for view mode.
+/// Some shapes respond to the event in view mode.
+function viewModeClick(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+	var m = {x: mx / scale, y: my / scale}; /// Convert to the logical coordinate system before hit test
+
+	// Check to see if we are dragging any of scaling handles.
+	for(var i = 0; i < dobjs.length; i++){
+		if(!("viewModeClick" in dobjs[i]))
+			continue;
+		var bounds = expandRect(objBounds(dobjs[i]), 10);
+		if(hitRect(bounds, m.x, m.y)){
+			if(dobjs[i].viewModeClick(e))
+				return true;
+		}
+	}
+
+}
+
 function keyDown(e){
 	e = e || window.event;
 	var code = e.keyCode || e.which;
@@ -1007,18 +1030,21 @@ PointShape.prototype.getBoundingRect = function(){
 function TextShape(){
 	Shape.call(this);
 	this.text = "";
+	this.link = "";
 }
 inherit(TextShape, Shape);
 
 TextShape.prototype.serialize = function(){
 	var alldat = Shape.prototype.serialize.call(this);
 	alldat.text = this.text;
+	if(this.link) alldat.link = this.link; // Do not serialize blank URL
 	return alldat;
 }
 
 TextShape.prototype.deserialize = function(obj){
 	Shape.prototype.deserialize.call(this, obj);
 	if (undefined !== obj.text) this.text = obj.text;
+	if(undefined !== obj.link) this.link = obj.link;
 };
 
 TextShape.prototype.isSizeable = function(){
@@ -1033,6 +1059,15 @@ TextShape.prototype.getBoundingRect = function(){
 	ctx.font = oldfont;
 	return {minx: this.points[0].x, miny: this.points[0].y - height,
 		maxx: this.points[0].x + width, maxy: this.points[0].y};
+}
+
+/// Click event in view mode
+TextShape.prototype.viewModeClick = function(e){
+	if("link" in this && this.link){
+		location.href = this.link;
+		return true;
+	}
+	return false;
 }
 // ==================== TextShape class definition end ================================= //
 
@@ -2092,6 +2127,16 @@ var toolbar = [
 			else if (2 == obj.width) setFont(16);
 			else setFont(20);
 			ctx.fillText(str, obj.points[0].x, obj.points[0].y);
+
+			// Draw blue underline for linked text
+			if(obj.link){
+				ctx.strokeStyle = '#0000ff';
+				ctx.beginPath();
+				ctx.moveTo(obj.points[0].x, obj.points[0].y + 4);
+				ctx.lineTo(obj.points[0].x + ctx.measureText(str).width, obj.points[0].y + 4);
+				ctx.stroke();
+			}
+
 			ctx.font = setFont(14);
 		},
 		appendPoint: function(x, y){
@@ -2119,12 +2164,24 @@ var toolbar = [
 				lay.textInput = document.createElement('input');
 				lay.textInput.id = "textinput";
 				lay.textInput.type = "text";
+				lay.textInput.style.width = "30em";
 				lay.textInput.onkeyup = function(e){
 					// Convert enter key event to OK button click
 					if(e.keyCode === 13)
 						okbutton.onclick();
 				};
 				lay.appendChild(lay.textInput);
+
+				// Add a text area for link
+				lay.appendChild(document.createElement('br'));
+				lay.linkInput = document.createElement('input');
+				lay.linkInput.id = "linkinput";
+				lay.linkInput.type = "text";
+				lay.linkInput.onkeyup = lay.textInput.onkeyup;
+				var linkdiv = document.createElement('div');
+				linkdiv.innerHTML = "Link:";
+				linkdiv.appendChild(lay.linkInput);
+				lay.appendChild(linkdiv);
 
 				var okbutton = document.createElement('input');
 				okbutton.type = 'button';
@@ -2138,6 +2195,7 @@ var toolbar = [
 					// If a shape is clicked, alter its value instead of adding a new one.
 					if(lay.dobj){
 						lay.dobj.text = lay.textInput.value;
+						lay.dobj.link = lay.linkInput.value;
 					}
 					else{
 						var obj = new textTool.objctor();
@@ -2146,6 +2204,7 @@ var toolbar = [
 						obj.width = cur_thin;
 						obj.points.push({x: lay.canvasPos.x, y: lay.canvasPos.y});
 						obj.text = lay.textInput.value;
+						obj.link = lay.linkInput.value;
 						dobjs.push(obj);
 					}
 					updateDrawData();
@@ -2157,7 +2216,7 @@ var toolbar = [
 				cancelbutton.onclick = function(s){
 					lay.style.display = 'none';
 				}
-				lay.appendChild(document.createElement('br'));
+//				lay.appendChild(document.createElement('br')); // It seems to add an extra line break
 				lay.appendChild(okbutton);
 				lay.appendChild(cancelbutton);
 				// Append as the body element's child because style.position = "absolute" would
@@ -2177,9 +2236,15 @@ var toolbar = [
 				if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), coord.x, coord.y)){
 					textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
 					textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
+					textLayer.linkInput.value = dobjs[i].link;
 					break;
 				}
 			}
+
+			// Adjust the text area's width so that two of them uses the div element's space efficiently.
+			var textInputRect = textLayer.textInput.getBoundingClientRect();
+			var linkInputRect = textLayer.linkInput.getBoundingClientRect();
+			textLayer.linkInput.style.width = textInputRect.width - (linkInputRect.left - textInputRect.left) + "px";
 
 			var canvasRect = canvas.getBoundingClientRect();
 			// Cross-browser scroll position query
