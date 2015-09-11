@@ -481,6 +481,11 @@ function selectMouseDown(e){
 	var mx = e.clientX - clrect.left;
 	var my = e.clientY - clrect.top;
 
+	// Prevent the select tool from clearing selection even if the mouse is on the
+	// toolbar or the menu bar.
+	if(mx < offset.x || my < offset.y)
+		return;
+
 	// Enter sizing, moving or box-selecting mode only with select tool.
 	// The pathedit tool should not bother interfering with these modes.
 
