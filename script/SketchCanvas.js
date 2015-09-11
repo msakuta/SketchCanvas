@@ -1069,12 +1069,16 @@ PathShape.prototype.serialize = function(){
 	alldat.d = src;
 	// Set point data source to src and forget about old field
 	delete alldat.points;
+	if("arrow" in this)
+		alldat.arrow = set2seq(this.arrow);
 	return alldat;
 }
 
 /// Custom deserializer for SVG-compatible path data
 PathShape.prototype.deserialize = function(obj){
 	Shape.prototype.deserialize.call(this, obj);
+	if("arrow" in obj)
+		this.arrow = seq2set(obj.arrow);
 	if(!("d" in obj))
 		return;
 	var arr = [];
@@ -1655,6 +1659,50 @@ var menus = [
 var buttons = [];
 
 
+/// @brief Converts a sequence (array) to a set (object)
+///
+/// We wish if we could use YAML's !!set type (which is described in
+/// http://yaml.org/type/set.html ), but JavaScript doesn't natively
+/// support set type and js-yaml library converts YAML's !!set type
+/// into an object with property names as keys in the set.
+/// The values associated with the keys are not meaningful and
+/// null is assigned by the library.
+/// If we serialize the object, it would be an !!map instead of a !!set.
+/// For example, a !!set {head, tail} would be serialized as
+/// "{head: null, tail: null}", which is far from beautiful.
+///
+/// So we had to pretend as if !!set is encoded as !!seq in the serialized
+/// YAML document by converting JavaScript objects into arrays.
+/// It would be "[head, tail]" in the case of the former example.
+///
+/// The seq2set function converts sequence from YAML parser into
+/// a set-like object, while set2seq does the opposite.
+///
+/// Note that these functions work only for sets of strings.
+///
+/// @sa set2seq
+function seq2set(seq){
+	var ret = {};
+	for(var i = 0; i < seq.length; i++){
+		if(seq[i] === "")
+			continue;
+		ret[seq[i]] = null;
+	}
+	return ret;
+}
+
+/// @brief Converts a set (object) to a sequence (array)
+/// @sa seq2set
+function set2seq(set){
+	var ret = [];
+	for(var i in set){
+		if(i === "")
+			continue;
+		ret.push(i);
+	}
+	return ret;
+}
+
 // ==================== Tool class definition ================================= //
 
 // A mapping of tool names and tool objects. Automatically updated in the Tool class's constructor.
@@ -1675,7 +1723,10 @@ function Tool(name, points, params){
 	this.objctor = params && params.objctor || Shape;
 	this.drawTool = params && params.drawTool;
 	mixin(this, params);
-	toolmap[name] = this;
+	// The path tool shares the same shape type identifier among multiple
+	// tools, so duplicate assignments should be avoided.
+	if(!(name in toolmap))
+		toolmap[name] = this;
 }
 
 Tool.prototype.setColor = function(color){
@@ -2208,6 +2259,30 @@ var toolbars = [toolbar,
 						ctx.lineTo(arr[i].x, arr[i].y);
 				}
 				ctx.stroke();
+				if("arrow" in obj && "head" in obj.arrow && 1 < arr.length){
+					var first = arr[0], first2 = arr[1], a = [];
+					if("cx" in first2 && "cy" in first2 && (first2.cx !== first.x || first2.cy !== first.y))
+						a[0] = {x: first2.cx, y: first2.cy};
+					else if("dx" in first2 && "dy" in first2 && (first2.dx !== first.x || first2.dy !== first.y))
+						a[0] = {x: first2.dx, y: first2.dy};
+					else
+						a[0] = first2;
+					a[1] = first;
+					ctx.beginPath();
+					l_hige(ctx, a);
+				}
+				if("arrow" in obj && "tail" in obj.arrow && 1 < arr.length){
+					var last = arr[arr.length-1], last2 = arr[arr.length-2], a = [];
+					if("dx" in last && "dy" in last && (last.dx !== last.x || last.dy !== last.y))
+						a[0] = {x: last.dx, y: last.dy};
+					else if("cx" in last && "cy" in last && (last.cx !== last.x || last.cy !== last.y))
+						a[0] = {x: last.cx, y: last.cy};
+					else
+						a[0] = last2;
+					a[1] = last;
+					ctx.beginPath();
+					l_hige(ctx, a);
+				}
 				ctx.lineWidth = 1;
 
 				// Draws dashed line that connects a control point and its associated vertex
@@ -2229,6 +2304,7 @@ var toolbars = [toolbar,
 				drawGuidingLineNoOffset(last, next, "");
 				drawHandle(next.x, next.y, "#ff7f7f", true);
 			},
+			onNewShape: function(shape){}, /// Virtual event handler on creation of a new shape
 			appendPoint: function(x, y){
 				function addPoint(){
 					var pts = cur_shape.points;
@@ -2241,6 +2317,7 @@ var toolbars = [toolbar,
 					obj.tool = cur_tool.name;
 					obj.color = cur_col;
 					obj.width = cur_thin;
+					this.onNewShape(obj);
 					cur_shape = obj;
 					addPoint();
 					addPoint();
@@ -2288,7 +2365,7 @@ var toolbars = [toolbar,
 				if(this.lastPoint){
 					var pt = this.lastPoint;
 					var d = canvasToSrc(constrainCoord({x:mx, y:my}));
-					if(0 < cur_shape.points.length){
+					if(0 < cur_shape.points.length && (pt.x !== d.x && pt.y !== d.y)){
 						var prev = cur_shape.points[cur_shape.points.length-2];
 						// Extend control point by mouse dragging.
 						pt.dx = 2 * pt.x - d.x;
@@ -2314,6 +2391,41 @@ var toolbars = [toolbar,
 			mouseUp: function(e){
 				this.lastPoint = null;
 			},
+		}),
+		new Tool("path", 2, {
+			objctor: PathShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.bezierCurveTo(x+10, y+20, x+20, y-10, x+30, y+10);
+				ctx.stroke();
+				l_hige(ctx, [{x: x+20, y: y-10}, {x: x+30, y: y+10}]);
+				ctx.strokeText('n', x+45, y+10);
+			},
+			draw: toolmap.path.draw,
+			onNewShape: function(shape){shape.arrow = {"tail": null}},
+			appendPoint: toolmap.path.appendPoint,
+			mouseDown: toolmap.path.mouseDown,
+			mouseMove: toolmap.path.mouseMove,
+			mouseUp: toolmap.path.mouseUp,
+		}),
+		new Tool("path", 2, {
+			objctor: PathShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.bezierCurveTo(x+10, y+20, x+20, y-10, x+30, y+10);
+				ctx.stroke();
+				l_hige(ctx, [{x: x+10, y: y+20}, {x: x, y: y}]);
+				l_hige(ctx, [{x: x+20, y: y-10}, {x: x+30, y: y+10}]);
+				ctx.strokeText('n', x+45, y+10);
+			},
+			draw: toolmap.path.draw,
+			onNewShape: function(shape){shape.arrow = {head: null, "tail": null}},
+			appendPoint: toolmap.path.appendPoint,
+			mouseDown: toolmap.path.mouseDown,
+			mouseMove: toolmap.path.mouseMove,
+			mouseUp: toolmap.path.mouseUp,
 		})
 	]
 ];
