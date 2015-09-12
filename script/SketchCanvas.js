@@ -901,80 +901,56 @@ function redraw(pt) {
 		ctx.setLineDash([]);
 	}
 
-	for(var n = 0; n < selectobj.length; n++){
-		var bounds = objBounds(selectobj[n]);
-		if(cur_tool === toolmap.pathedit){
-			// When pathedit tool is selected, draw handles on the shape's control points
-			// and the path that connecting control points, but not the
-			// bounding boxes and scaling handles, which could be annoying
-			// because they're nothing to do with path editing.
-			var pts = selectobj[n].points;
-			ctx.beginPath();
-			ctx.lineWidth = 1;
-			ctx.strokeStyle = '#000';
-			if(toolmap[selectobj[n].tool].isArc){
-				ctx.setLineDash([5]);
-				ctx.moveTo(pts[0].x + offset.x, pts[0].y + offset.y);
-				for(var i = 1; i < pts.length; i++)
-					ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
-				ctx.stroke();
-				ctx.setLineDash([]);
-			}
-
-			// Draws dashed line that connects a control point and its associated vertex
-			function drawGuidingLine(pt0, name){
-				ctx.setLineDash([5]);
-				ctx.beginPath();
-				ctx.moveTo(pt0.x + offset.x, pt0.y + offset.y);
-				ctx.lineTo(pt[name + "x"] + offset.x, pt[name + "y"] + offset.y);
-				ctx.stroke();
-				ctx.setLineDash([]);
-			}
-
-			for(var i = 0; i < pts.length; i++){
-				var pt = pts[i];
-				drawHandle(pt.x + offset.x, pt.y + offset.y, '#7f7fff');
-
-				// Handles and guiding lines for the control points
-				if(0 < i && "cx" in pt && "cy" in pt){
-					drawHandle(pt.cx + offset.x, pt.cy + offset.y, '#ff7f7f', true);
-					drawGuidingLine(pts[i-1], "c");
-				}
-				if("dx" in pt && "dy" in pt){
-					drawHandle(pt.dx + offset.x, pt.dy + offset.y, '#ff7f7f', true);
-					drawGuidingLine(pt, "d");
-				}
-			}
-		}
-		else{
-			// All other tools than the pathedit, draw scaling handles and
-			// bounding boxes around selected objects.
-			// Aside from the select tool, the user cannot grab the scaling handles,
-			// but they're useful to visually appeal that the object is selected.
-			ctx.beginPath();
-			ctx.lineWidth = 1;
-			ctx.strokeStyle = '#000';
-			ctx.setLineDash([5]);
-			ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
-			ctx.stroke();
-			ctx.setLineDash([]);
-
-			ctx.beginPath();
-			ctx.strokeStyle = '#000';
-			for(var i = 0; i < 8; i++){
-				var r = getHandleRect(bounds, i);
-				ctx.fillStyle = sizing === selectobj[n] && i === sizedir ? '#7fff7f' : '#ffff7f';
-				ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-				ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-			}
-			ctx.stroke();
-		}
-	}
+	for(var n = 0; n < selectobj.length; n++)
+		cur_tool.selectDraw(selectobj[n]);
 
 	if(editmode)
 		ctx.restore();
 }
 
+// When pathedit tool is selected, draw handles on the shape's control points
+// and the path that connecting control points, but not the
+// bounding boxes and scaling handles, which could be annoying
+// because they're nothing to do with path editing.
+function pathEditSelectDraw(shape){
+	var pts = shape.points;
+	ctx.beginPath();
+	ctx.lineWidth = 1;
+	ctx.strokeStyle = '#000';
+	if(toolmap[shape.tool].isArc){
+		ctx.setLineDash([5]);
+		ctx.moveTo(pts[0].x + offset.x, pts[0].y + offset.y);
+		for(var i = 1; i < pts.length; i++)
+			ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	// Draws dashed line that connects a control point and its associated vertex
+	function drawGuidingLine(pt0, name){
+		ctx.setLineDash([5]);
+		ctx.beginPath();
+		ctx.moveTo(pt0.x + offset.x, pt0.y + offset.y);
+		ctx.lineTo(pt[name + "x"] + offset.x, pt[name + "y"] + offset.y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	for(var i = 0; i < pts.length; i++){
+		var pt = pts[i];
+		drawHandle(pt.x + offset.x, pt.y + offset.y, '#7f7fff');
+
+		// Handles and guiding lines for the control points
+		if(0 < i && "cx" in pt && "cy" in pt){
+			drawHandle(pt.cx + offset.x, pt.cy + offset.y, '#ff7f7f', true);
+			drawGuidingLine(pts[i-1], "c");
+		}
+		if("dx" in pt && "dy" in pt){
+			drawHandle(pt.dx + offset.x, pt.dy + offset.y, '#ff7f7f', true);
+			drawGuidingLine(pt, "d");
+		}
+	}
+}
 
 // ==================== Shape class definition ================================= //
 function Shape(){
@@ -1892,6 +1868,32 @@ Tool.prototype.mouseUp = function(e){
 		redraw(dobjs);
 }
 
+// All other tools than the pathedit, draw scaling handles and
+// bounding boxes around selected objects.
+// Aside from the select tool, the user cannot grab the scaling handles,
+// but they're useful to visually appeal that the object is selected.
+Tool.prototype.selectDraw = function(shape){
+	var bounds = objBounds(shape);
+
+	ctx.beginPath();
+	ctx.lineWidth = 1;
+	ctx.strokeStyle = '#000';
+	ctx.setLineDash([5]);
+	ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	ctx.beginPath();
+	ctx.strokeStyle = '#000';
+	for(var i = 0; i < 8; i++){
+		var r = getHandleRect(bounds, i);
+		ctx.fillStyle = sizing === shape && i === sizedir ? '#7fff7f' : '#ffff7f';
+		ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+		ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+	}
+	ctx.stroke();
+}
+
 // ==================== Tool class definition end ============================= //
 
 
@@ -1942,7 +1944,8 @@ var toolbar = [
 			if(0 < selectobj.length && pointMoving)
 				updateDrawData();
 			Tool.prototype.mouseUp.call(this, e);
-		}
+		},
+		selectDraw: pathEditSelectDraw,
 	}),
 	new Tool("line", 2, {
 		drawTool: function(x, y){
