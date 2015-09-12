@@ -912,12 +912,14 @@ function redraw(pt) {
 			ctx.beginPath();
 			ctx.lineWidth = 1;
 			ctx.strokeStyle = '#000';
-			ctx.setLineDash([5]);
-			ctx.moveTo(pts[0].x + offset.x, pts[0].y + offset.y);
-			for(var i = 1; i < pts.length; i++)
-				ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
-			ctx.stroke();
-			ctx.setLineDash([]);
+			if(toolmap[selectobj[n].tool].isArc){
+				ctx.setLineDash([5]);
+				ctx.moveTo(pts[0].x + offset.x, pts[0].y + offset.y);
+				for(var i = 1; i < pts.length; i++)
+					ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
+				ctx.stroke();
+				ctx.setLineDash([]);
+			}
 
 			// Draws dashed line that connects a control point and its associated vertex
 			function drawGuidingLine(pt0, name){
@@ -2006,6 +2008,7 @@ var toolbar = [
 		}
 	}),
 	new Tool("arc", 3, {
+		isArc: true,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
@@ -2023,6 +2026,7 @@ var toolbar = [
 		}
 	}),
 	new Tool("arcarrow", 3, {
+		isArc: true,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
@@ -2040,6 +2044,7 @@ var toolbar = [
 		}
 	}),
 	new Tool("arcbarrow", 3, {
+		isArc: true,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
