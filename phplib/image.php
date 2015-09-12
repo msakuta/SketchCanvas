@@ -201,6 +201,47 @@ function quadraticBezierPoint($a, $b, $c, $t){
 	return midPoint($ab, $bc, $t);
 }
 
+/// Obtain coordinates of a point on a cubic bezier curve.
+function cubicBezierPoint($a, $c, $d, $b, $t){
+	$ac = midPoint($a, $c, $t);
+	$cd = midPoint($c, $d, $t);
+	$db = midPoint($d, $b, $t);
+	$acd = midPoint($ac, $cd, $t);
+	$cdb = midPoint($cd, $db, $t);
+	return midPoint($acd, $cdb, $t);
+
+}
+
+/// Draws a cubic Bezier curve on image $im.
+function cubicBezierCurve($im, $prev, $p, $color){
+	$a = array($prev["x"], $prev["y"]);
+	$b = array($p["x"], $p["y"]);
+	$c = isset($p["cx"]) && isset($p["cy"]) ? array($p["cx"], $p["cy"]) : $a;
+	$d = isset($p["dx"]) && isset($p["dy"]) ? array($p["dx"], $p["dy"]) : $b;
+
+	// If both c and d control points are not defined, just draw a straight line,
+	if((!isset($p["cx"]) || !isset($p["cy"])) && (!isset($p["dx"]) || !isset($p["dy"]))){
+		imageline($im, $a[0], $a[1], $b[0], $b[1], $color);
+		return;
+	}
+
+	// The curve is actually made of line segments.
+	// We determine the number of segments here by first measuring
+	// the rough length of the whole shape.
+	$length = vecdist($a, $c)
+			+ vecdist($c, $d)
+			+ vecdist($d, $b);
+	$divs = ceil($length / 10.); // The divisor determines how smooth the curve is.
+
+	$a0 = $a;
+
+	for($t = 0; $t <= $divs; $t++){
+		$p1 = cubicBezierPoint($a, $c, $d, $b, $t / $divs);
+		imageline($im, $a0[0], $a0[1], $p1[0], $p1[1], $color);
+		$a0 = $p1;
+	}
+}
+
 try{
 	if($drawdata !== null){
 		require_once "lib.php";
@@ -284,6 +325,47 @@ try{
 					else if (2 == $value["width"]) $fontsize = 16;
 					else $fontsize = 20;
 					imagettftext($im, pixelToPoint($fontsize), 0, $pts[0][0], $pts[0][1], $c, FONTFACE, $value["text"]);
+					break;
+				case 'path':
+					$pts = parsePathCommands($value["d"]);
+					$wid = isset($value["width"]) ? $value["width"] : 1;
+					imagesetthickness($im, $wid);
+					imageantialias($im, $wid === 1);
+					$prev = null;
+					foreach($pts as $i => $p){
+						if($prev !== null)
+							cubicBezierCurve($im, $prev, $p, $c);
+						$prev = $p;
+					}
+					if(isset($value["arrow"]) && 1 < count($pts)){
+						$set = seq2set($value["arrow"]);
+						if(isset($set["head"])){
+							$first = $pts[0];
+							$first2 = $pts[1];
+							$a = array();
+							if(isset($first2["cx"]) && isset($first2["cy"]) && ($first2["cx"] !== $first["x"] || $first2["cy"] !== $first["y"]))
+								$a[] = array($first2["cx"], $first2["cy"]);
+							else if(isset($first2["dx"]) && isset($first2["dy"]) && ($first2["dx"] !== $first["x"] || $first2["dy"] !== $first["y"]))
+								$a[] = array($first2["dx"], $first2["dy"]);
+							else
+								$a[] = array($first2["x"], $first2["y"]);
+							$a[] = array($first["x"], $first["y"]);
+							l_hige($im, $a, $c);
+						}
+						if(isset($set["tail"])){
+							$last = $pts[count($pts)-1];
+							$last2 = $pts[count($pts)-2];
+							$a = array();
+							if(isset($last["dx"]) && isset($last["dy"]) && ($last["dx"] !== $last["x"] || $last["dy"] !== $last["y"]))
+								$a[0] = array($last["dx"], $last["dy"]);
+							else if(isset($last["cx"]) && isset($last["cy"]) && ($last["cx"] !== $last["x"] || $last["cy"] !== $last["y"]))
+								$a[0] = array($last["cx"], $last["cy"]);
+							else
+								$a[0] = array($last2["x"], $last2["y"]);
+							$a[1] = array($last["x"], $last["y"]);
+							l_hige($im, $a, $c);
+						}
+					}
 					break;
 			}
 		}
