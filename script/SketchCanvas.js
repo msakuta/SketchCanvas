@@ -388,7 +388,7 @@ function pathEditMouseDown(e){
 
 			// Function to check if we should start dragging one of vertices or
 			// control points.  Written as a local function to clarify logic.
-			function checkVertexHandle(){
+			function checkVertexHandle(self){
 				if(!hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y))
 					return false;
 				// Check control points for only the "path" shapes.
@@ -410,16 +410,27 @@ function pathEditMouseDown(e){
 					pointMovingCP = "";
 				pointMoving = selectobj[n];
 				pointMovingIdx = i;
+
+				// Remember clicked vertex for showing control handles
+				var needsRedraw = self.selectPointShape !== selectobj[n] || self.selectPointIdx !== pointMovingIdx;
+				self.selectPointShape = selectobj[n];
+				self.selectPointIdx = pointMovingIdx;
+				if(needsRedraw) // Redraw only if the selected
+					redraw(dobjs);
+
 				dhistory.push(cloneObject(dobjs));
 				return true;
 			}
 
 			// do{ ... }while(false) statement could do a similar trick, but we prefer
 			// local functions for the ease of debugging and more concise expression.
-			if(checkVertexHandle())
+			if(checkVertexHandle(this))
 				return;
 
 			// Check for existing control points
+			// Select only the control points around the selected vertex
+			if(this.selectPointShape !== selectobj[n] || i < this.selectPointIdx || this.selectPointIdx + 1 < i)
+				continue;
 			if("cx" in p && "cy" in p && hitRect(pointHandle(p.cx, p.cy), mx - offset.x, my - offset.y)){
 				pointMoving = selectobj[n];
 				pointMovingIdx = i;
@@ -468,6 +479,8 @@ function selectCommonMouseDown(mx, my){
 			// If we haven't selected an object but clicked on an object, select it.
 			// Single click always selects a single shape.
 			selectobj = [dobjs[i]];
+			// Forget point selection in pathedit tool if shape selection is changed.
+			toolmap.pathedit.selectPointIdx = -1;
 			redraw(dobjs);
 			return true;
 		}
@@ -938,7 +951,13 @@ function pathEditSelectDraw(shape){
 
 	for(var i = 0; i < pts.length; i++){
 		var pt = pts[i];
-		drawHandle(pt.x + offset.x, pt.y + offset.y, '#7f7fff');
+		// Indicate currently selected vertex with blue handle, otherwise gray
+		drawHandle(pt.x + offset.x, pt.y + offset.y,
+			shape === this.selectPointShape && i === this.selectPointIdx ? '#7f7fff' : '#7f7f7f');
+
+		// Draw handles for control point only around the selected vertex
+		if(shape !== this.selectPointShape || i < this.selectPointIdx || this.selectPointIdx + 1 < i)
+			continue;
 
 		// Handles and guiding lines for the control points
 		if(0 < i && "cx" in pt && "cy" in pt){
@@ -1946,6 +1965,8 @@ var toolbar = [
 			Tool.prototype.mouseUp.call(this, e);
 		},
 		selectDraw: pathEditSelectDraw,
+		selectPointShape: null, // Default value for the variable
+		selectPointIdx: -1, // Default value for the variable
 	}),
 	new Tool("line", 2, {
 		drawTool: function(x, y){
