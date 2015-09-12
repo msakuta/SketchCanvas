@@ -536,13 +536,12 @@ function mouseUp(e){
 		cur_tool.mouseUp(e);
 }
 
-function mouseMove(e){
-	var mx, my;
+function selectMouseMove(e){
 	var clrect = canvas.getBoundingClientRect();
 	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
 	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
 
-	if(cur_tool === toolmap.select && 0 < selectobj.length){
+	if(0 < selectobj.length){
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
@@ -613,7 +612,34 @@ function mouseMove(e){
 			redraw(dobjs);
 		}
 	}
-	if(cur_tool === toolmap.pathedit && 0 < selectobj.length){
+
+	// We could use e.buttons to check if it's supported by all the browsers,
+	// but it seems not much trusty.
+	if(!moving && !sizing && boxselecting){
+		dragend = [mx, my];
+		var box = {
+			minx: Math.min(dragstart[0], mx),
+			maxx: Math.max(dragstart[0], mx),
+			miny: Math.min(dragstart[1], my),
+			maxy: Math.max(dragstart[1], my),
+		}
+		selectobj = [];
+		// Select all intersecting objects with the dragged box.
+		for(var i = 0; i < dobjs.length; i++){
+			var bounds = expandRect(objBounds(dobjs[i]), 10);
+			if(intersectRect(bounds, box))
+				selectobj.push(dobjs[i]);
+		}
+		redraw(dobjs);
+	}
+}
+
+function pathEditMouseMove(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+
+	if(0 < selectobj.length){
 		if(pointMoving){
 			mx -= offset.x;
 			my -= offset.y;
@@ -647,28 +673,11 @@ function mouseMove(e){
 			redraw(dobjs);
 		}
 	}
+}
 
-	// We could use e.buttons to check if it's supported by all the browsers,
-	// but it seems not much trusty.
-	if(cur_tool === toolmap.select && !moving && !sizing && boxselecting){
-		dragend = [mx, my];
-		var box = {
-			minx: Math.min(dragstart[0], mx),
-			maxx: Math.max(dragstart[0], mx),
-			miny: Math.min(dragstart[1], my),
-			maxy: Math.max(dragstart[1], my),
-		}
-		selectobj = [];
-		// Select all intersecting objects with the dragged box.
-		for(var i = 0; i < dobjs.length; i++){
-			var bounds = expandRect(objBounds(dobjs[i]), 10);
-			if(intersectRect(bounds, box))
-				selectobj.push(dobjs[i]);
-		}
-		redraw(dobjs);
-	}
-	else
-		cur_tool.mouseMove(mx, my);
+function mouseMove(e){
+	if(cur_tool.mouseMove)
+		cur_tool.mouseMove(e);
 }
 
 function mouseleave(e){
@@ -1822,8 +1831,11 @@ Tool.prototype.mouseDown = function(e){
 	// Do nothing by default
 }
 
-Tool.prototype.mouseMove = function(mx, my){
+Tool.prototype.mouseMove = function(e){
 	if(cur_shape && 0 < cur_shape.points.length){
+		var clrect = canvas.getBoundingClientRect();
+		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
 		// Live preview of the shape being added.
 		var coord = {x: mx, y: my};
 		cur_shape.points[cur_shape.points.length-1] = canvasToSrc(constrainCoord(coord));
@@ -1860,6 +1872,7 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		mouseDown: selectMouseDown,
+		mouseMove: selectMouseMove,
 		mouseUp: function(e){
 			if(0 < selectobj.length && (moving || sizing))
 				updateDrawData();
@@ -1885,6 +1898,7 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		mouseDown: pathEditMouseDown,
+		mouseMove: pathEditMouseMove,
 		mouseUp: function(e){
 			if(0 < selectobj.length && pointMoving)
 				updateDrawData();
@@ -2431,9 +2445,12 @@ var toolbars = [toolbar,
 					this.lastPoint = cur_shape.points[cur_shape.points.length-1];
 				}
 			},
-			mouseMove: function(mx, my){
+			mouseMove: function(e){
 				if(!cur_shape)
 					return;
+				var clrect = canvas.getBoundingClientRect();
+				var mx = e.clientX - clrect.left;
+				var my = e.clientY - clrect.top;
 				if(this.lastPoint){
 					var pt = this.lastPoint;
 					var d = canvasToSrc(constrainCoord({x:mx, y:my}));
