@@ -759,23 +759,33 @@ function viewModeClick(e){
 
 function keyDown(e){
 	e = e || window.event;
-	var code = e.keyCode || e.which;
-	if(code === 46){ // Delete key
-		dhistory.push(cloneObject(dobjs)); // Push undo buffer
-		// Delete all selected objects
-		for (var i = 0; i < selectobj.length; i++) {
-			var s = selectobj[i];
-			for (var j = 0; j < dobjs.length; j++) {
-				if(dobjs[j] === s){
-					dobjs.splice(j, 1);
+	if(cur_tool.keyDown)
+		cur_tool.keyDown(e);
+}
+
+/// Delete given shapes from the canvas.
+/// Also deletes from selection list if matched.
+/// Passing selectobj variable itself as the argument clears the whole selection.
+function deleteShapes(shapes){
+	for (var i = 0; i < shapes.length; i++) {
+		var s = shapes[i];
+		for (var j = 0; j < dobjs.length; j++) {
+			if(dobjs[j] === s){
+				dobjs.splice(j, 1);
+				break;
+			}
+		}
+		if(shapes !== selectobj){
+			for (var j = 0; j < selectobj.length; j++) {
+				if(selectobj[j] === s){
+					selectobj.splice(j, 1);
 					break;
 				}
 			}
 		}
-		selectobj = []; // And don't forget to clear the selection
-		updateDrawData();
-		redraw(dobjs);
 	}
+	if(shapes === selectobj)
+		selectobj = [];
 }
 
 /// Constrain coordinate values if the grid is enabled.
@@ -1887,6 +1897,17 @@ Tool.prototype.mouseUp = function(e){
 		redraw(dobjs);
 }
 
+Tool.prototype.keyDown = function(e){
+	var code = e.keyCode || e.which;
+	if(code === 46){ // Delete key
+		dhistory.push(cloneObject(dobjs)); // Push undo buffer
+		// Delete all selected objects
+		deleteShapes(selectobj);
+		updateDrawData();
+		redraw(dobjs);
+	}
+}
+
 // All other tools than the pathedit, draw scaling handles and
 // bounding boxes around selected objects.
 // Aside from the select tool, the user cannot grab the scaling handles,
@@ -1963,6 +1984,23 @@ var toolbar = [
 			if(0 < selectobj.length && pointMoving)
 				updateDrawData();
 			Tool.prototype.mouseUp.call(this, e);
+		},
+		keyDown: function(e){
+			var code = e.keyCode || e.which;
+			if(code === 46){ // Delete key
+				// Pathedit tool's delete key just delete single vertex in a path
+				if(this.selectPointShape && this.selectPointShape.tool === "path" && 0 <= this.selectPointIdx){
+					dhistory.push(cloneObject(dobjs)); // Push undo buffer
+					if(this.selectPointShape.points.length <= 2){
+						deleteShapes([this.selectPointShape]);
+						this.selectPointShape = null;
+					}
+					else
+						this.selectPointShape.points.splice(this.selectPointIdx, 1);
+					updateDrawData();
+					redraw(dobjs);
+				}
+			}
 		},
 		selectDraw: pathEditSelectDraw,
 		selectPointShape: null, // Default value for the variable
