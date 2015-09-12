@@ -667,8 +667,45 @@ function pathEditMouseMove(e){
 				relmove("d", 0, dx, dy);
 			}
 			else{
-				pointMoving.points[pointMovingIdx][pointMovingCP + "x"] = mx;
-				pointMoving.points[pointMovingIdx][pointMovingCP + "y"] = my;
+				var curpoint = pointMoving.points[pointMovingIdx];
+				curpoint[pointMovingCP + "x"] = mx;
+				curpoint[pointMovingCP + "y"] = my;
+
+				// Move the control point in the opposite side of the vertex so that the
+				// curve seems smooth.  A line between a cubic Bezier spline curve's control point
+				// and its vertex is tangent to the curve, so keeping the control points parallel
+				// makes the connected Bezier curves look smooth.  This could be done by hand-editing,
+				// but it's very cumbersome to do everytime even single control point of spline is
+				// edited.
+				// Note that SVG's "S" or "s" path command can reflect the Bezier control point to
+				// achieve similar effect, but the commands cannot specify distinct lengths for each
+				// control points from the central vertex.  So we keep using "C" command.
+				// Sometimes the user wants to make a non-smooth path, so this functionality can be
+				// disabled by pressing ALT key while dragging.
+				if(!e.altKey && pointMovingCP === "d" && pointMovingIdx + 1 < pointMoving.points.length){
+					var nextpoint = pointMoving.points[pointMovingIdx + 1];
+					if("cx" in nextpoint && "cy" in nextpoint){
+						var dx = nextpoint.cx - curpoint.x;
+						var dy = nextpoint.cy - curpoint.y;
+						var len = Math.sqrt(dx * dx + dy * dy);
+						var angle = Math.atan2(dy, dx);
+						var newangle = Math.atan2(curpoint.y - curpoint.dy, curpoint.x - curpoint.dx);
+						nextpoint.cx = curpoint.x + len * Math.cos(newangle);
+						nextpoint.cy = curpoint.y + len * Math.sin(newangle);
+					}
+				}
+				else if(!e.altKey && pointMovingCP === "c" && 0 <= pointMovingIdx - 1){
+					var prevpoint = pointMoving.points[pointMovingIdx - 1];
+					if("dx" in prevpoint && "dy" in prevpoint){
+						var dx = prevpoint.dx - prevpoint.x;
+						var dy = prevpoint.dy - prevpoint.y;
+						var len = Math.sqrt(dx * dx + dy * dy);
+						var angle = Math.atan2(dy, dx);
+						var newangle = Math.atan2(prevpoint.y - curpoint.cy, prevpoint.x - curpoint.cx);
+						prevpoint.dx = prevpoint.x + len * Math.cos(newangle);
+						prevpoint.dy = prevpoint.y + len * Math.sin(newangle);
+					}
+				}
 			}
 			redraw(dobjs);
 		}
