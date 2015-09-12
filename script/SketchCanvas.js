@@ -388,7 +388,7 @@ function pathEditMouseDown(e){
 
 			// Function to check if we should start dragging one of vertices or
 			// control points.  Written as a local function to clarify logic.
-			function checkVertexHandle(self){
+			var checkVertexHandle = function(self){
 				if(!hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y))
 					return false;
 				// Check control points for only the "path" shapes.
@@ -658,7 +658,7 @@ function pathEditMouseMove(e){
 			my -= offset.y;
 
 			// Relatively move a control point if it exists
-			function relmove(name, idx, dx, dy){
+			var relmove = function(name, idx, dx, dy){
 				if(pointMovingIdx + idx < 0 || pointMoving.points.length <= pointMovingIdx + idx)
 					return;
 				var p1 = pointMoving.points[pointMovingIdx + idx];
