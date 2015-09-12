@@ -37,6 +37,7 @@ var selectobj = [];
 var handleSize = 4;
 var gridEnable = false;
 var gridSize = 8;
+var toolButtonInterval = 36;
 
 // Called at the end of the constructor
 function onload(){
@@ -56,6 +57,8 @@ function onload(){
 		canvas.setAttribute("tabindex", 0); // Make sure the canvas can have a key focus
 		canvas.onkeydown = keyDown;
 	}
+	else
+		canvas.onclick = viewModeClick;
 
   // 2D context
   ctx = canvas.getContext('2d');
@@ -65,6 +68,41 @@ function onload(){
 	if(!ctx.setLineDash) {
 		ctx.setLineDash = function(){};
 	}
+
+	var aw = 20; // Arrow width
+
+	// Previous toolbar page button
+	buttons.push(new Button(mx0, my0, mx0 + aw, my0 + mh0, function(){
+		ctx.fillStyle = 'rgb(127,127,127)';
+		ctx.beginPath();
+		ctx.moveTo(mx0, my0 + mh0 / 2);
+		ctx.lineTo(mx0 + aw, my0);
+		ctx.lineTo(mx0 + aw, my0 + mh0);
+		ctx.closePath();
+		ctx.fill();
+	}, function(){
+		debug("clicked left");
+		toolbarPage = Math.max(toolbarPage - 1, 0);
+		toolbar = toolbars[toolbarPage];
+		cur_tool = toolbar[0];
+		draw();
+	}));
+
+	// Next toolbar page button
+	buttons.push(new Button(mx0 + mw0 - aw, my0, mx0 + mw0, my0 + mh0, function(){
+		ctx.beginPath();
+		ctx.moveTo(mx0 + mw0, my0 + mh0 / 2);
+		ctx.lineTo(mx0 + mw0 - aw, my0);
+		ctx.lineTo(mx0 + mw0 - aw, my0 + mh0);
+		ctx.closePath();
+		ctx.fill();
+	}, function(){
+		debug("clicked right");
+		toolbarPage = Math.min(toolbarPage + 1, toolbars.length-1);
+		toolbar = toolbars[toolbarPage];
+		cur_tool = toolbar[0];
+		draw();
+	}));
 
   resizeCanvas();
   draw();
@@ -81,21 +119,32 @@ var datadir = "data";
 function draw() {
 	if(!editmode)
 		return;
-  // Draw a rectangle
-  ctx.beginPath();
-  ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
+	// Draw a rectangle
+	ctx.beginPath();
+	ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
 		ctx.font = i18n.t("14px 'Courier'");
-  ctx.strokeText('SketchCanvas Editor v0.1.2', 420, 10);
-  ctx.rect(x0, y0, w0, h0);
-  ctx.rect(x1, y1, w1, h1);
-  ctx.closePath();
-  ctx.stroke();
+	ctx.strokeText('SketchCanvas Editor v0.1.3', 420, 10);
+	ctx.rect(x0, y0, w0, h0);
+	ctx.rect(x1, y1, w1, h1);
+	ctx.closePath();
+	ctx.stroke();
 
-  // menu
-  drawMenu();
-  drawTBox();
-  drawCBox(cur_col);
-  drawHBox(cur_thin);
+	// Background for the page text
+	ctx.fillStyle = 'rgb(255,255,255)';
+	ctx.fillRect(x0 + 1, y0 + 1, x1 - 2, y0 + h0 - 2);
+
+	// Text indicating current toolbar page
+	ctx.fillStyle = 'rgb(0,0,0)';
+	var text = (toolbarPage + 1) + "/" + (toolbars.length);
+	var width = ctx.measureText(text).width;
+	ctx.fillText(text, mx0 + mw0 / 2 - width / 2, my0 + mh0 / 2);
+
+	// menu
+	drawMenu();
+	drawTBox();
+	drawButtons();
+	drawCBox(cur_col);
+	drawHBox(cur_thin);
 }
 
 // draw coord(for Debug)
@@ -114,16 +163,33 @@ function drawMenu() {
 	}
 }
 
+/// Returns bounding box of a toolbar button.
+function getTBox(i){
+	return {minx: mx0, miny: my0 + toolButtonInterval + toolButtonInterval*i,
+		maxx: mx0 + mw0, maxy: my0 + toolButtonInterval + toolButtonInterval*i+mh0};
+}
+
 // Tool Box
 function drawTBox() {
+	ctx.fillStyle = 'rgb(255,255,255)';
+	ctx.fillRect(x0 + 1, my0 + mh0 + 1, x1 - 2, my0 + h0 - 2);
+
 	for(var i=0;i<toolbar.length;i++) {
 		if (cur_tool === toolbar[i])
 			ctx.fillStyle = 'rgb(255, 80, 77)'; // red
 		else
 			ctx.fillStyle = 'rgb(192, 80, 77)'; // red
-		ctx.fillRect(mx0, my0+36*i, mw0, mh0);
+		var r = getTBox(i);
+		ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy - r.miny);
 		ctx.strokeStyle = 'rgb(250, 250, 250)'; // white
-		drawParts(toolbar[i], mx0+10, my0+10+(mh0+8)*i);
+		drawParts(toolbar[i], mx0+10, my0 + toolButtonInterval + 10 + (mh0+8)*i);
+	}
+}
+
+function drawButtons(){
+	for(var i = 0; i < buttons.length; i++){
+		if("ondraw" in buttons[i])
+			buttons[i].ondraw();
 	}
 }
 
@@ -211,9 +277,22 @@ function mouseLeftClick(e) {
 		var clrect = canvas.getBoundingClientRect();
 		var mx = e.clientX - clrect.left;
 		var my = e.clientY - clrect.top;
+
+		for(var i = 0; i < buttons.length; i++){
+			if(hitRect(buttons[i], mx, my)){
+				buttons[i].onclick();
+				return;
+			}
+		}
+
+		if(choiceTBox(mx, my))
+			return;
+
 		var menuno = checkMenu(mx, my);
 		debug(menuno);
 		if (menuno < 0) {		// draw area
+			if(mx < offset.x || my < offset.y)
+				return;
 			if(cur_tool.name === "delete"){ // delete
 				for(var i = 0; i < dobjs.length; i++){
 					// For the time being, we use the bounding boxes of the objects
@@ -239,17 +318,12 @@ function mouseLeftClick(e) {
 				}
 				return;
 			}
-			else if(cur_tool.name !== "select")
-				draw_point(mx, my);
+			else if(cur_tool.name !== "select" && cur_tool.name !== "pathedit")
+				cur_tool.appendPoint(mx, my);
 		}
 		else if (menuno < 10) {
 			drawMenu();
 			menus[menuno].onclick();
-		}
-		else if (menuno <= 30) {
-			cur_tool = toolbar[menuno - 10];
-			drawTBox();
-			idx = 0;
 		}
 		else if (menuno <= 40) {
 			drawCBox(menuno);
@@ -291,102 +365,210 @@ var dragend = [0,0];
 var moving = false;
 var sizing = null; // Reference to object being resized. Null if no resizing is in progress.
 var sizedir = 0;
+var pointMoving = null;
+var pointMovingIdx = 0;
+var pointMovingCP = ""; ///< Control point for moving, "": vertex, "c": first control point, "d": second control point
 var boxselecting = false;
-function mouseDown(e){
-	if(cur_tool === toolmap.select){
-		var clrect = canvas.getBoundingClientRect();
-		var mx = e.clientX - clrect.left;
-		var my = e.clientY - clrect.top;
-		var menuno = checkMenu(mx, my);
-		if(0 <= menuno) // If we are clicking on a menu button, ignore this event
-			return;
-		for(var i = 0; i < dobjs.length; i++){
-			// For the time being, we use the bounding boxes of the objects
-			// to determine the clicked object.  It may be surprising
-			// when a diagonal line gets deleted by clicking on seemingly
-			// empty space, but we could fix it in the future.
-			var bounds = expandRect(objBounds(dobjs[i]), 10);
-			if(hitRect(bounds, mx, my)){
-				var pointOnSelection = false;
-				// If we click on one of already selected objects, do not clear the selection
-				// and check if we should enter moving or scaling mode later.
-				for(var j = 0; j < selectobj.length; j++){
-					if(selectobj[j] === dobjs[i]){
-						pointOnSelection = true;
-						break;
-					}
-				}
-				// If we haven't selected an object but clicked on an object, select it.
-				if(!pointOnSelection){
-					selectobj = [dobjs[i]];
-					pointOnSelection = true;
-				}
-				break;
-			}
-		}
-		redraw(dobjs);
+function pathEditMouseDown(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = e.clientX - clrect.left;
+	var my = e.clientY - clrect.top;
 
-		// Check to see if we are dragging any of scaling handles.
-		for(var n = 0; n < selectobj.length; n++){
-			// Do not try to change size of non-sizeable object.
-			if(!selectobj[n].isSizeable())
+	// Prioritize path editing over shape selection.
+
+	// Check to see if we are dragging any of control points.
+	for(var n = 0; n < selectobj.length; n++){
+		// Do not try to change shape of non-sizeable object.
+		if(!selectobj[n].isSizeable())
+			continue;
+		var pts = selectobj[n].points;
+		// Grab a control point uder the mouse cursor to move it.
+		for(var i = 0; i < pts.length; i++){
+			var p = pts[i];
+
+			// Function to check if we should start dragging one of vertices or
+			// control points.  Written as a local function to clarify logic.
+			var checkVertexHandle = function(self){
+				if(!hitRect(pointHandle(p.x, p.y), mx - offset.x, my - offset.y))
+					return false;
+				// Check control points for only the "path" shapes.
+				// Pressing Ctrl key before dragging the handle pulls out the
+				// control point, even if the vertex didn't have one.
+				if(selectobj[n].tool === "path" && e.ctrlKey){
+					if(0 < i && !("dx" in p))
+						pointMovingCP = "d";
+					else if(i+1 < pts.length && !("cx" in pts[i+1])){
+						pointMovingCP = "c";
+						pointMoving = selectobj[n];
+						pointMovingIdx = i+1;
+						return true;
+					}
+					else
+						return false;
+				}
+				else
+					pointMovingCP = "";
+				pointMoving = selectobj[n];
+				pointMovingIdx = i;
+
+				// Remember clicked vertex for showing control handles
+				var needsRedraw = self.selectPointShape !== selectobj[n] || self.selectPointIdx !== pointMovingIdx;
+				self.selectPointShape = selectobj[n];
+				self.selectPointIdx = pointMovingIdx;
+				if(needsRedraw) // Redraw only if the selected
+					redraw(dobjs);
+
+				dhistory.push(cloneObject(dobjs));
+				return true;
+			}
+
+			// do{ ... }while(false) statement could do a similar trick, but we prefer
+			// local functions for the ease of debugging and more concise expression.
+			if(checkVertexHandle(this))
+				return;
+
+			// Check for existing control points
+			// Select only the control points around the selected vertex
+			if(this.selectPointShape !== selectobj[n] || i < this.selectPointIdx || this.selectPointIdx + 1 < i)
 				continue;
-			var bounds = objBounds(selectobj[n]);
-			// Do not enter sizing mode if the object is point sized.
-			if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
-				for(var i = 0; i < 8; i++){
-					if(hitRect(getHandleRect(bounds, i), mx, my)){
-						sizedir = i;
-						sizing = selectobj[n];
-						dhistory.push(cloneObject(dobjs));
-						return;
-					}
-				}
+			if("cx" in p && "cy" in p && hitRect(pointHandle(p.cx, p.cy), mx - offset.x, my - offset.y)){
+				pointMoving = selectobj[n];
+				pointMovingIdx = i;
+				pointMovingCP = "c";
+				dhistory.push(cloneObject(dobjs));
+				return;
 			}
-		}
-
-		// If we're starting dragging on a selected object, enter moving mode.
-		if(pointOnSelection){
-			var mx = gridEnable ? Math.round(mx / gridSize) * gridSize : mx;
-			var my = gridEnable ? Math.round(my / gridSize) * gridSize : my;
-			movebase = [mx, my];
-			moving = true;
-			dhistory.push(cloneObject(dobjs));
-		}
-		else{
-			// If no object is selected and dragging is started, it's box selection mode.
-			boxselecting = true;
-			selectobj = [];
-			dragstart = [mx, my];
+			if("dx" in p && "dy" in p && hitRect(pointHandle(p.dx, p.dy), mx - offset.x, my - offset.y)){
+				pointMoving = selectobj[n];
+				pointMovingIdx = i;
+				pointMovingCP = "d";
+				dhistory.push(cloneObject(dobjs));
+				return;
+			}
 		}
 	}
+
+	selectCommonMouseDown(mx, my);
+}
+
+/// A common method to select and pathedit tools.
+/// The pathedit tool can select objects, not to mention the select tool.
+function selectCommonMouseDown(mx, my){
+
+	var menuno = checkMenu(mx, my);
+	if(0 <= menuno) // If we are clicking on a menu button, ignore this event
+		return null;
+
+	// First, check if we clicked on one of already selected shapes.
+	// if so, do not clear the selection and get ready to manipulate already selected shapes.
+	for(var i = 0; i < selectobj.length; i++){
+		var bounds = expandRect(objBounds(selectobj[i]), 10);
+		if(hitRect(bounds, mx, my))
+			return true;
+	}
+
+	// Second, check if we clicked other shapes.
+	// If so, clear the selection and select the new shape.
+	for(var i = 0; i < dobjs.length; i++){
+		// For the time being, we use the bounding boxes of the objects
+		// to determine the clicked object.  It may be surprising
+		// when a diagonal line gets deleted by clicking on seemingly
+		// empty space, but we could fix it in the future.
+		var bounds = expandRect(objBounds(dobjs[i]), 10);
+		if(hitRect(bounds, mx, my)){
+			// If we haven't selected an object but clicked on an object, select it.
+			// Single click always selects a single shape.
+			selectobj = [dobjs[i]];
+			// Forget point selection in pathedit tool if shape selection is changed.
+			toolmap.pathedit.selectPointIdx = -1;
+			redraw(dobjs);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function selectMouseDown(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = e.clientX - clrect.left;
+	var my = e.clientY - clrect.top;
+
+	// Prevent the select tool from clearing selection even if the mouse is on the
+	// toolbar or the menu bar.
+	if(mx < offset.x || my < offset.y)
+		return;
+
+	// Enter sizing, moving or box-selecting mode only with select tool.
+	// The pathedit tool should not bother interfering with these modes.
+
+	// Check to see if we are dragging any of scaling handles.
+	for(var n = 0; n < selectobj.length; n++){
+		// Do not try to change size of non-sizeable object.
+		if(!selectobj[n].isSizeable())
+			continue;
+		var bounds = objBounds(selectobj[n]);
+		// Do not enter sizing mode if the object is point sized.
+		if(1 <= Math.abs(bounds.maxx - bounds.minx) && 1 <= Math.abs(bounds.maxy - bounds.miny)){
+			for(var i = 0; i < 8; i++){
+				if(hitRect(getHandleRect(bounds, i), mx, my)){
+					sizedir = i;
+					sizing = selectobj[n];
+					dhistory.push(cloneObject(dobjs));
+					return;
+				}
+			}
+		}
+	}
+
+	var pointOnSelection = selectCommonMouseDown(mx, my);
+
+	// If we're starting dragging on a selected object, enter moving mode.
+	if(pointOnSelection){
+		var mx = gridEnable ? Math.round(mx / gridSize) * gridSize : mx;
+		var my = gridEnable ? Math.round(my / gridSize) * gridSize : my;
+		movebase = [mx, my];
+		moving = true;
+		dhistory.push(cloneObject(dobjs));
+	}
+	else{
+		// If no object is selected and dragging is started, it's box selection mode.
+		boxselecting = true;
+		selectobj = [];
+		dragstart = [mx, my];
+	}
+}
+
+function mouseDown(e){
+	if(cur_tool)
+		cur_tool.mouseDown(e);
 }
 
 function mouseUp(e){
-	if(cur_tool === toolmap.select && 0 < selectobj.length && (moving || sizing)){
-		updateDrawData();
-	}
-	moving = false;
-	sizing = null;
-	var needsRedraw = boxselecting;
-	boxselecting = false;
-	if(needsRedraw) // Redraw to clear selection box
-		redraw(dobjs);
+	if(cur_tool)
+		cur_tool.mouseUp(e);
 }
 
-function mouseMove(e){
-	if(cur_tool === toolmap.select && 0 < selectobj.length){
-		var clrect = canvas.getBoundingClientRect();
-		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
-		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+function selectMouseMove(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+
+	if(0 < selectobj.length){
 		if(moving){
 			var dx = mx - movebase[0];
 			var dy = my - movebase[1];
 			for(var n = 0; n < selectobj.length; n++){
 				var obj = selectobj[n];
 				for(var i = 0; i < obj.points.length; i++){
-					obj.points[i].x += dx;
-					obj.points[i].y += dy;
+					var pt = obj.points[i];
+					pt.x += dx;
+					pt.y += dy;
+					// Move control points, too
+					if("cx" in pt && "cy" in pt)
+						pt.cx += dx, pt.cy += dy;
+					if("dx" in pt && "dy" in pt)
+						pt.dx += dx, pt.dy += dy;
 				}
 			}
 			movebase = [mx, my];
@@ -409,14 +591,31 @@ function mouseMove(e){
 			var yscale = uy === 0 ? 1 : (uy === 1 ? my - bounds.miny : bounds.maxy - my) / (bounds.maxy - bounds.miny);
 			var obj = sizing;
 			for(var i = 0; i < obj.points.length; i++){
-				if(ux !== 0 && xscale !== 0)
-					obj.points[i].x = ux === 1 ?
-						(obj.points[i].x - bounds.minx) * xscale + bounds.minx :
-						(obj.points[i].x - bounds.maxx) * xscale + bounds.maxx;
-				if(uy !== 0 && yscale !== 0)
-					obj.points[i].y = uy === 1 ?
-						(obj.points[i].y - bounds.miny) * yscale + bounds.miny :
-						(obj.points[i].y - bounds.maxy) * yscale + bounds.maxy;
+				var pt = obj.points[i];
+				if(ux !== 0 && xscale !== 0){
+					// Scale control points, too
+					var props = ["x", "cx", "dx"];
+					for(var j = 0; j < props.length; j++){
+						var prop = props[j];
+						if(!(prop in pt))
+							continue;
+						pt[prop] = ux === 1 ?
+							(pt[prop] - bounds.minx) * xscale + bounds.minx :
+							(pt[prop] - bounds.maxx) * xscale + bounds.maxx;
+					}
+				}
+				if(uy !== 0 && yscale !== 0){
+					// Scale control points, too
+					var props = ["y", "cy", "dy"];
+					for(var j = 0; j < props.length; j++){
+						var prop = props[j];
+						if(!(prop in pt))
+							continue;
+						pt[prop] = uy === 1 ?
+							(pt[prop] - bounds.miny) * yscale + bounds.miny :
+							(pt[prop] - bounds.maxy) * yscale + bounds.maxy;
+					}
+				}
 			}
 			// Invert handle selection when the handle is dragged to the other side to enable mirror scaling.
 			if(ux !== 0 && xscale < 0)
@@ -429,10 +628,7 @@ function mouseMove(e){
 
 	// We could use e.buttons to check if it's supported by all the browsers,
 	// but it seems not much trusty.
-	if(cur_tool === toolmap.select && !moving && !sizing && boxselecting){
-		var clrect = canvas.getBoundingClientRect();
-		var mx = e.clientX - clrect.left;
-		var my = e.clientY - clrect.top;
+	if(!moving && !sizing && boxselecting){
 		dragend = [mx, my];
 		var box = {
 			minx: Math.min(dragstart[0], mx),
@@ -451,51 +647,159 @@ function mouseMove(e){
 	}
 }
 
+function pathEditMouseMove(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+
+	if(0 < selectobj.length){
+		if(pointMoving){
+			mx -= offset.x;
+			my -= offset.y;
+
+			// Relatively move a control point if it exists
+			var relmove = function(name, idx, dx, dy){
+				if(pointMovingIdx + idx < 0 || pointMoving.points.length <= pointMovingIdx + idx)
+					return;
+				var p1 = pointMoving.points[pointMovingIdx + idx];
+				if((name + "x") in p1) p1[name + "x"] += dx;
+				if((name + "y") in p1) p1[name + "y"] += dy;
+			}
+
+			if(pointMovingCP === ""){
+				// When moving a vertex, Bezier control points associated with that vertex
+				// should move as well.  We remember delta of position change and apply it
+				// to the control points later.
+				var dx = mx - pointMoving.points[pointMovingIdx].x;
+				var dy = my - pointMoving.points[pointMovingIdx].y;
+				pointMoving.points[pointMovingIdx].x = mx;
+				pointMoving.points[pointMovingIdx].y = my;
+				// If it's the last vertex, there's no control point toward the next vertex.
+				if(pointMovingIdx + 1 < pointMoving.points.length)
+					relmove("c", 1, dx, dy);
+				relmove("d", 0, dx, dy);
+			}
+			else{
+				var curpoint = pointMoving.points[pointMovingIdx];
+				curpoint[pointMovingCP + "x"] = mx;
+				curpoint[pointMovingCP + "y"] = my;
+
+				// Move the control point in the opposite side of the vertex so that the
+				// curve seems smooth.  A line between a cubic Bezier spline curve's control point
+				// and its vertex is tangent to the curve, so keeping the control points parallel
+				// makes the connected Bezier curves look smooth.  This could be done by hand-editing,
+				// but it's very cumbersome to do everytime even single control point of spline is
+				// edited.
+				// Note that SVG's "S" or "s" path command can reflect the Bezier control point to
+				// achieve similar effect, but the commands cannot specify distinct lengths for each
+				// control points from the central vertex.  So we keep using "C" command.
+				// Sometimes the user wants to make a non-smooth path, so this functionality can be
+				// disabled by pressing ALT key while dragging.
+				if(!e.altKey && pointMovingCP === "d" && pointMovingIdx + 1 < pointMoving.points.length){
+					var nextpoint = pointMoving.points[pointMovingIdx + 1];
+					if("cx" in nextpoint && "cy" in nextpoint){
+						var dx = nextpoint.cx - curpoint.x;
+						var dy = nextpoint.cy - curpoint.y;
+						var len = Math.sqrt(dx * dx + dy * dy);
+						var angle = Math.atan2(dy, dx);
+						var newangle = Math.atan2(curpoint.y - curpoint.dy, curpoint.x - curpoint.dx);
+						nextpoint.cx = curpoint.x + len * Math.cos(newangle);
+						nextpoint.cy = curpoint.y + len * Math.sin(newangle);
+					}
+				}
+				else if(!e.altKey && pointMovingCP === "c" && 0 <= pointMovingIdx - 1){
+					var prevpoint = pointMoving.points[pointMovingIdx - 1];
+					if("dx" in prevpoint && "dy" in prevpoint){
+						var dx = prevpoint.dx - prevpoint.x;
+						var dy = prevpoint.dy - prevpoint.y;
+						var len = Math.sqrt(dx * dx + dy * dy);
+						var angle = Math.atan2(dy, dx);
+						var newangle = Math.atan2(prevpoint.y - curpoint.cy, prevpoint.x - curpoint.cx);
+						prevpoint.dx = prevpoint.x + len * Math.cos(newangle);
+						prevpoint.dy = prevpoint.y + len * Math.sin(newangle);
+					}
+				}
+			}
+			redraw(dobjs);
+		}
+	}
+}
+
+function mouseMove(e){
+	if(cur_tool.mouseMove)
+		cur_tool.mouseMove(e);
+}
+
 function mouseleave(e){
 	moving = false;
 	sizing = null;
 	boxselecting = false;
 }
 
+/// Mouse click event handler for view mode.
+/// Some shapes respond to the event in view mode.
+function viewModeClick(e){
+	var clrect = canvas.getBoundingClientRect();
+	var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+	var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+	var m = {x: mx / scale, y: my / scale}; /// Convert to the logical coordinate system before hit test
+
+	// Check to see if we are dragging any of scaling handles.
+	for(var i = 0; i < dobjs.length; i++){
+		if(!("viewModeClick" in dobjs[i]))
+			continue;
+		var bounds = expandRect(objBounds(dobjs[i]), 10);
+		if(hitRect(bounds, m.x, m.y)){
+			if(dobjs[i].viewModeClick(e))
+				return true;
+		}
+	}
+
+}
+
 function keyDown(e){
 	e = e || window.event;
-	var code = e.keyCode || e.which;
-	if(code === 46){ // Delete key
-		dhistory.push(cloneObject(dobjs)); // Push undo buffer
-		// Delete all selected objects
-		for (var i = 0; i < selectobj.length; i++) {
-			var s = selectobj[i];
-			for (var j = 0; j < dobjs.length; j++) {
-				if(dobjs[j] === s){
-					dobjs.splice(j, 1);
+	if(cur_tool.keyDown)
+		cur_tool.keyDown(e);
+}
+
+/// Delete given shapes from the canvas.
+/// Also deletes from selection list if matched.
+/// Passing selectobj variable itself as the argument clears the whole selection.
+function deleteShapes(shapes){
+	for (var i = 0; i < shapes.length; i++) {
+		var s = shapes[i];
+		for (var j = 0; j < dobjs.length; j++) {
+			if(dobjs[j] === s){
+				dobjs.splice(j, 1);
+				break;
+			}
+		}
+		if(shapes !== selectobj){
+			for (var j = 0; j < selectobj.length; j++) {
+				if(selectobj[j] === s){
+					selectobj.splice(j, 1);
 					break;
 				}
 			}
 		}
-		selectobj = []; // And don't forget to clear the selection
-		updateDrawData();
-		redraw(dobjs);
 	}
+	if(shapes === selectobj)
+		selectobj = [];
 }
 
-// draw one click
-function draw_point(x, y) {
-	debug('idx='+idx+',x='+x+',y='+y);
-	var coord;
+/// Constrain coordinate values if the grid is enabled.
+function constrainCoord(coord){
 	if(gridEnable)
-		coord = { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
+		return { x: Math.round(coord.x / gridSize) * gridSize, y: Math.round(coord.y / gridSize) * gridSize };
 	else
-		coord = { x:x, y:y };
-	arr[idx] = { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
-	idx++;
-	if (idx == cur_tool.points){
-		ctx.save();
-		// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
-		ctx.translate(offset.x, offset.y);
-		ctx.scale(scale, scale);
-		drawCanvas(0, null);
-		ctx.restore();
-	}
+		return { x: coord.x, y: coord.y };
+}
+
+/// Convert canvas coordinates to the source coordinates.
+/// These coordinates can differ when offset is not zero.
+function canvasToSrc(coord){
+	return { x: (coord.x - offset.x) / scale, y: (coord.y - offset.y) / scale };
 }
 
 // A local function to set font size with the global scaling factor in mind.
@@ -503,40 +807,16 @@ function setFont(baseSize) {
 	ctx.font = baseSize + "px 'Noto Sans Japanese', sans-serif";
 }
 
-// Registers array as a Shape
-function register(arr, numPoints, str){
-	// Ignore select tool events
-	if(cur_tool.name === "select")
-		return;
-	var dat = new cur_tool.objctor();
-	dat.tool = cur_tool.name;
-	dat.color = cur_col;
-	dat.width = cur_thin;
-	dat.points = Array(numPoints);
-	for(var i = 0; i < numPoints; i++)
-		dat.points[i] = {x: arr[i].x, y: arr[i].y};
-	// Values with defaults needs not assigned a value when saved.
-	// This will save space if the drawn element properties use many default values.
-	if ("text" === cur_tool.name) dat.text = str;
-	ajaxparts(dat);
-}
+/// Draw a shape on the canvas.
+function drawCanvas(obj) {
+	var tool = toolmap[obj.tool];
+	var numPoints = tool.points;
 
-// draw parts
-function drawCanvas(mode, str) {
-	// DEBUG
-	//if (1 == mode) alert("tool="+cur_tool+",col="+cur_col+",thin ="+cur_thin);
-	var numPoints = cur_tool.points;
-
-	cur_tool.setColor(coltable[cur_col]);
-	cur_tool.setWidth(cur_thin);
-	if(cur_tool.draw(mode, str))
-		return;
-
-	if (0 == mode)
-		register(arr, numPoints, str);
-	// clear
-	idx = 0;
-	
+	tool.setColor(coltable[obj.color]);
+	tool.setWidth(obj.width);
+	if(numPoints <= obj.points.length)
+		if(tool.draw(obj))
+			return;
 }
 
 function getHandleRect(bounds, i){
@@ -552,6 +832,11 @@ function getHandleRect(bounds, i){
 	case 7: x = bounds.minx, y = (bounds.miny+bounds.maxy)/2; break;
 	default: return;
 	}
+	return pointHandle(x, y);
+}
+
+/// Returns a small rectangle surrounding the given point which is suitable for mouse-picking.
+function pointHandle(x, y){
 	return {minx: x - handleSize, miny: y - handleSize, maxx: x + handleSize, maxy: y + handleSize};
 }
 
@@ -577,10 +862,36 @@ function resizeCanvas(){
 	}
 }
 
+/// Draw a handle rectangle or a circle around a vertex or a control point
+function drawHandle(x, y, color, circle){
+	var r = pointHandle(x, y);
+	ctx.fillStyle = color;
+	if(!circle)
+		ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+	ctx.beginPath();
+	ctx.strokeStyle = '#000';
+	if(circle){
+		ctx.arc((r.minx + r.maxx) / 2., (r.miny + r.maxy) / 2, handleSize, 0, 2 * Math.PI, false);
+		ctx.fill();
+	}
+	else
+		ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+	ctx.stroke();
+}
+
 // redraw
 function redraw(pt) {
 
 	clearCanvas();
+
+	// Clip the drawing region when in edit mode in order to prevent shapes from
+	// contaminate the menu bar and the toolbar.
+	if(editmode){
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(x1,y1, w1, h1);
+		ctx.clip();
+	}
 
 	if(gridEnable){
 		ctx.fillStyle = "#000";
@@ -591,26 +902,16 @@ function redraw(pt) {
 		}
 	}
 
-	// backup
-	var org_tool = cur_tool;
-	var org_col = cur_col;
-	var org_thin = cur_thin;
-//	var pt = str.split(",");
-
 	// Translate and scale the coordinates by applying matrices before invoking drawCanvas().
 	ctx.save();
 	ctx.translate(offset.x, offset.y);
 	ctx.scale(scale, scale);
-	for (var i=0; i<pt.length; i++) {
-		var obj = pt[i];
-		cur_tool = toolmap[obj.tool];
-		cur_col = obj.color;
-		cur_thin = obj.width;
-		arr = cloneObject(obj.points);
-		var rstr = null;
-		if ("text" === cur_tool.name) rstr = obj.text;
-		drawCanvas(1, rstr);
-	}
+	for (var i=0; i<pt.length; i++)
+		drawCanvas(pt[i]);
+
+	if(cur_shape)
+		drawCanvas(cur_shape);
+
 	ctx.restore();
 
 	if(boxselecting){
@@ -623,33 +924,62 @@ function redraw(pt) {
 		ctx.setLineDash([]);
 	}
 
-	for(var n = 0; n < selectobj.length; n++){
-		var bounds = objBounds(selectobj[n]);
-		ctx.beginPath();
-		ctx.lineWidth = 1;
-		ctx.strokeStyle = '#000';
-		ctx.setLineDash([5]);
-		ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
-		ctx.stroke();
-		ctx.setLineDash([]);
+	for(var n = 0; n < selectobj.length; n++)
+		cur_tool.selectDraw(selectobj[n]);
 
-		ctx.beginPath();
-		ctx.strokeStyle = '#000';
-		for(var i = 0; i < 8; i++){
-			var r = getHandleRect(bounds, i);
-			ctx.fillStyle = sizing === selectobj[n] && i === sizedir ? '#7fff7f' : '#ffff7f';
-			ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-			ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
-		}
-		ctx.stroke();
-	}
-
-	// restore tools
-	cur_tool = org_tool;
-	cur_col = org_col;
-	cur_thin = org_thin;
+	if(editmode)
+		ctx.restore();
 }
 
+// When pathedit tool is selected, draw handles on the shape's control points
+// and the path that connecting control points, but not the
+// bounding boxes and scaling handles, which could be annoying
+// because they're nothing to do with path editing.
+function pathEditSelectDraw(shape){
+	var pts = shape.points;
+	ctx.beginPath();
+	ctx.lineWidth = 1;
+	ctx.strokeStyle = '#000';
+	if(toolmap[shape.tool].isArc){
+		ctx.setLineDash([5]);
+		ctx.moveTo(pts[0].x + offset.x, pts[0].y + offset.y);
+		for(var i = 1; i < pts.length; i++)
+			ctx.lineTo(pts[i].x + offset.x, pts[i].y + offset.y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	// Draws dashed line that connects a control point and its associated vertex
+	function drawGuidingLine(pt0, name){
+		ctx.setLineDash([5]);
+		ctx.beginPath();
+		ctx.moveTo(pt0.x + offset.x, pt0.y + offset.y);
+		ctx.lineTo(pt[name + "x"] + offset.x, pt[name + "y"] + offset.y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+	}
+
+	for(var i = 0; i < pts.length; i++){
+		var pt = pts[i];
+		// Indicate currently selected vertex with blue handle, otherwise gray
+		drawHandle(pt.x + offset.x, pt.y + offset.y,
+			shape === this.selectPointShape && i === this.selectPointIdx ? '#7f7fff' : '#7f7f7f');
+
+		// Draw handles for control point only around the selected vertex
+		if(shape !== this.selectPointShape || i < this.selectPointIdx || this.selectPointIdx + 1 < i)
+			continue;
+
+		// Handles and guiding lines for the control points
+		if(0 < i && "cx" in pt && "cy" in pt){
+			drawHandle(pt.cx + offset.x, pt.cy + offset.y, '#ff7f7f', true);
+			drawGuidingLine(pts[i-1], "c");
+		}
+		if("dx" in pt && "dy" in pt){
+			drawHandle(pt.dx + offset.x, pt.dy + offset.y, '#ff7f7f', true);
+			drawGuidingLine(pt, "d");
+		}
+	}
+}
 
 // ==================== Shape class definition ================================= //
 function Shape(){
@@ -670,6 +1000,11 @@ Shape.prototype.serialize = function(){
 	var dat = "";
 	for (var i=0; i<this.points.length; i++){
 		if(i !== 0) dat += ":";
+		// Prepend control points if this vertex has them.
+		if("cx" in this.points[i] && "cy" in this.points[i])
+			dat += this.points[i].cx+","+this.points[i].cy+",";
+		if("dx" in this.points[i] && "dy" in this.points[i])
+			dat += this.points[i].dx+","+this.points[i].dy+",";
 		dat += this.points[i].x+","+this.points[i].y;
 	}
 	var alldat = {
@@ -690,13 +1025,26 @@ Shape.prototype.isSizeable = function(){
 Shape.prototype.deserialize = function(obj){
 	this.color = obj.color || "black";
 	this.width = obj.width || 1;
-	var pt1 = obj.points.split(":");
-	var arr = [];
-	for(var j = 0; j < pt1.length; j++){
-		var pt2 = pt1[j].split(",");
-		arr.push({x:pt2[0]-0, y:pt2[1]-0});
+	if("points" in obj){
+		var pt1 = obj.points.split(":");
+		var arr = [];
+		for(var j = 0; j < pt1.length; j++){
+			var pt2 = pt1[j].split(",");
+			var pt = {};
+			if(6 <= pt2.length){
+				pt.cx = parseFloat(pt2[0]);
+				pt.cy = parseFloat(pt2[1]);
+			}
+			if(4 <= pt2.length){
+				pt.dx = parseFloat(pt2[pt2.length-4]);
+				pt.dy = parseFloat(pt2[pt2.length-3]);
+			}
+			pt.x = parseFloat(pt2[pt2.length-2]);
+			pt.y = parseFloat(pt2[pt2.length-1]);
+			arr.push(pt);
+		}
+		this.points = arr;
 	}
-	this.points = arr;
 };
 
 Shape.prototype.getBoundingRect = function(){
@@ -740,18 +1088,21 @@ PointShape.prototype.getBoundingRect = function(){
 function TextShape(){
 	Shape.call(this);
 	this.text = "";
+	this.link = "";
 }
 inherit(TextShape, Shape);
 
 TextShape.prototype.serialize = function(){
 	var alldat = Shape.prototype.serialize.call(this);
 	alldat.text = this.text;
+	if(this.link) alldat.link = this.link; // Do not serialize blank URL
 	return alldat;
 }
 
 TextShape.prototype.deserialize = function(obj){
 	Shape.prototype.deserialize.call(this, obj);
 	if (undefined !== obj.text) this.text = obj.text;
+	if(undefined !== obj.link) this.link = obj.link;
 };
 
 TextShape.prototype.isSizeable = function(){
@@ -759,7 +1110,7 @@ TextShape.prototype.isSizeable = function(){
 }
 
 TextShape.prototype.getBoundingRect = function(){
-	var height = this.width === 1 ? 14 : this.width === 16 ? 2 : 20;
+	var height = this.width === 1 ? 14 : this.width === 2 ? 16 : 20;
 	var oldfont = ctx.font;
 	ctx.font = setFont(height);
 	var width = ctx.measureText(this.text).width;
@@ -767,7 +1118,96 @@ TextShape.prototype.getBoundingRect = function(){
 	return {minx: this.points[0].x, miny: this.points[0].y - height,
 		maxx: this.points[0].x + width, maxy: this.points[0].y};
 }
+
+/// Click event in view mode
+TextShape.prototype.viewModeClick = function(e){
+	if("link" in this && this.link){
+		location.href = this.link;
+		return true;
+	}
+	return false;
+}
 // ==================== TextShape class definition end ================================= //
+
+// ==================== PathShape class definition ================================= //
+function PathShape(){
+	Shape.call(this);
+}
+inherit(PathShape, Shape);
+
+/// Custom serializer for SVG-compatible path data
+PathShape.prototype.serialize = function(){
+	var alldat = Shape.prototype.serialize.call(this);
+	var src = "";
+	for (var i=0; i<this.points.length; i++){
+		var pt = this.points[i];
+		if(i !== 0 && ("cx" in pt && "cy" in pt || "dx" in pt && "dy" in pt)){
+			src += "C"; // Bezier curve command. 'S' command is not yet supported.
+			// Prepend control points if this vertex has them.
+			if("cx" in pt && "cy" in pt)
+				src += pt.cx+","+pt.cy+" ";
+			else
+				src += this.points[i-1].x+","+this.points[i-1].y+" ";
+			if("dx" in pt && "dy" in pt)
+				src += pt.dx+","+pt.dy+" ";
+			else
+				src += pt.x+","+pt.y+" ";
+		}
+		else if(i === 0)
+			src += "M"; // Moveto command
+		else
+			src += "L"; // Lineto command
+		src += pt.x+","+pt.y;
+	}
+	alldat.d = src;
+	// Set point data source to src and forget about old field
+	delete alldat.points;
+	if("arrow" in this)
+		alldat.arrow = set2seq(this.arrow);
+	return alldat;
+}
+
+/// Custom deserializer for SVG-compatible path data
+PathShape.prototype.deserialize = function(obj){
+	Shape.prototype.deserialize.call(this, obj);
+	if("arrow" in obj)
+		this.arrow = seq2set(obj.arrow);
+	if(!("d" in obj))
+		return;
+	var arr = [];
+	var src = obj.d;
+	var pt2 = [];
+	var last = 0;
+
+	function process(){
+		if(k <= last)
+			return;
+		var ssrc = src.slice(last+1, k);
+		pt2 = ssrc.split(/[, \t]/);
+		var pt = {};
+		if(6 <= pt2.length){
+			pt.cx = parseFloat(pt2[0]);
+			pt.cy = parseFloat(pt2[1]);
+		}
+		if(4 <= pt2.length){
+			pt.dx = parseFloat(pt2[pt2.length-4]);
+			pt.dy = parseFloat(pt2[pt2.length-3]);
+		}
+		pt.x = parseFloat(pt2[pt2.length-2]);
+		pt.y = parseFloat(pt2[pt2.length-1]);
+		arr.push(pt);
+		last = k;
+	}
+
+	for(var k = 0; k < src.length; k++){
+		if("MCLS".indexOf(src.charAt(k)) >= 0)
+			process();
+	}
+	process();
+
+	this.points = arr;
+};
+// ==================== PathShape class definition end ================================= //
 
 
 function serialize(dobjs){
@@ -946,8 +1386,6 @@ function clearCanvas() {
 	}
 	ctx.fillStyle = white;
 	ctx.fillRect(x1, y1, Math.min(w1, metaObj.size[0]), Math.min(h1, metaObj.size[1]));
-	idx = 0;
-	zorder = 0;
 }
 
 // Sets the size of the canvas
@@ -962,8 +1400,6 @@ function setSize(sx, sy){
 function checkMenu(x, y) {
 	var no = choiceMenu(x, y);
 	if (no >= 0) return no;
-	no = choiceTBox(x, y);
-	if (no > 0) return no;
 	no = choiceCBox(x, y);
 	if (no > 0) return no;
 	no = choiceHBox(x, y);
@@ -983,15 +1419,22 @@ function choiceMenu(x, y) {
 	return -1;
 }
 
-//
+/// Selects a toolbar button. Returns true if the coordinates hit a button.
 function choiceTBox(x, y) {
 	// ToolBox
-	if (x < mx0 || x > mx0+mw0) return -1;
-	for(var i=0;i<17;i++) {
-		if (y >= my0+(mh0+8)*i && y <= my0+mh0+(mh0+8)*i) return i+10;
+	if (x < mx0 || x > mx0+mw0) return false;
+	for(var i=0;i<toolbar.length;i++) {
+		var r = getTBox(i);
+		if(hitRect(r, x, y)){
+			cur_tool = toolbar[i];
+			drawTBox();
+			cur_shape = null;
+			redraw(dobjs);
+			return true;
+		}
 	}
 	
-	return -1;
+	return false;
 }
 
 	// Color Parett
@@ -1069,6 +1512,14 @@ function inherit(subclass,base){
 	subclass.prototype.constructor = subclass;
 }
 
+/// Copy all properties in src to target, retaining target's existing properties
+/// that have different names from src's.
+function mixin(target, src){
+	for(var k in src){
+		target[k] = src[k];
+	}
+}
+
 // Create a deep clone of objects
 function cloneObject(obj) {
 	if (obj === null || typeof obj !== 'object') {
@@ -1085,13 +1536,6 @@ function cloneObject(obj) {
 	}
 
 	return temp;
-}
-
-// Update dobjs
-function ajaxparts(str) {
-	dhistory.push(cloneObject(dobjs));
-	dobjs.push(str);
-	updateDrawData();
 }
 
 function updateDrawData(){
@@ -1202,6 +1646,20 @@ function debug(msg) {
 		options.debug(msg);
 }
 
+// ==================== Button class definition ================================= //
+/// An abstract button class.
+/// SVG or canvas graphics libraries like EaselJS would do this sort of thing
+/// much better, but I don't feel like to port to it at once.
+function Button(minx, miny, maxx, maxy, ondraw, onclick){
+	this.minx = minx;
+	this.miny = miny;
+	this.maxx = maxx;
+	this.maxy = maxy;
+	this.ondraw = ondraw;
+	this.onclick = onclick;
+}
+
+// ==================== Menu class definition ================================= //
 function MenuItem(text, onclick){
 	this.text = i18n.t(text);
 	this.onclick = onclick;
@@ -1210,8 +1668,6 @@ function MenuItem(text, onclick){
 // init --------------------------------------------------
 //window.captureEvents(Event.click);
 //onclick=mouseLeftClick;
-var arr = new Array({x:0,y:0}, {x:0,y:0}, {x:0,y:0});
-var idx = 0, zorder = 0;
 var ctx;
 var menus = [
 	new MenuItem("Grid", function(){
@@ -1293,6 +1749,52 @@ var menus = [
 	}), // size
 ];
 
+var buttons = [];
+
+
+/// @brief Converts a sequence (array) to a set (object)
+///
+/// We wish if we could use YAML's !!set type (which is described in
+/// http://yaml.org/type/set.html ), but JavaScript doesn't natively
+/// support set type and js-yaml library converts YAML's !!set type
+/// into an object with property names as keys in the set.
+/// The values associated with the keys are not meaningful and
+/// null is assigned by the library.
+/// If we serialize the object, it would be an !!map instead of a !!set.
+/// For example, a !!set {head, tail} would be serialized as
+/// "{head: null, tail: null}", which is far from beautiful.
+///
+/// So we had to pretend as if !!set is encoded as !!seq in the serialized
+/// YAML document by converting JavaScript objects into arrays.
+/// It would be "[head, tail]" in the case of the former example.
+///
+/// The seq2set function converts sequence from YAML parser into
+/// a set-like object, while set2seq does the opposite.
+///
+/// Note that these functions work only for sets of strings.
+///
+/// @sa set2seq
+function seq2set(seq){
+	var ret = {};
+	for(var i = 0; i < seq.length; i++){
+		if(seq[i] === "")
+			continue;
+		ret[seq[i]] = null;
+	}
+	return ret;
+}
+
+/// @brief Converts a set (object) to a sequence (array)
+/// @sa seq2set
+function set2seq(set){
+	var ret = [];
+	for(var i in set){
+		if(i === "")
+			continue;
+		ret.push(i);
+	}
+	return ret;
+}
 
 // ==================== Tool class definition ================================= //
 
@@ -1313,10 +1815,11 @@ function Tool(name, points, params){
 	this.points = points || 1;
 	this.objctor = params && params.objctor || Shape;
 	this.drawTool = params && params.drawTool;
-	if(params && params.setColor) this.setColor = params.setColor;
-	if(params && params.setWidth) this.setWidth = params.setWidth;
-	if(params && params.draw) this.draw = params.draw;
-	toolmap[name] = this;
+	mixin(this, params);
+	// The path tool shares the same shape type identifier among multiple
+	// tools, so duplicate assignments should be avoided.
+	if(!(name in toolmap))
+		toolmap[name] = this;
 }
 
 Tool.prototype.setColor = function(color){
@@ -1335,6 +1838,102 @@ function nop(){}
 
 Tool.prototype.draw = nop;
 
+/// Append a point to the shape by mouse click
+Tool.prototype.appendPoint = function(x, y) {
+	function addPoint(x, y){
+		if (cur_shape.points.length === cur_tool.points){
+			dhistory.push(cloneObject(dobjs));
+			dobjs.push(cur_shape);
+			updateDrawData();
+			cur_shape = null;
+			redraw(dobjs);
+			return true;
+		}
+		else{
+			cur_shape.points.push(canvasToSrc(constrainCoord({x:x, y:y})));
+			return false;
+		}
+	}
+
+	if(!cur_shape){
+		var obj = new cur_tool.objctor();
+		obj.tool = cur_tool.name;
+		obj.color = cur_col;
+		obj.width = cur_thin;
+		cur_shape = obj;
+		// Add two points for previewing shapes that consist of multiple points,
+		// but single-point shapes will finish with just single click.
+		if(!addPoint(x, y))
+			addPoint(x, y);
+	}
+	else{
+		addPoint(x, y);
+	}
+}
+
+Tool.prototype.mouseDown = function(e){
+	// Do nothing by default
+}
+
+Tool.prototype.mouseMove = function(e){
+	if(cur_shape && 0 < cur_shape.points.length){
+		var clrect = canvas.getBoundingClientRect();
+		var mx = (gridEnable ? Math.round(e.clientX / gridSize) * gridSize : e.clientX) - clrect.left;
+		var my = (gridEnable ? Math.round(e.clientY / gridSize) * gridSize : e.clientY) - clrect.top;
+		// Live preview of the shape being added.
+		var coord = {x: mx, y: my};
+		cur_shape.points[cur_shape.points.length-1] = canvasToSrc(constrainCoord(coord));
+		redraw(dobjs);
+	}
+}
+
+Tool.prototype.mouseUp = function(e){
+	moving = false;
+	sizing = null;
+	pointMoving = null;
+	var needsRedraw = boxselecting;
+	boxselecting = false;
+	if(needsRedraw) // Redraw to clear selection box
+		redraw(dobjs);
+}
+
+Tool.prototype.keyDown = function(e){
+	var code = e.keyCode || e.which;
+	if(code === 46){ // Delete key
+		dhistory.push(cloneObject(dobjs)); // Push undo buffer
+		// Delete all selected objects
+		deleteShapes(selectobj);
+		updateDrawData();
+		redraw(dobjs);
+	}
+}
+
+// All other tools than the pathedit, draw scaling handles and
+// bounding boxes around selected objects.
+// Aside from the select tool, the user cannot grab the scaling handles,
+// but they're useful to visually appeal that the object is selected.
+Tool.prototype.selectDraw = function(shape){
+	var bounds = objBounds(shape);
+
+	ctx.beginPath();
+	ctx.lineWidth = 1;
+	ctx.strokeStyle = '#000';
+	ctx.setLineDash([5]);
+	ctx.rect(bounds.minx, bounds.miny, bounds.maxx-bounds.minx, bounds.maxy-bounds.miny);
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	ctx.beginPath();
+	ctx.strokeStyle = '#000';
+	for(var i = 0; i < 8; i++){
+		var r = getHandleRect(bounds, i);
+		ctx.fillStyle = sizing === shape && i === sizedir ? '#7fff7f' : '#ffff7f';
+		ctx.fillRect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+		ctx.rect(r.minx, r.miny, r.maxx - r.minx, r.maxy-r.miny);
+	}
+	ctx.stroke();
+}
+
 // ==================== Tool class definition end ============================= //
 
 
@@ -1352,7 +1951,61 @@ var toolbar = [
 			ctx.closePath();
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
-		}}),
+		},
+		mouseDown: selectMouseDown,
+		mouseMove: selectMouseMove,
+		mouseUp: function(e){
+			if(0 < selectobj.length && (moving || sizing))
+				updateDrawData();
+			Tool.prototype.mouseUp.call(this, e);
+		}
+	}),
+	new Tool("pathedit", 1, {
+		// The path editing tool. This is especially useful when editing
+		// existing curves.  The icon is identical to that of select tool,
+		// except that the mouse cursor graphic is filled.
+		drawTool: function(x, y){
+			ctx.fillStyle = 'rgb(250, 250, 250)';
+			ctx.beginPath();
+			ctx.moveTo(x, y-5);
+			ctx.lineTo(x, y+10);
+			ctx.lineTo(x+4, y+7);
+			ctx.lineTo(x+6, y+11);
+			ctx.lineTo(x+8, y+9);
+			ctx.lineTo(x+6, y+5);
+			ctx.lineTo(x+10, y+3);
+			ctx.closePath();
+			ctx.fill();
+			ctx.strokeText('1', x+45, y+10);
+		},
+		mouseDown: pathEditMouseDown,
+		mouseMove: pathEditMouseMove,
+		mouseUp: function(e){
+			if(0 < selectobj.length && pointMoving)
+				updateDrawData();
+			Tool.prototype.mouseUp.call(this, e);
+		},
+		keyDown: function(e){
+			var code = e.keyCode || e.which;
+			if(code === 46){ // Delete key
+				// Pathedit tool's delete key just delete single vertex in a path
+				if(this.selectPointShape && this.selectPointShape.tool === "path" && 0 <= this.selectPointIdx){
+					dhistory.push(cloneObject(dobjs)); // Push undo buffer
+					if(this.selectPointShape.points.length <= 2){
+						deleteShapes([this.selectPointShape]);
+						this.selectPointShape = null;
+					}
+					else
+						this.selectPointShape.points.splice(this.selectPointIdx, 1);
+					updateDrawData();
+					redraw(dobjs);
+				}
+			}
+		},
+		selectDraw: pathEditSelectDraw,
+		selectPointShape: null, // Default value for the variable
+		selectPointIdx: -1, // Default value for the variable
+	}),
 	new Tool("line", 2, {
 		drawTool: function(x, y){
 			ctx.beginPath();
@@ -1361,7 +2014,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.lineTo(arr[1].x, arr[1].y);
@@ -1375,7 +2029,8 @@ var toolbar = [
 			l_arrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_arrow(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1387,7 +2042,8 @@ var toolbar = [
 			l_tarrow(ctx, [{x:x, y:y+5}, {x:x+40, y:y+5}]);
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_tarrow(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1406,13 +2062,15 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_darrow(ctx, arr);
 			ctx.lineWidth = 1;
 		}
 	}),
 	new Tool("arc", 3, {
+		isArc: true,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
@@ -1420,7 +2078,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('3', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -1429,6 +2088,7 @@ var toolbar = [
 		}
 	}),
 	new Tool("arcarrow", 3, {
+		isArc: true,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
@@ -1436,7 +2096,8 @@ var toolbar = [
 			l_hige(ctx, [{x:x+20, y:y+20}, {x:x+40, y:y}]);
 			ctx.strokeText('3', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -1445,6 +2106,7 @@ var toolbar = [
 		}
 	}),
 	new Tool("arcbarrow", 3, {
+		isArc: true,
 		drawTool: function(x, y){
 			ctx.beginPath();
 			ctx.moveTo(x, y);
@@ -1456,7 +2118,8 @@ var toolbar = [
 			l_hige(ctx, a);
 			ctx.strokeText('3', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.moveTo(arr[0].x, arr[0].y);
 			ctx.quadraticCurveTo(arr[1].x, arr[1].y, arr[2].x, arr[2].y);
@@ -1476,7 +2139,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.rect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 			ctx.stroke();
@@ -1492,7 +2156,8 @@ var toolbar = [
 			ctx.scale(1.0, 2.0);
 			ctx.strokeText('2', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_elipse(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1507,7 +2172,8 @@ var toolbar = [
 		},
 		setColor: setColorFill,
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			ctx.fillRect(arr[0].x, arr[0].y, arr[1].x-arr[0].x, arr[1].y-arr[0].y);
 		}
@@ -1523,7 +2189,8 @@ var toolbar = [
 		},
 		setColor: setColorFill,
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_elipsef(ctx, arr);
 			ctx.lineWidth = 1;
@@ -1541,7 +2208,8 @@ var toolbar = [
 			ctx.stroke();
 			ctx.strokeText('1', x+45, y+10);
 		},
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			//ctx.lineWidth = cur_thin - 40;
 			l_star(ctx, arr);
@@ -1558,24 +2226,10 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setWidth: nop,
-		draw: function(){
+		draw: function(obj){
+			var arr = obj.points;
 			ctx.beginPath();
 			l_check(ctx, arr);
-		}
-	}),
-	new Tool("done", 1, {objctor: PointShape,
-		drawTool: function(x, y){
-			ctx.beginPath();
-			ctx.strokeText(i18n.t('Done'), x+3, y+10);
-			ctx.beginPath();
-			ctx.arc(x+9, y+5, 8, 0, 6.28, false);
-			ctx.stroke();
-			ctx.strokeText('1', x+45, y+10);
-		},
-		setWidth: nop,
-		draw: function(){
-			ctx.beginPath();
-			l_complete(ctx, arr);
 		}
 	}),
 	new Tool("text", 1, {objctor: TextShape,
@@ -1585,131 +2239,391 @@ var toolbar = [
 			ctx.strokeText('1', x+45, y+10);
 		},
 		setColor: setColorFill,
-		draw: function(mode, str){
-			function setText(str, x, y){
-				if (null == str) {		// cancel
-					idx = 0;
-					return;
-				}
+		draw: function(obj){
+			var str = obj.text;
+			if (null == str) {		// cancel
+//					idx = 0;
+				return;
+			}
+			ctx.beginPath();
+			if (1 == obj.width) setFont(14);
+			else if (2 == obj.width) setFont(16);
+			else setFont(20);
+			ctx.fillText(str, obj.points[0].x, obj.points[0].y);
+
+			// Draw blue underline for linked text
+			if(obj.link){
+				ctx.strokeStyle = '#0000ff';
 				ctx.beginPath();
-				if (1 == cur_thin) setFont(14);
-				else if (2 == cur_thin) setFont(16);
-				else setFont(20);
-				ctx.fillText(str, x, y);
-				ctx.font = setFont(14);
-			};
+				ctx.moveTo(obj.points[0].x, obj.points[0].y + 4);
+				ctx.lineTo(obj.points[0].x + ctx.measureText(str).width, obj.points[0].y + 4);
+				ctx.stroke();
+			}
 
-			if (0 == mode) {
-				// Show size input layer on top of the canvas because the canvas cannot have
-				// a text input element.
-				if(!textLayer){
-					textLayer = document.createElement('div');
-					// Create field for remembering position of text being inserted.
-					// Free variables won't work well.
-					textLayer.canvasPos = {x:0, y:0};
-					var lay = textLayer;
-					lay.id = 'textLayer';
-					lay.style.position = 'absolute';
-					lay.style.padding = '5px 5px 5px 5px';
-					lay.style.borderStyle = 'solid';
-					lay.style.borderColor = '#cf0000';
-					lay.style.borderWidth = '2px';
-					// Drop shadow to make it distinguishable from the figure contents.
-					lay.style.boxShadow = '0px 0px 20px grey';
-					lay.style.background = '#cfffcf';
+			ctx.font = setFont(14);
+		},
+		appendPoint: function(x, y){
+			var textTool = this;
+			// Show size input layer on top of the canvas because the canvas cannot have
+			// a text input element.
+			if(!textLayer){
+				textLayer = document.createElement('div');
+				// Create field for remembering position of text being inserted.
+				// Free variables won't work well.
+				textLayer.canvasPos = {x:0, y:0};
+				var lay = textLayer;
+				lay.id = 'textLayer';
+				lay.style.position = 'absolute';
+				lay.style.padding = '5px 5px 5px 5px';
+				lay.style.borderStyle = 'solid';
+				lay.style.borderColor = '#cf0000';
+				lay.style.borderWidth = '2px';
+				// Drop shadow to make it distinguishable from the figure contents.
+				lay.style.boxShadow = '0px 0px 20px grey';
+				lay.style.background = '#cfffcf';
 
-					// Create and assign the input element to a field of the textLayer object
-					// to keep track of the input element after this function is exited.
-					lay.textInput = document.createElement('input');
-					lay.textInput.id = "textinput";
-					lay.textInput.type = "text";
-					lay.textInput.onkeyup = function(e){
-						// Convert enter key event to OK button click
-						if(e.keyCode === 13)
-							okbutton.onclick();
-					};
-					lay.appendChild(lay.textInput);
+				// Create and assign the input element to a field of the textLayer object
+				// to keep track of the input element after this function is exited.
+				lay.textInput = document.createElement('input');
+				lay.textInput.id = "textinput";
+				lay.textInput.type = "text";
+				lay.textInput.style.width = "30em";
+				lay.textInput.onkeyup = function(e){
+					// Convert enter key event to OK button click
+					if(e.keyCode === 13)
+						okbutton.onclick();
+				};
+				lay.appendChild(lay.textInput);
 
-					var okbutton = document.createElement('input');
-					okbutton.type = 'button';
-					okbutton.value = 'OK';
-					okbutton.onclick = function(e){
-						lay.style.display = 'none';
-						// Ignore blank text
-						if(lay.textInput.value == '')
-							return;
-						// If a shape is clicked, alter its value instead of adding a new one.
-						if(lay.dobj){
-							dhistory.push(cloneObject(dobjs));
-							lay.dobj.text = lay.textInput.value;
-						}
-						else
-							register([lay.canvasPos], 1, lay.textInput.value);
-						updateDrawData();
-						redraw(dobjs);
+				// Add a text area for link
+				lay.appendChild(document.createElement('br'));
+				lay.linkInput = document.createElement('input');
+				lay.linkInput.id = "linkinput";
+				lay.linkInput.type = "text";
+				lay.linkInput.onkeyup = lay.textInput.onkeyup;
+				var linkdiv = document.createElement('div');
+				linkdiv.innerHTML = "Link:";
+				linkdiv.appendChild(lay.linkInput);
+				lay.appendChild(linkdiv);
+
+				var okbutton = document.createElement('input');
+				okbutton.type = 'button';
+				okbutton.value = 'OK';
+				okbutton.onclick = function(e){
+					lay.style.display = 'none';
+					// Ignore blank text
+					if(lay.textInput.value == '')
+						return;
+					dhistory.push(cloneObject(dobjs));
+					// If a shape is clicked, alter its value instead of adding a new one.
+					if(lay.dobj){
+						lay.dobj.text = lay.textInput.value;
+						lay.dobj.link = lay.linkInput.value;
 					}
-					var cancelbutton = document.createElement('input');
-					cancelbutton.type = 'button';
-					cancelbutton.value = 'Cancel';
-					cancelbutton.onclick = function(s){
-						lay.style.display = 'none';
+					else{
+						var obj = new textTool.objctor();
+						obj.tool = cur_tool.name;
+						obj.color = cur_col;
+						obj.width = cur_thin;
+						obj.points.push({x: lay.canvasPos.x, y: lay.canvasPos.y});
+						obj.text = lay.textInput.value;
+						obj.link = lay.linkInput.value;
+						dobjs.push(obj);
 					}
-					lay.appendChild(document.createElement('br'));
-					lay.appendChild(okbutton);
-					lay.appendChild(cancelbutton);
-					// Append as the body element's child because style.position = "absolute" would
-					// screw up in deeply nested DOM tree (which may have a positioned ancestor).
-					document.body.appendChild(lay);
+					updateDrawData();
+					redraw(dobjs);
 				}
-				else
-					textLayer.style.display = 'block';
-
-				textLayer.canvasPos.x = arr[0].x;
-				textLayer.canvasPos.y = arr[0].y;
-
-				// Find if any TextShape is under the mouse cursor.
-				textLayer.dobj = null;
-				textLayer.textInput.value = "";
-				for (var i = 0; i < dobjs.length; i++) {
-					if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), arr[0].x, arr[0].y)){
-						textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
-						textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
-						break;
-					}
+				var cancelbutton = document.createElement('input');
+				cancelbutton.type = 'button';
+				cancelbutton.value = 'Cancel';
+				cancelbutton.onclick = function(s){
+					lay.style.display = 'none';
 				}
-
-				var canvasRect = canvas.getBoundingClientRect();
-				// Cross-browser scroll position query
-				var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
-				var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
-				// getBoundingClientRect() returns coordinates relative to view, which means we have to
-				// add scroll position into them.
-				textLayer.style.left = (canvasRect.left + scrollX + offset.x + arr[0].x) + 'px';
-				textLayer.style.top = (canvasRect.top + scrollY + offset.y + arr[0].y) + 'px';
-				// focus() should be called after textLayer is positioned, otherwise the page may
-				// unexpectedly scroll to somewhere.
-				textLayer.textInput.focus();
-
-				// Reset the point buffer
-				idx = 0;
-				return true; // Skip registration
+//				lay.appendChild(document.createElement('br')); // It seems to add an extra line break
+				lay.appendChild(okbutton);
+				lay.appendChild(cancelbutton);
+				// Append as the body element's child because style.position = "absolute" would
+				// screw up in deeply nested DOM tree (which may have a positioned ancestor).
+				document.body.appendChild(lay);
 			}
 			else
-				setText(str, arr[0].x, arr[0].y);
+				textLayer.style.display = 'block';
+			var coord = canvasToSrc(constrainCoord({x:x, y:y}));
+			textLayer.canvasPos.x = coord.x;
+			textLayer.canvasPos.y = coord.y;
+
+			// Find if any TextShape is under the mouse cursor.
+			textLayer.dobj = null;
+			textLayer.textInput.value = "";
+			for (var i = 0; i < dobjs.length; i++) {
+				if(dobjs[i] instanceof TextShape && hitRect(objBounds(dobjs[i], true), coord.x, coord.y)){
+					textLayer.dobj = dobjs[i]; // Remember the shape being clicked on.
+					textLayer.textInput.value = dobjs[i].text; // Initialized the input buffer with the previous content.
+					textLayer.linkInput.value = dobjs[i].link;
+					break;
+				}
+			}
+
+			// Adjust the text area's width so that two of them uses the div element's space efficiently.
+			var textInputRect = textLayer.textInput.getBoundingClientRect();
+			var linkInputRect = textLayer.linkInput.getBoundingClientRect();
+			textLayer.linkInput.style.width = textInputRect.width - (linkInputRect.left - textInputRect.left) + "px";
+
+			var canvasRect = canvas.getBoundingClientRect();
+			// Cross-browser scroll position query
+			var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+			var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+			// getBoundingClientRect() returns coordinates relative to view, which means we have to
+			// add scroll position into them.
+			textLayer.style.left = (canvasRect.left + scrollX + offset.x + coord.x) + 'px';
+			textLayer.style.top = (canvasRect.top + scrollY + offset.y + coord.y) + 'px';
+			// focus() should be called after textLayer is positioned, otherwise the page may
+			// unexpectedly scroll to somewhere.
+			textLayer.textInput.focus();
+
+			// Reset the point buffer
+//				idx = 0;
+			return true; // Skip registration
 		}
-	}),
-	new Tool("delete", 1, {
-		drawTool: function(x, y){
-			ctx.beginPath();
-			ctx.moveTo(x, y);
-			ctx.lineTo(x+10, y+10);
-			ctx.moveTo(x, y+10);
-			ctx.lineTo(x+10, y);
-			ctx.stroke();
-			ctx.strokeText('1', x+45, y+10);
-		}
-	}),
+	})
 ];
+
+var toolbars = [toolbar,
+	[
+		toolmap.select,
+		toolmap.pathedit,
+		new Tool("delete", 1, {
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.lineTo(x+10, y+10);
+				ctx.moveTo(x, y+10);
+				ctx.lineTo(x+10, y);
+				ctx.stroke();
+				ctx.strokeText('1', x+45, y+10);
+			}
+		}),
+		new Tool("done", 1, {objctor: PointShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.strokeText(i18n.t('Done'), x+3, y+10);
+				ctx.beginPath();
+				ctx.arc(x+9, y+5, 8, 0, 6.28, false);
+				ctx.stroke();
+				ctx.strokeText('1', x+45, y+10);
+			},
+			setWidth: nop,
+			draw: function(obj){
+				var arr = obj.points;
+				ctx.beginPath();
+				l_complete(ctx, arr);
+			}
+		}),
+		new Tool("path", 2, {
+			objctor: PathShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.bezierCurveTo(x+10, y+20, x+20, y-10, x+30, y+10);
+				ctx.stroke();
+				ctx.strokeText('n', x+45, y+10);
+			},
+			draw: function(obj){
+				var arr = obj.points;
+				if(arr.length < 2)
+					return;
+				ctx.beginPath();
+				ctx.moveTo(arr[0].x, arr[0].y);
+				for(var i = 1; i < arr.length; i++){
+					if("cx" in arr[i] && "cy" in arr[i]){
+						if("dx" in arr[i] && "dy" in arr[i])
+							ctx.bezierCurveTo(arr[i].cx, arr[i].cy, arr[i].dx, arr[i].dy, arr[i].x, arr[i].y);
+						else
+							ctx.bezierCurveTo(arr[i].cx, arr[i].cy, arr[i].x, arr[i].y, arr[i].x, arr[i].y);
+					}
+					else if("dx" in arr[i] && "dy" in arr[i])
+						ctx.bezierCurveTo(arr[i-1].x, arr[i-1].y, arr[i].dx, arr[i].dy, arr[i].x, arr[i].y);
+					else
+						ctx.lineTo(arr[i].x, arr[i].y);
+				}
+				ctx.stroke();
+				if("arrow" in obj && "head" in obj.arrow && 1 < arr.length){
+					var first = arr[0], first2 = arr[1], a = [];
+					if("cx" in first2 && "cy" in first2 && (first2.cx !== first.x || first2.cy !== first.y))
+						a[0] = {x: first2.cx, y: first2.cy};
+					else if("dx" in first2 && "dy" in first2 && (first2.dx !== first.x || first2.dy !== first.y))
+						a[0] = {x: first2.dx, y: first2.dy};
+					else
+						a[0] = first2;
+					a[1] = first;
+					ctx.beginPath();
+					l_hige(ctx, a);
+				}
+				if("arrow" in obj && "tail" in obj.arrow && 1 < arr.length){
+					var last = arr[arr.length-1], last2 = arr[arr.length-2], a = [];
+					if("dx" in last && "dy" in last && (last.dx !== last.x || last.dy !== last.y))
+						a[0] = {x: last.dx, y: last.dy};
+					else if("cx" in last && "cy" in last && (last.cx !== last.x || last.cy !== last.y))
+						a[0] = {x: last.cx, y: last.cy};
+					else
+						a[0] = last2;
+					a[1] = last;
+					ctx.beginPath();
+					l_hige(ctx, a);
+				}
+				ctx.lineWidth = 1;
+
+				// Draws dashed line that connects a control point and its associated vertex
+				// This one does not take offset into account since the transformation is done
+				// before this function.
+				function drawGuidingLineNoOffset(pt0, pt, name){
+					ctx.setLineDash([5]);
+					ctx.beginPath();
+					ctx.moveTo(pt0.x, pt0.y);
+					ctx.lineTo(pt[name + "x"], pt[name + "y"]);
+					ctx.stroke();
+					ctx.setLineDash([]);
+				}
+
+				if(obj === cur_shape){
+					var last = arr[arr.length-1];
+					drawGuidingLineNoOffset(last ,last, "d");
+					drawHandle(last.dx, last.dy, "#ff7f7f", true);
+					var next = {x: 2 * last.x - last.dx, y: 2 * last.y - last.dy};
+					drawGuidingLineNoOffset(last, next, "");
+					drawHandle(next.x, next.y, "#ff7f7f", true);
+				}
+			},
+			onNewShape: function(shape){}, /// Virtual event handler on creation of a new shape
+			appendPoint: function(x, y){
+				function addPoint(){
+					var pts = cur_shape.points;
+					pts.push(cloneObject(d));
+				}
+
+				var d = canvasToSrc(constrainCoord({x:x, y:y}));
+				if(!cur_shape){
+					var obj = new cur_tool.objctor();
+					obj.tool = cur_tool.name;
+					obj.color = cur_col;
+					obj.width = cur_thin;
+					this.onNewShape(obj);
+					cur_shape = obj;
+					addPoint();
+					addPoint();
+				}
+				else{
+					var pts = cur_shape.points;
+					if(pts.length !== 1){
+						var prev = pts[pts.length-2];
+						if(d.x === prev.x && d.y === prev.y){
+							cur_shape.points.pop();
+							dhistory.push(cloneObject(dobjs));
+							dobjs.push(cur_shape);
+							updateDrawData();
+							cur_shape = null;
+							redraw(dobjs);
+							return true;
+						}
+					}
+					if(0 < pts.length){
+						var prev = pts[pts.length-1];
+						// Mirror position of control point for smooth curve
+						if("dx" in prev && "dy" in prev){
+							d.cx = 2 * prev.x - prev.dx;
+							d.cy = 2 * prev.y - prev.dy;
+						}
+					}
+					addPoint();
+				}
+			},
+			mouseDown: function(e){
+				if(cur_shape){
+					var clrect = canvas.getBoundingClientRect();
+					var mx = e.clientX - clrect.left;
+					var my = e.clientY - clrect.top;
+					// Remember mouse stat to this (Path tool) object for later use
+					// in mouseMove().
+					this.lastx = mx;
+					this.lasty = my;
+					this.lastPoint = cur_shape.points[cur_shape.points.length-1];
+				}
+			},
+			mouseMove: function(e){
+				if(!cur_shape)
+					return;
+				var clrect = canvas.getBoundingClientRect();
+				var mx = e.clientX - clrect.left;
+				var my = e.clientY - clrect.top;
+				if(this.lastPoint){
+					var pt = this.lastPoint;
+					var d = canvasToSrc(constrainCoord({x:mx, y:my}));
+					if(0 < cur_shape.points.length && (pt.x !== d.x && pt.y !== d.y)){
+						var prev = cur_shape.points[cur_shape.points.length-2];
+						// Extend control point by mouse dragging.
+						pt.dx = 2 * pt.x - d.x;
+						pt.dy = 2 * pt.y - d.y;
+					}
+					redraw(dobjs);
+				}
+				else if(0 < cur_shape.points.length){
+					// Live preview of the shape being added.
+					var coord = canvasToSrc(constrainCoord({x: mx, y: my}));
+					var pt = cur_shape.points[cur_shape.points.length-1];
+					var dx = coord.x - pt.x;
+					var dy = coord.y - pt.y;
+					pt.x = coord.x;
+					pt.y = coord.y;
+					// Only move dx and dy along with x, y.
+					// cx and cy should be moved with the previous vertex.
+					if("dx" in pt && "dy" in pt)
+						pt.dx += dx, pt.dy += dy;
+					redraw(dobjs);
+				}
+			},
+			mouseUp: function(e){
+				this.lastPoint = null;
+			},
+		}),
+		new Tool("path", 2, {
+			objctor: PathShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.bezierCurveTo(x+10, y+20, x+20, y-10, x+30, y+10);
+				ctx.stroke();
+				l_hige(ctx, [{x: x+20, y: y-10}, {x: x+30, y: y+10}]);
+				ctx.strokeText('n', x+45, y+10);
+			},
+			draw: toolmap.path.draw,
+			onNewShape: function(shape){shape.arrow = {"tail": null}},
+			appendPoint: toolmap.path.appendPoint,
+			mouseDown: toolmap.path.mouseDown,
+			mouseMove: toolmap.path.mouseMove,
+			mouseUp: toolmap.path.mouseUp,
+		}),
+		new Tool("path", 2, {
+			objctor: PathShape,
+			drawTool: function(x, y){
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.bezierCurveTo(x+10, y+20, x+20, y-10, x+30, y+10);
+				ctx.stroke();
+				l_hige(ctx, [{x: x+10, y: y+20}, {x: x, y: y}]);
+				l_hige(ctx, [{x: x+20, y: y-10}, {x: x+30, y: y+10}]);
+				ctx.strokeText('n', x+45, y+10);
+			},
+			draw: toolmap.path.draw,
+			onNewShape: function(shape){shape.arrow = {head: null, "tail": null}},
+			appendPoint: toolmap.path.appendPoint,
+			mouseDown: toolmap.path.mouseDown,
+			mouseMove: toolmap.path.mouseMove,
+			mouseUp: toolmap.path.mouseUp,
+		})
+	]
+];
+var toolbarPage = 0;
+
 var white = "rgb(255, 255, 255)";
 var black = "rgb(0, 0, 0)";
 var blue = "rgb(0, 100, 255)";
@@ -1724,6 +2638,7 @@ var x1 = 90, y1 = 50, w1 = 930, h1 = 580;
 var mx0 = 10, mx1 = x1, mx2 = 600, mx3 = 820;
 var mw0 = 70, mw1 = 60, mw2 = 30, my0 = 20, mh0 = 28;
 var cur_tool = toolmap.select, cur_col = "black", cur_thin = 1;
+var cur_shape = null;
 var offset = editmode ? {x:x1, y:y1} : {x:0, y:0};
 
 // The layer to show input controls for width and height sizes of the figure.
