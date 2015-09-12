@@ -123,7 +123,7 @@ function draw() {
 	ctx.beginPath();
 	ctx.strokeStyle = 'rgb(192, 192, 77)'; // yellow
 		ctx.font = i18n.t("14px 'Courier'");
-	ctx.strokeText('SketchCanvas Editor v0.1.2', 420, 10);
+	ctx.strokeText('SketchCanvas Editor v0.1.3', 420, 10);
 	ctx.rect(x0, y0, w0, h0);
 	ctx.rect(x1, y1, w1, h1);
 	ctx.closePath();
