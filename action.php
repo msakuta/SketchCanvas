@@ -48,7 +48,7 @@ class action_plugin_sketchcanvas extends DokuWiki_Action_Plugin {
             $event->data['script'][] = array(
                 'type'    => 'text/javascript',
                 'charset' => 'utf-8',
-                'src'     => 'lib/plugins/' . $this->getPluginName() . '/script/' . $file,
+                'src'     => DOKU_BASE . 'lib/plugins/' . $this->getPluginName() . '/script/' . $file,
                 '_data'   => '',
     	           );
         $event->data['script'][] = array(
