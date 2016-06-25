@@ -41,7 +41,7 @@ class action_plugin_sketchcanvas extends DokuWiki_Action_Plugin {
         $event->data['link'][] = array(
             'type'   => 'text/css',
             "rel" => "stylesheet",
-            "href" => "http://fonts.googleapis.com/earlyaccess/notosansjapanese.css",
+            "href" => (is_ssl() ? "https" : "http") . "://fonts.googleapis.com/earlyaccess/notosansjapanese.css",
              );
         $files = array('SketchCanvas.js', 'draw.js', /*'i18next-1.7.2.min.js', 'js-yaml.min.js',*/ 'translation.js');
         foreach($files as $file)
