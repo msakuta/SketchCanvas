@@ -52,8 +52,15 @@ class syntax_plugin_sketchcanvas extends DokuWiki_Syntax_Plugin {
               case DOKU_LEXER_ENTER :
                 list($active, $num) = $match;
                 $class = '';
-                if(method_exists($renderer, 'startSectionEdit'))
-                  $class = $renderer->startSectionEdit($match['bytepos_start'], 'plugin_sketchcanvas');
+                if(method_exists($renderer, 'startSectionEdit')){
+                  $sectionEditData = ['target' => 'plugin_sketchcanvas'];
+                  if (!defined('SEC_EDIT_PATTERN')) {
+                      // backwards-compatibility for Frusterick Manners (2017-02-19)
+                      $sectionEditData = 'plugin_sketchcanvas';
+                  }
+
+                  $class = $renderer->startSectionEdit($match['bytepos_start'], $sectionEditData);
+                }
                 $canvasId = '__sketchcanvas' . $num;
               // To make dw2pdf work with SketchCanvas, we need to convert the canvas content
               // to some image.  Now that the server is capable of rendering one, we can
