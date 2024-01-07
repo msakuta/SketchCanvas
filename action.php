@@ -9,6 +9,8 @@
 // must be run within Dokuwiki
 if (!defined('DOKU_INC')) die();
 
+require_once("CanvasElement.php");
+
 /**
  * Add scripts via an event handler
  */
@@ -22,6 +24,8 @@ class action_plugin_sketchcanvas extends DokuWiki_Action_Plugin {
 
        $controller->register_hook('HTML_SECEDIT_BUTTON', 'BEFORE', $this, 'editButton');
        $controller->register_hook('HTML_EDIT_FORMSELECTION', 'BEFORE', $this, 'editForm');
+       // After Igor
+       $controller->register_hook('EDIT_FORM_ADDTEXTAREA', 'BEFORE', $this, 'editFormNew');
        $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, 'handle_newfigure');
 
        $controller->register_hook('TOOLBAR_DEFINE', 'AFTER', $this, 'toolbarDefine');
@@ -112,6 +116,32 @@ document.addEventListener('DOMContentLoaded', function(){
 <textarea name="wikitext" id="wiki__text" class="edit" cols="80" rows="10">$TEXT</textarea>
 EOT;
         $form->addElement($canvasText);
+
+        // Pass wikitext through POSTs for previewing and saving
+        if(isset($_POST['editfigure__new'])) {
+            foreach($_POST['editfigure__new'] as $k => $v) {
+                $form->addHidden("editfigure__new[$k]", $v);
+            }
+        }
+    }
+
+    /**
+     * A
+     *
+     * @param Doku_Event $event
+     */
+    public function editFormNew(Doku_Event $event, $param){
+        global $TEXT;
+        if($event->data['target'] !== 'plugin_sketchcanvas')
+            return;
+        $event->preventDefault();
+
+        $event->data['media_manager'] = false;
+
+        $form =& $event->data['form'];
+        $canvasElem = new CanvasElement();
+        $canvasElem->val($TEXT);
+        $form->addElement($canvasElem);
 
         // Pass wikitext through POSTs for previewing and saving
         if(isset($_POST['editfigure__new'])) {
