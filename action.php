@@ -126,7 +126,7 @@ EOT;
     }
 
     /**
-     * A
+     * An event handler for newer versions of DokuWiki, starting from Igor.
      *
      * @param Doku_Event $event
      */
